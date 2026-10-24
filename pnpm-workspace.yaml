@@ -19,8 +19,13 @@ overrides:
   multer: 2.5.0
 
 # Dependency build scripts are blocked unless approved here.
-# unrs-resolver ships prebuilt binaries, so its script is not needed.
+# Prisma's scripts check the Node.js version and download the migration engine.
+# argon2, esbuild and unrs-resolver ship prebuilt binaries, so their scripts are not needed.
 allowBuilds:
+  '@prisma/engines': true
+  argon2: false
+  esbuild: false
+  prisma: true
   unrs-resolver: false
 
 # Supply chain: skip versions published in the last 24 hours, so a hijacked

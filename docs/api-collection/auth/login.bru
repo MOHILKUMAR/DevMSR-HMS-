@@ -1,0 +1,30 @@
+meta {
+  name: Login
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/auth/login
+  body: json
+  auth: none
+}
+
+headers {
+  X-CSRF-Token: {{csrfToken}}
+}
+
+body:json {
+  {
+    "username": "reception",
+    "password": "{{seedPassword}}"
+  }
+}
+
+script:post-response {
+  bru.setVar("csrfToken", res.body.csrfToken);
+}
+
+assert {
+  res.status: eq 200
+}

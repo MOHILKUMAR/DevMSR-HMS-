@@ -12,11 +12,13 @@ COPY apps/web/package.json apps/web/
 COPY packages/config/package.json packages/config/
 COPY packages/types/package.json packages/types/
 COPY packages/validation/package.json packages/validation/
-RUN pnpm install --frozen-lockfile --filter "@devmsr/api..."
+# The root project carries the Prisma CLI, which generates the client the API compiles against.
+RUN pnpm install --frozen-lockfile --filter "@devmsr/api..." --filter devmsr-hms
 
 COPY . .
 # deploy copies the API's dist and production dependencies, with the shared packages' dist, into /out.
-RUN pnpm --filter "@devmsr/api..." build \
+RUN pnpm db:generate \
+  && pnpm --filter "@devmsr/api..." build \
   && pnpm --filter @devmsr/api deploy --prod /out
 
 FROM node:22-slim AS runtime

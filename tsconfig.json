@@ -1,0 +1,7 @@
+{
+  "extends": "@devmsr/config/tsconfig/node.json",
+  "compilerOptions": {
+    "noEmit": true
+  },
+  "include": ["prisma/**/*.ts", "prisma.config.ts"]
+}

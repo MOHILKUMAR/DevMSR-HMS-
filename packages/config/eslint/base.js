@@ -20,6 +20,8 @@ export function baseConfig(tsconfigRootDir) {
       rules: {
         '@typescript-eslint/no-explicit-any': 'error',
         '@typescript-eslint/restrict-template-expressions': ['error', { allowNumber: true }],
+        // `const { secret, ...rest } = row` is the plain way to drop a field.
+        '@typescript-eslint/no-unused-vars': ['error', { ignoreRestSiblings: true, argsIgnorePattern: '^_' }],
         // Logs must go through pino so patient fields are redacted.
         'no-console': 'error',
       },
