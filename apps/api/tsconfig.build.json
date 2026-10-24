@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    // The build compiles against the shared packages' dist output, not their source.
+    "customConditions": []
+  },
+  "include": ["src"],
+  "exclude": ["src/**/*.spec.ts"]
+}
