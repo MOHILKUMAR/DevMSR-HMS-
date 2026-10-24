@@ -105,7 +105,7 @@ Every non-obvious decision, oldest first. Each entry has the date, the decision 
 
 ## 2026-10-25: Rules enforced by triggers
 
-- Decision: triggers reject UPDATE, DELETE and TRUNCATE on `audit_events` and `login_events`, and DELETE and TRUNCATE on `patients`.
+- Decision: triggers reject UPDATE, DELETE and TRUNCATE on `audit_events` and `login_events`, and DELETE and TRUNCATE on `patients`, raising `insufficient_privilege` (42501). That code is used, rather than `restrict_violation` (which Prisma reports as a foreign key error), so the message reaches the logs.
 - Reason: no code path can remove audit history or clinical records.
 - Before go-live: the table owner can disable triggers. Run the API as a separate database role that does not own the tables and has no UPDATE, DELETE or TRUNCATE on `audit_events`.
 

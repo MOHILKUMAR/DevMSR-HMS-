@@ -98,10 +98,11 @@ describe('auth', () => {
       expect(errorCode(noCsrf)).toBe('CSRF_FAILED');
 
       const browser = await anonymousBrowser(t.http);
+      const otherToken = (await anonymousBrowser(t.http)).csrfToken;
       const mismatch = await request(t.http)
         .post('/api/v1/auth/login')
         .set('Cookie', browser.cookie)
-        .set('X-CSRF-Token', (await anonymousBrowser(t.http)).csrfToken)
+        .set('X-CSRF-Token', otherToken)
         .send({ username: user.username, password: TEST_PASSWORD });
       expect(mismatch.status).toBe(403);
     });

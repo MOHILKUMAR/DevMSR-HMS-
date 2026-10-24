@@ -40,7 +40,9 @@ export async function createTestApp(
   }).compile();
   const app = moduleRef.createNestApplication<NestExpressApplication>({ bufferLogs: true });
   configureApp(app, env);
-  await app.init();
+  // Listening up front means supertest never starts or stops the server itself, which breaks
+  // overlapping requests.
+  await app.listen(0, '127.0.0.1');
   return {
     app,
     http: app.getHttpServer(),
