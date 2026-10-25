@@ -103,6 +103,8 @@ test('the billing and payment counters work from the keyboard alone', async ({ b
   await expect(billing.getByRole('heading', { name: /^Billing for / })).toBeVisible();
 
   const service = billing.getByLabel('Service', { exact: true });
+  // The options load after the screen; typing into the select before then would pick nothing.
+  await expect(service.locator('option', { hasText: 'ECG' }).first()).toBeAttached();
   await tabTo(billing, service);
   await billing.keyboard.type('ECG');
   await expect(service.locator('option:checked')).toContainText('ECG');
