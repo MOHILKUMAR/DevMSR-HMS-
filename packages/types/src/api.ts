@@ -44,6 +44,12 @@ export const API_ERROR_CODES = [
   'BED_TAKEN',
   'ALREADY_ADMITTED',
   'ADMISSION_STATE',
+  'DISCHARGE_STEP',
+  'NOT_TREATING_DOCTOR',
+  'BALANCE_NOT_ZERO',
+  'ROOM_CHARGES_MISSING',
+  'NOTHING_TO_BILL',
+  'NOTHING_DUE',
 ] as const;
 
 export type ApiErrorCode = (typeof API_ERROR_CODES)[number];

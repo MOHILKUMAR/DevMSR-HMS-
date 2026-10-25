@@ -91,6 +91,14 @@ export const Errors = {
   bedTaken: () => new AppError(409, 'BED_TAKEN', 'This bed is no longer free. Choose another bed.'),
   alreadyAdmitted: () => new AppError(409, 'ALREADY_ADMITTED', 'This patient is already admitted. Open the current admission.'),
   admissionState: () => new AppError(409, 'ADMISSION_STATE', 'This admission has moved on. Reload to see where it is now.'),
+  dischargeStep: (message: string) => new AppError(409, 'DISCHARGE_STEP', message),
+  notTreatingDoctor: () => new AppError(403, 'NOT_TREATING_DOCTOR', "Only the patient's treating doctor can do this."),
+  balanceNotZero: (balance: unknown) =>
+    new AppError(422, 'BALANCE_NOT_ZERO', 'The account is not settled: bill, collect or refund what is left, then try again.', balance),
+  roomChargesMissing: (dates: readonly string[]) =>
+    new AppError(422, 'ROOM_CHARGES_MISSING', 'Room or nursing charges are missing for some days. Check the room rates, then prepare the final bill again.', { dates }),
+  nothingToBill: () => new AppError(422, 'NOTHING_TO_BILL', 'There are no unbilled charges for this patient.'),
+  nothingDue: () => new AppError(422, 'NOTHING_DUE', 'Nothing is due on this account, so no approval is needed.'),
   internal: () =>
     new AppError(500, 'INTERNAL_ERROR', 'Something went wrong on our side. Try again, and tell your admin if it keeps happening.'),
 };

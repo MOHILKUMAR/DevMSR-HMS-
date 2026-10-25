@@ -132,6 +132,13 @@ export class IpdService {
     return paged(rows.map(toAdmissionSummary), total, query);
   }
 
+  /** One admission as opened on screen. Audited like any patient record view (CLAUDE.md section 7). */
+  async open(auth: AuthContext, id: string, meta: RequestMeta): Promise<Admission> {
+    const admission = await this.get(auth, id);
+    await this.audit.record({ action: 'ipd.admission.viewed', hospitalId: hospitalOf(auth), actorUserId: auth.userId, entityType: 'admission', entityId: id, meta });
+    return admission;
+  }
+
   async get(auth: AuthContext, id: string): Promise<Admission> {
     const hospitalId = hospitalOf(auth);
     const row = await this.ipd.findAdmission(hospitalId, id);

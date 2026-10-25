@@ -59,6 +59,7 @@ describe('who may decide', () => {
     invoiceNumber: null,
     receiptId: null,
     receiptNumber: null,
+    dischargeId: null,
     amountPaise: 50_000,
     reason: 'Staff family',
     details: { kind: 'discount', scope: 'bill_amount', percentBp: null, lines: [] },

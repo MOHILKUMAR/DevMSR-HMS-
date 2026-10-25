@@ -4,6 +4,7 @@ import type { AuthContext } from '../auth/auth-context.js';
 import type { BillingRepository } from '../billing/billing.repository.js';
 import { AppError } from '../common/errors/app-error.js';
 import type { TransactionRunner } from '../common/prisma/transaction-runner.js';
+import type { DischargeService } from '../discharge/discharge.service.js';
 import type { NumberingService } from '../numbering/numbering.service.js';
 import type { PaymentsRepository } from '../payments/payments.repository.js';
 import type { ApprovalsRepository, RequestRow } from './approvals.repository.js';
@@ -31,6 +32,7 @@ function requestRow(overrides: Partial<RequestRow>): RequestRow {
     patientId: 'p1',
     invoiceId: 'i1',
     receiptId: null,
+    dischargeId: null,
     amountPaise: 50_000n,
     reason: 'Staff family',
     details: { kind: 'discount', scope: 'lines', percentBp: null, lines: [{ lineNo: 1, description: 'Room', amountPaise: 300_000, discountPaise: 50_000 }] },
@@ -85,6 +87,7 @@ function setup(request: RequestRow) {
     billing as unknown as BillingRepository,
     payments as unknown as PaymentsRepository,
     numbering as unknown as NumberingService,
+    {} as DischargeService,
     audit as unknown as AuditService,
     transactions as unknown as TransactionRunner,
   );

@@ -62,9 +62,9 @@ export class AdmissionsController {
 
   @Get(':id')
   @RequirePermission('ipd.admission.read')
-  @ApiContract({ summary: 'One admission with its beds and the room and nursing charges posted', params: idParamsSchema, response: admissionSchema })
-  get(@CurrentAuth() auth: AuthContext, @ValidParams() params: { id: string }): Promise<Admission> {
-    return this.ipd.get(auth, params.id);
+  @ApiContract({ summary: 'One admission with its beds and the room and nursing charges posted (audited)', params: idParamsSchema, response: admissionSchema })
+  get(@CurrentAuth() auth: AuthContext, @ValidParams() params: { id: string }, @ReqMeta() meta: RequestMeta): Promise<Admission> {
+    return this.ipd.open(auth, params.id, meta);
   }
 
   @Post(':id/transfers')

@@ -135,7 +135,7 @@ Admissions, transfers, the bed board and the interim bill (`docs/billing-rules.m
 | POST | `/admissions` | `ipd.admission.create` | Needs `Idempotency-Key`. Body `{ patientId, doctorId, bedId, reason?, opdVisitId? }`; `opdVisitId` is an OPD visit of this patient where admission was advised. Gives the next `<CODE>/IP/<FY>/<6 digits>` number and sets the bed occupied. The deposit held and the room category's minimum advance are kept on the admission; `advanceShort` is true when the deposit is less (a warning only). 409 `ALREADY_ADMITTED`; 409 `BED_TAKEN` when the bed is not free (or another desk took it first); 422 `REFERENCE_INVALID` for an inactive doctor, a visit that did not advise admission, or a ward with no room category. |
 | GET | `/admissions` | `ipd.admission.read` | Paged admissions, newest first. `?status=admitted` for the patients in now. |
 | GET | `/admissions/advised` | `ipd.admission.read` | OPD visits of the last 7 days where the doctor advised admission and the patient has not been admitted since. |
-| GET | `/admissions/:id` | `ipd.admission.read` | One admission with every bed it held (and why each ended) and the room and nursing charges posted for each night. |
+| GET | `/admissions/:id` | `ipd.admission.read` | One admission with every bed it held (and why each ended), the room and nursing charges posted for each night, and `dischargeId` once the patient is marked fit. Audited. |
 | POST | `/admissions/:id/transfers` | `ipd.transfer.create` | Body `{ bedId }`. Ends the current bed (reason `transfer`), sets it to cleaning, and opens the new one. 409 `BED_TAKEN`; 409 `ADMISSION_STATE` once discharged. |
 | GET | `/admissions/:id/interim-bill` | `billing.account.read` | What the stay has come to: the patient's charges since admission that are not on an issued bill, totalled like a bill but with no number, and the deposit held. Audited. |
 | GET | `/bed-board` | `beds.bed.read` | Every active ward with its room category and minimum advance, and every active bed with its state and, when occupied, the admission number and patient. |
@@ -144,6 +144,37 @@ Admissions, transfers, the bed board and the interim bill (`docs/billing-rules.m
 | PUT | `/room-categories/:id/minimum-advance` | `tariffs.tariff.manage` | Body `{ minimumAdvancePaise }` (0 for none). Returns the list. |
 
 The midnight job (`ipd-midnight-charges`, pg-boss, 00:05 IST and once when the API starts) posts a room charge and a nursing charge for each night an admission crosses midnight in a bed, at the rates in force that day for the room category of the bed held at midnight. A night with no rate is skipped and logged; it is posted on a later run once the rate exists, as are nights missed while the API was down. Each night and kind is posted once (a unique key), so runs can repeat safely. These charges have no `postedBy`; the audit event `ipd.daily-charges.posted` has no actor.
+
+## Discharge
+
+The discharge of one admission (`docs/billing-rules.md`, discharge and reports), in this order: the treating doctor marks the patient fit, billing prepares and issues the final bill, the cashier settles the account, billing gives clearance (or the MD approves clearance with money still due), the doctor writes the summary and the MD signs it off, and the ward completes the discharge. Each step is written once; the database refuses changes to a fit mark, a clearance, a signed summary or a completed discharge.
+
+The account is the patient's whole account. It is settled when every room and nursing day is charged, no charge is unbilled (or only on a draft), no deposit is held, nothing overpaid is left to refund, and nothing is due on issued bills. A stay is charged one day per midnight crossed, or one day when no midnight has passed.
+
+| Method | Path | Permission | Notes |
+| --- | --- | --- | --- |
+| POST | `/discharges` | `ipd.discharge.mark-fit` | Body `{ admissionId, note? }`. Only the admission's doctor (the doctor record linked to the login), else 403 `NOT_TREATING_DOCTOR`. 409 `DISCHARGE_STEP` if already marked fit; 409 `ADMISSION_STATE` once discharged. 201 with the discharge. |
+| GET | `/discharges` | `ipd.admission.read` | Paged discharges, latest first. `?status=open` or `completed`. Each row has the admission, when the patient was marked fit, the latest clearance and the summary's state (`none`, `draft`, `signed`). |
+| GET | `/discharges/:id` | `ipd.admission.read` | One discharge: the fit mark, the latest clearance, a clearance with dues waiting (`pendingDuesRequestId`), the summary's state, the patient's bills since admission, the account (`balance`) and `isTreatingDoctor` for the signed-in user. Audited. |
+| POST | `/discharges/:id/final-bill` | `billing.invoice.create` | Needs `Idempotency-Key`. Posts the room and nursing charges due (nights the midnight job has not posted yet, or the one day of a same-day stay at the rate of the room held now), then drafts a bill of every charge on no bill. 201 with the draft; billing issues it with `POST /invoices/:id/issue`. 422 `ROOM_CHARGES_MISSING` (`details.dates`) when a room category has no rate; 422 `NOTHING_TO_BILL`. |
+| POST | `/discharges/:id/clearance` | `billing.clearance.grant` | Billing clearance at a settled account. 422 `BALANCE_NOT_ZERO` with the account in `details` (`unbilledCount`, `unbilledPaise`, `duePaise`, `depositHeldPaise`, `refundablePaise`, `missingRoomCharges`). Can be given again after the account changes; the latest clearance counts. 201 with the discharge. |
+| POST | `/clearance-requests` | `billing.clearance.grant` | Body `{ dischargeId, reason }`. Asks the MD to clear while money is still due; the amount is what is due now. Everything else must be settled first (422 `BALANCE_NOT_ZERO`); 422 `NOTHING_DUE` when nothing is due; 409 `REQUEST_PENDING` if one is waiting. Listed in `/approval-requests` as kind `clearance_dues`, with `dischargeId`. |
+| POST | `/clearance-requests/:id/approve` | `billing.clearance.approve-dues` | Needs `Idempotency-Key`. Gives clearance at once, for what is due now; 422 `BALANCE_NOT_ZERO` if more is due than was asked for, or something else changed. The requester can never approve. |
+| POST | `/clearance-requests/:id/reject` | `billing.clearance.approve-dues` | Body `{ note }`. |
+| PUT | `/discharges/:id/summary` | `ipd.discharge-summary.write` | Body `{ diagnosis, courseInHospital, conditionAtDischarge, medications, advice, followUpDate }` (the first three 3 to 2,000, 4,000 and 1,000 characters; the rest may be null). Only the treating doctor, and only until signed (409 `DISCHARGE_STEP`). The audit event names the fields, not their text. |
+| POST | `/discharges/:id/summary/sign` | `ipd.discharge-summary.sign` | The MD signs the summary off. 422 `SELF_APPROVAL_NOT_ALLOWED` for whoever wrote it; 409 `DISCHARGE_STEP` when not written or already signed. |
+| GET | `/discharges/:id/summary` | `ipd.discharge-summary.read` | The summary as printed: hospital, patient, doctor and department, admission and discharge times, the text, who wrote and signed it. `content` is null until written. Audited. The print page refuses to print until it is signed. |
+| POST | `/discharges/:id/complete` | `ipd.discharge.complete` | The patient leaves. Needs a clearance and a signed summary (409 `DISCHARGE_STEP`), and the account still settled within what was cleared (422 `BALANCE_NOT_ZERO`: a charge, night or payment after clearance means clearing again). Ends the bed (reason `discharge`), sets it to cleaning and closes the admission, in one transaction. |
+
+## Reports
+
+A report day is a calendar day, midnight to midnight IST (`?date=YYYY-MM-DD`, today when left out). Every report read is audited.
+
+| Method | Path | Permission | Notes |
+| --- | --- | --- | --- |
+| GET | `/reports/collections` | `reports.collection.read` | The day-end collection: receipts taken and refunds paid in the day, by the cashier whose shift took them and by payment mode (`rows`), by mode for all cashiers (`byMode`) and in total. Payments and deposits are separate; refunds are taken off `netPaise`. Void receipts are left out of every figure and counted in `voided`. |
+| GET | `/reports/day-book` | `reports.finance.export` | The day book for Tally as `text/csv` (`Content-Disposition: attachment`): one row per bill issued, receipt, deposit, credit note and refund, in time order, with the date, voucher type, number, patient UHID, mode, the bill or deposit it is against, taxable, CGST, SGST, round off and amount in rupees. A void receipt keeps its row at 0.00. Limited to `RATE_LIMIT_EXPORT_PER_HOUR` (10) an hour per user; 429 with `Retry-After` beyond that. |
+| GET | `/reports/operations` | `reports.operations.read` | OPD tokens, seen and cancelled on the day, admissions and discharges completed on the day, and the beds now by state and ward. |
 
 ## Error codes
 
@@ -191,4 +222,10 @@ The midnight job (`ipd-midnight-charges`, pg-boss, 00:05 IST and once when the A
 | `BED_TAKEN` | 409 | The bed chosen for an admission or transfer is not free, or another desk took it first. |
 | `ALREADY_ADMITTED` | 409 | Admitting a patient who has an open admission. |
 | `ADMISSION_STATE` | 409 | The admission is discharged and cannot take this step. |
+| `DISCHARGE_STEP` | 409 | The discharge is not at that step: marked fit already, not cleared, summary not written, signed already, or the patient has left. |
+| `NOT_TREATING_DOCTOR` | 403 | Only the admission's doctor marks fit and writes the summary. |
+| `BALANCE_NOT_ZERO` | 422 | The account is not settled. `details` gives the amounts and the days not charged. |
+| `ROOM_CHARGES_MISSING` | 422 | A day of the stay cannot be charged: its room category has no room or nursing rate. `details.dates` lists the days. |
+| `NOTHING_TO_BILL` | 422 | The final bill found no charge that is not already on a bill. |
+| `NOTHING_DUE` | 422 | A clearance with dues was asked for with nothing due. |
 | `INTERNAL_ERROR` | 500 | Anything unexpected. Details are logged with the `X-Request-Id`, never returned. |

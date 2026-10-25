@@ -377,3 +377,28 @@ Every non-obvious decision, oldest first. Each entry has the date, the decision 
 
 - Decision: room categories gain a minimum advance in paise (0 for none), set by finance (`tariffs.tariff.manage`). At admission the deposit the patient holds (deposits less what was used or refunded, void receipts left out) and the minimum are both stored on the admission, and the response flags `advanceShort` when the deposit is less. Nothing is blocked.
 - Reason: `docs/billing-rules.md` says a short advance gives a warning only. Storing both amounts keeps the warning provable later, since the deposit changes after admission.
+
+## 2026-10-26: A discharge is its own record, written step by step
+
+- Decision: the doctor marking a patient fit creates a `discharges` row for the admission (one per admission). Billing clearances are rows of their own (`discharge_clearances`, append-only), and the summary is one row (`discharge_summaries`). Triggers keep the fit mark unchanged, let completion be written once, refuse any change to a clearance, and lock the summary once signed (signing writes only the signature, and the signer can never be whoever last wrote it). Completing a discharge ends the bed assignment (reason `discharge`), sets the bed to cleaning, closes the admission and marks the discharge complete in one transaction. Admission views (`GET /admissions/:id`) are now audited too, which slice 5 had missed.
+- Reason: section 7 keeps clinical and financial records as written. Separate rows let each step carry its own who and when, and let clearance be given again without changing the first.
+
+## 2026-10-26: What billing clearance checks
+
+- Decision: clearance looks at the patient's whole account, not only the stay: every day of the stay charged (one per midnight crossed, or one for a same-day stay), no charge unbilled or only on a draft, no deposit held, nothing overpaid left to refund, and nothing due on issued bills. Money due can be cleared only by the MD, through an approval request of the new kind `clearance_dues`; approving gives clearance at once for what is due then, never more than was asked. Completion checks the account again against the latest clearance, so a charge, a night or a payment change after clearance means clearing again. To confirm with the hospital (`docs/hospital-questions.md`, D-15).
+- Reason: `docs/billing-rules.md` asks for a zero balance or the MD's approval with a reason. Reading "zero balance" both ways makes sure excess deposit is refunded before the patient leaves (section 12), and checking again at completion stops a night posted after clearance from slipping through.
+
+## 2026-10-26: The final bill posts the days not charged yet
+
+- Decision: "Prepare final bill" first posts any room and nursing day still missing, in the same transaction: nights the midnight job has not posted (it may not have run yet), and for a stay that crossed no midnight, the one day the rule charges, at the rate of the room held at that moment. That day uses the same key as the first night, so a patient who stays on is never charged twice for it. A day whose room category has no rate stops the final bill with `ROOM_CHARGES_MISSING` rather than billing short. The draft takes every charge of the patient on no bill; billing issues it like any other bill. To confirm the same-day room with the hospital (D-16).
+- Reason: `docs/billing-rules.md` charges a same-day stay one day, which the midnight job alone can never post.
+
+## 2026-10-26: Only the treating doctor marks fit and writes the summary
+
+- Decision: marking fit and writing the summary need both the permission and being the admission's doctor (the doctor record linked to the login), as OPD notes do; anyone else gets 403 `NOT_TREATING_DOCTOR`. The MD signs off (`ipd.discharge-summary.sign`). Reading and printing the summary is for doctors, the MD and nurses (`ipd.discharge-summary.read`); billing and the desks see only whether it is signed. The patient leaves only once it is signed. To confirm with the hospital (D-17).
+- Reason: `docs/billing-rules.md` has the treating doctor draft and the MD sign before printing. Nurses hand the printed summary to the patient.
+
+## 2026-10-26: The collection report and the Tally day book
+
+- Decision: the collection report counts receipts by when they were taken and refunds by when they were paid, in IST calendar days, under the cashier whose shift took or paid them, by payment mode. Void receipts are left out of every figure and shown as a count. The day book is a CSV of bills issued, receipts, deposits, credit notes and refunds of the day, with ISO dates, the patient's UHID only (no names in an exported file), amounts in rupees with two decimals worked out in integers, and a void receipt kept at 0.00 so numbers stay gapless. Text cells that could start a spreadsheet formula are prefixed with an apostrophe. Exports go through a third rate limit, `export`, at `RATE_LIMIT_EXPORT_PER_HOUR` (10) per user per hour (section 9); PDFs will use the same decorator. To confirm the CSV layout with the accountant (D-18).
+- Reason: `docs/billing-rules.md` asks for a calendar-day report by cashier and mode and a daily CSV day book. Tally ledger names are not known yet, so the CSV stays a plain day book the accountant can map.

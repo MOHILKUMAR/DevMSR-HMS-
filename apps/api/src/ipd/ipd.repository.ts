@@ -39,6 +39,7 @@ export const ADMISSION_SELECT = {
   patient: { select: { id: true, uhid: true, fullName: true, sex: true, dateOfBirth: true } },
   doctor: { select: { id: true, fullName: true } },
   assignments: { select: ASSIGNMENT_SELECT, orderBy: { startedAt: 'asc' } },
+  discharge: { select: { id: true } },
 } as const satisfies Prisma.AdmissionSelect;
 export type AdmissionRow = Prisma.AdmissionGetPayload<{ select: typeof ADMISSION_SELECT }>;
 
@@ -49,6 +50,20 @@ const DAILY_SELECT = {
   charge: { select: { description: true, amountPaise: true } },
 } as const satisfies Prisma.DailyChargeSelect;
 export type DailyRow = Prisma.DailyChargeGetPayload<{ select: typeof DAILY_SELECT }>;
+
+/** An admission as the room and nursing charges need it: its beds and the days already charged. */
+const CHARGING_SELECT = {
+  id: true,
+  patientId: true,
+  admittedAt: true,
+  dischargedAt: true,
+  assignments: {
+    select: { bedId: true, startedAt: true, endedAt: true, bed: { select: { ward: { select: { roomCategoryId: true } } } } },
+    orderBy: { startedAt: 'asc' },
+  },
+  dailyCharges: { select: { chargeDate: true, kind: true } },
+} as const satisfies Prisma.AdmissionSelect;
+export type ChargingRow = Prisma.AdmissionGetPayload<{ select: typeof CHARGING_SELECT }>;
 
 /** Admissions, bed assignments and the midnight room and nursing charges. Every query filters by hospital_id. */
 @Injectable()
@@ -195,21 +210,16 @@ export class IpdRepository {
   }
 
   /** Admissions that may still have nights to charge: open ones, and those discharged in the last week. */
-  admissionsToCharge(hospitalId: string, dischargedSince: Date) {
+  admissionsToCharge(hospitalId: string, dischargedSince: Date): Promise<ChargingRow[]> {
     return this.prisma.admission.findMany({
       where: { hospitalId, OR: [{ status: 'admitted' }, { dischargedAt: { gte: dischargedSince } }] },
-      select: {
-        id: true,
-        patientId: true,
-        admittedAt: true,
-        dischargedAt: true,
-        assignments: {
-          select: { bedId: true, startedAt: true, endedAt: true, bed: { select: { ward: { select: { roomCategoryId: true } } } } },
-          orderBy: { startedAt: 'asc' },
-        },
-        dailyCharges: { select: { chargeDate: true, kind: true } },
-      },
+      select: CHARGING_SELECT,
     });
+  }
+
+  /** One admission with what pricing its days needs, inside the caller's transaction. */
+  admissionToCharge(hospitalId: string, id: string, tx: Tx): Promise<ChargingRow | null> {
+    return tx.admission.findFirst({ where: { id, hospitalId }, select: CHARGING_SELECT });
   }
 
   /** The room or nursing service item of a room category, with its rate on `date`. */

@@ -37,6 +37,7 @@ export function toAdmission(row: AdmissionRow, daily: readonly DailyRow[], names
     reason: row.reason,
     opdVisitId: row.opdVisitId,
     admittedByName: names.get(row.admittedById) ?? null,
+    dischargeId: row.discharge?.id ?? null,
     beds: row.assignments.map((assignment) => ({
       ...bedPlace(assignment.bed),
       startedAt: assignment.startedAt.toISOString(),

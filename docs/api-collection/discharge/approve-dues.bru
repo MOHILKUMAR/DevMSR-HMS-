@@ -1,0 +1,29 @@
+meta {
+  name: Approve the clearance with dues
+  type: http
+  seq: 10
+}
+
+post {
+  url: {{baseUrl}}/clearance-requests/{{clearanceRequestId}}/approve
+  body: json
+  auth: none
+}
+
+headers {
+  X-CSRF-Token: {{csrfToken}}
+  Idempotency-Key: {{idempotencyKey}}
+}
+
+body:json {
+  {}
+}
+
+script:pre-request {
+  // A new key each run. Send the request again without this script to see the stored response.
+  bru.setVar("idempotencyKey", require("crypto").randomUUID());
+}
+
+assert {
+  res.status: eq 200
+}

@@ -14,6 +14,7 @@ export default async function AdmissionPage({ params }: { params: Promise<{ id: 
       id={id}
       canTransfer={me.permissions.includes('ipd.transfer.create')}
       canSeeBill={me.permissions.includes('billing.account.read')}
+      canMarkFit={me.permissions.includes('ipd.discharge.mark-fit')}
     />
   );
 }

@@ -1,15 +1,17 @@
 'use client';
 
 import type { Admission } from '@devmsr/validation';
-import { ArrowRightLeft, BedDouble, DoorOpen, Printer, TriangleAlert } from 'lucide-react';
+import { ArrowRightLeft, BedDouble, DoorOpen, Printer, Stethoscope, TriangleAlert } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
-import { ErrorAlert, FormActions, SelectField } from '@/components/form-fields';
+import { ErrorAlert, FormActions, SelectField, TextField } from '@/components/form-fields';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { Table, TableBody, TableHead, TableMessage, Td, Th } from '@/components/ui/table';
+import { useMarkFit } from '@/features/discharge/queries';
 import { AgeSex } from '@/features/patients/age-sex';
 import { formatDate, formatDateTime, formatPaise } from '@/lib/format';
 import { InterimBillDocument } from './interim-bill-document';
@@ -53,12 +55,48 @@ function TransferDialog({ admission, onDone }: { admission: Admission; onDone: (
   );
 }
 
+/** The treating doctor marks the patient fit for discharge, with an optional note. This starts the discharge. */
+function MarkFitDialog({ admission, onDone }: { admission: Admission; onDone: () => void }) {
+  const t = useTranslations('ipd.fit');
+  const tc = useTranslations('common');
+  const router = useRouter();
+  const markFit = useMarkFit();
+  const [note, setNote] = useState('');
+  const validNote = note.trim() === '' || (note.trim().length >= 3 && note.trim().length <= 500);
+  return (
+    <DialogContent title={t('title', { name: admission.patient.fullName })} description={t('description')} closeLabel={tc('close')}>
+      <form
+        noValidate
+        className="space-y-4"
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (!validNote) return;
+          markFit.mutate(
+            { admissionId: admission.id, ...(note.trim() === '' ? {} : { note: note.trim() }) },
+            {
+              onSuccess: (discharge) => {
+                onDone();
+                router.push(`/discharge/${discharge.id}`);
+              },
+            },
+          );
+        }}
+      >
+        <TextField id="fit-note" label={t('note')} value={note} error={validNote ? undefined : t('noteError')} onChange={(event) => { setNote(event.target.value); }} />
+        {markFit.error !== null && <ErrorAlert error={markFit.error} />}
+        <FormActions pending={markFit.isPending || !validNote} onCancel={onDone} />
+      </form>
+    </DialogContent>
+  );
+}
+
 /** One admission: the patient, their bed and its history, the nights charged, and the interim bill. */
-export function AdmissionView({ id, canTransfer, canSeeBill }: { id: string; canTransfer: boolean; canSeeBill: boolean }) {
+export function AdmissionView({ id, canTransfer, canSeeBill, canMarkFit }: { id: string; canTransfer: boolean; canSeeBill: boolean; canMarkFit: boolean }) {
   const t = useTranslations('ipd.admission');
   const admission = useAdmission(id);
   const interim = useInterimBill(id, canSeeBill);
   const [moving, setMoving] = useState(false);
+  const [markingFit, setMarkingFit] = useState(false);
 
   if (admission.error !== null) return <ErrorAlert error={admission.error} />;
   if (admission.data === undefined) return <p className="text-text-muted">{t('loading')}</p>;
@@ -93,6 +131,20 @@ export function AdmissionView({ id, canTransfer, canSeeBill }: { id: string; can
             <Button variant="outline" onClick={() => { setMoving(true); }}>
               <ArrowRightLeft aria-hidden />
               {t('transfer')}
+            </Button>
+          )}
+          {data.dischargeId !== null && (
+            <Button asChild variant="outline">
+              <Link href={`/discharge/${data.dischargeId}`}>
+                <DoorOpen aria-hidden />
+                {t('openDischarge')}
+              </Link>
+            </Button>
+          )}
+          {admitted && canMarkFit && data.dischargeId === null && (
+            <Button variant="outline" onClick={() => { setMarkingFit(true); }}>
+              <Stethoscope aria-hidden />
+              {t('markFit')}
             </Button>
           )}
         </div>
@@ -189,6 +241,9 @@ export function AdmissionView({ id, canTransfer, canSeeBill }: { id: string; can
 
       <Dialog open={moving} onOpenChange={setMoving}>
         {moving && <TransferDialog admission={data} onDone={() => { setMoving(false); }} />}
+      </Dialog>
+      <Dialog open={markingFit} onOpenChange={setMarkingFit}>
+        {markingFit && <MarkFitDialog admission={data} onDone={() => { setMarkingFit(false); }} />}
       </Dialog>
     </section>
   );

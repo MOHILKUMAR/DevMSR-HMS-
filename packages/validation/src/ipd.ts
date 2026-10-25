@@ -77,6 +77,8 @@ export const admissionSchema = admissionSummarySchema.extend({
   reason: z.string().nullable(),
   opdVisitId: z.uuid().nullable(),
   admittedByName: z.string().nullable(),
+  /** Set once the doctor has marked the patient fit for discharge. */
+  dischargeId: z.uuid().nullable(),
   beds: z.array(
     bedPlaceSchema.extend({
       startedAt: z.iso.datetime(),
