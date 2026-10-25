@@ -10,6 +10,13 @@ This file is the only source of hospital billing rules. Rates, discounts, taxes,
 - The year is the calendar year of registration (Asia/Kolkata). The number restarts at 000001 each year.
 - Numbers are gapless, taken from a locked counter row in the same transaction as the registration.
 
+### Patient registration (2026-10-25)
+
+- Required to register: full name, sex, age or date of birth, and a mobile number. Address, guardian (S/o, D/o, W/o, H/o, C/o), emergency contact, Aadhaar and ABHA are optional.
+- When only an age is given, the date of birth is estimated (today minus that many years) and marked as estimated.
+- Duplicates: the same Aadhaar or ABHA number as an existing patient of the hospital is refused, and staff open the existing record instead. The same mobile number, or the same name with a birth year within one year, is a warning: staff may still register a new patient (families often share one mobile).
+- No registration fee is charged in this slice. Whether there is one, and how much, is an open question below.
+
 ### Rates, fees and taxes (2026-10-25)
 
 - The hospital enters its own rates. Nothing is hard-coded: every fee, room rent and charge is a service item with a dated rate, entered on the Rates and fees screen by a user with `tariffs.tariff.manage` (the finance role in the seeded roles).
@@ -20,6 +27,7 @@ This file is the only source of hospital billing rules. Rates, discounts, taxes,
 
 Each needs an answer from the hospital before the matching feature is built.
 
+- Registration fee: whether new patients pay one, how much, and whether it is valid for a period (for example one year).
 - Taxes: which services carry GST, at what rates, and how tax is shown on bills.
 - Rounding: how line totals and bill totals are rounded.
 - Discounts: who may request one, the approval limits per role, and whether discounts apply per line or per bill.

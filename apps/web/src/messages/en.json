@@ -29,14 +29,17 @@
     "RATE_DATE_INVALID": "Choose a start date from today onwards, after the start of the latest rate.",
     "BED_OCCUPIED": "A patient is in this bed or ward. Move or discharge the patient first.",
     "RATE_NOT_CANCELLABLE": "This rate can no longer be cancelled: it has started, a later rate follows it, or it is already cancelled. Close this and open the history again.",
+    "IDEMPOTENCY_KEY_REUSED": "This form was already sent. Reload the page and check before trying again.",
+    "IDEMPOTENCY_IN_PROGRESS": "This is still being saved. Wait a moment, then check before trying again.",
+    "DUPLICATE_PATIENT": "This Aadhaar or ABHA number belongs to a registered patient. Search for them instead of registering again.",
+    "POSSIBLE_DUPLICATE": "Someone matching these details was registered just now. Check the matches and try again.",
     "network": "Could not reach the server. Check the connection and try again.",
     "unknown": "Something went wrong. Try again, and tell your admin if it keeps happening."
   },
   "shell": {
     "navigation": "Main",
     "searchLabel": "Search patients",
-    "searchPlaceholder": "Search patients by name, phone or UHID",
-    "searchSoon": "Patient search arrives with registration.",
+    "searchPlaceholder": "UHID, mobile or name. Press / to search",
     "signOut": "Sign out",
     "themeDark": "Switch to dark theme",
     "themeLight": "Switch to light theme",
@@ -106,7 +109,8 @@
     "pincode": "Enter a 6-digit PIN code.",
     "phone": "Use digits, spaces and + ( ) - only.",
     "email": "Enter an email address, such as accounts@hospital.in.",
-    "reason": "Enter a reason of 3 to 200 characters."
+    "reason": "Enter a reason of 3 to 200 characters.",
+    "mobile": "Enter a 10-digit mobile number, such as 98765 43210."
   },
   "bedStatus": {
     "free": "Free",
@@ -313,6 +317,134 @@
       "email": "Email",
       "save": "Save details",
       "saved": "Saved."
+    }
+  },
+  "patients": {
+    "title": "Patients",
+    "description": "Find a patient before registering: most patients have been here before.",
+    "register": "Register patient",
+    "registering": "Registering",
+    "searchLabel": "Search patients",
+    "searchHint": "A UHID or just its number, a mobile number, a name, or an Aadhaar or ABHA number. At least 2 characters.",
+    "resultsLabel": "Matching patients",
+    "searching": "Searching",
+    "noMatches": "No patients match.",
+    "typeToSearch": "Type in the search box to find a patient.",
+    "open": "Open",
+    "openNamed": "Open {name}",
+    "columns": {
+      "uhid": "UHID",
+      "name": "Name",
+      "ageSex": "Age, sex",
+      "mobile": "Mobile",
+      "actions": "Actions"
+    },
+    "sex": {
+      "male": "Male",
+      "female": "Female",
+      "other": "Other",
+      "unknown": "Unknown"
+    },
+    "sexShort": {
+      "male": "M",
+      "female": "F",
+      "other": "O",
+      "unknown": "U"
+    },
+    "age": {
+      "years": "{count} y",
+      "months": "{count} m",
+      "days": "{count} d"
+    },
+    "relation": {
+      "son_of": "S/o",
+      "daughter_of": "D/o",
+      "wife_of": "W/o",
+      "husband_of": "H/o",
+      "care_of": "C/o"
+    },
+    "relationLong": {
+      "son_of": "Son of (S/o)",
+      "daughter_of": "Daughter of (D/o)",
+      "wife_of": "Wife of (W/o)",
+      "husband_of": "Husband of (H/o)",
+      "care_of": "Care of (C/o)"
+    },
+    "registerTitle": "Register patient",
+    "registerDescription": "The patient gets a UHID when you save. Search first if they may have been here before.",
+    "registered": "Patient registered. UHID {uhid}.",
+    "editTitle": "Edit {name}",
+    "editDescription": "The UHID never changes.",
+    "saveChanges": "Save changes",
+    "form": {
+      "required": "Needed to register",
+      "optional": "More details (optional)",
+      "fullName": "Full name",
+      "fullNameHint": "As on an ID card, such as Ravi Kumar.",
+      "sex": "Sex",
+      "sexRequired": "Choose the sex.",
+      "ageYears": "Age in years",
+      "ageHint": "0 to {max}. Use the date of birth for babies.",
+      "or": "or",
+      "dateOfBirth": "Date of birth",
+      "birthError": "Enter the age in years, or a date of birth that is not in the future. Not both.",
+      "phone": "Mobile number",
+      "phoneHint": "10 digits, such as 98765 43210.",
+      "guardianRelation": "Relation",
+      "noGuardian": "None",
+      "guardianName": "Guardian name",
+      "guardianError": "Enter both the relation and the guardian name, or neither.",
+      "addressLine": "Address",
+      "city": "City or town",
+      "state": "State",
+      "pincode": "PIN code",
+      "emergencyContactName": "Emergency contact",
+      "emergencyContactPhone": "Emergency contact mobile",
+      "aadhaar": "Aadhaar number",
+      "aadhaarHint": "12 digits. Stored encrypted; only the last 4 digits are ever shown.",
+      "aadhaarError": "Check the Aadhaar number: 12 digits, and the last digit must match the others.",
+      "abhaNumber": "ABHA number",
+      "abhaHint": "14 digits, such as 91-1234-5678-9012.",
+      "abhaError": "Enter the 14-digit ABHA number.",
+      "onRecord": "On record: ending {last4}. Leave empty to keep it, or type a new number.",
+      "removeAadhaar": "Remove the Aadhaar number",
+      "removeAbha": "Remove the ABHA number"
+    },
+    "duplicates": {
+      "blockedTitle": "This patient is already registered",
+      "blockedBody": "The Aadhaar or ABHA number belongs to the patient below. Open their record instead of registering again.",
+      "possibleTitle": "Is this one of these patients?",
+      "possibleBody": "They share the mobile number, or the name and birth year. Open the record if it is the same person. If not, register a new patient: families often share one mobile.",
+      "reasons": {
+        "aadhaar": "Same Aadhaar",
+        "abha": "Same ABHA",
+        "phone": "Same mobile",
+        "name_and_birth_year": "Same name and birth year"
+      },
+      "open": "Open",
+      "newTab": "(opens in a new tab)",
+      "back": "Go back to the form",
+      "registerAnyway": "Register as a new patient"
+    },
+    "record": {
+      "uhid": "UHID",
+      "contact": "Contact",
+      "mobile": "Mobile",
+      "emergencyContact": "Emergency contact",
+      "address": "Address",
+      "personal": "Personal",
+      "sex": "Sex",
+      "dateOfBirth": "Date of birth",
+      "estimated": "estimated from age",
+      "guardian": "Guardian",
+      "identity": "Identity",
+      "aadhaar": "Aadhaar",
+      "abha": "ABHA number",
+      "recordTitle": "Record",
+      "registeredOn": "Registered",
+      "updatedOn": "Last updated",
+      "notGiven": "Not given",
+      "editDetails": "Edit details"
     }
   }
 }

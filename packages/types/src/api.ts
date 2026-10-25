@@ -21,6 +21,8 @@ export const API_ERROR_CODES = [
   'RATE_DATE_INVALID',
   'BED_OCCUPIED',
   'RATE_NOT_CANCELLABLE',
+  'DUPLICATE_PATIENT',
+  'POSSIBLE_DUPLICATE',
 ] as const;
 
 export type ApiErrorCode = (typeof API_ERROR_CODES)[number];

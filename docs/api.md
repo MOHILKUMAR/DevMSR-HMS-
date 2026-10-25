@@ -47,6 +47,18 @@ Lists take `?page=1&pageSize=50&q=text&includeInactive=true` and return `{ data,
 | POST | `/service-items/:id/rates` | `tariffs.tariff.manage` | Body `{ ratePaise, taxRateBp, effectiveFrom }`. Starts today or later (IST) and after the current rate's start; the current rate ends the day before. 422 `RATE_DATE_INVALID` otherwise. |
 | POST | `/service-items/:id/rates/:rateId/cancel` | `tariffs.tariff.manage` | Body `{ reason }` (3 to 200 characters). Cancels the latest rate before it starts; the rate before it carries on. 200 with the cancelled rate. 422 `RATE_NOT_CANCELLABLE` for a rate that has started, is followed by a later rate, or is already cancelled. |
 
+## Patients
+
+Patient names, phone numbers, Aadhaar and ABHA numbers never go in a URL, so search is a POST. Aadhaar and ABHA numbers are stored encrypted and only their last 4 digits are ever returned. Errors about duplicates name only patient IDs and UHIDs.
+
+| Method | Path | Permission | Notes |
+| --- | --- | --- | --- |
+| POST | `/patients/search` | `patients.patient.read` | Body `{ q, page?, pageSize? }`. `q` is a UHID (any case), the number part of one (`123` finds `DEMO-2026-000123`), a mobile number, a name (2 characters or more), or an Aadhaar or ABHA number. Paged list of summaries. Audited without the search text. |
+| POST | `/patients/duplicate-check` | `patients.patient.create` | Body `{ fullName, dateOfBirth? or ageYears?, phone?, aadhaar?, abhaNumber? }`. `{ blocking, possible }`: same Aadhaar or ABHA blocks; same mobile, or same name with a birth year within one year, is possible. Each match lists its `reasons`. |
+| POST | `/patients` | `patients.patient.create` | Needs `Idempotency-Key`. Body: `fullName`, `sex`, `ageYears` or `dateOfBirth`, `phone` (10-digit Indian mobile), optional address, guardian (relation and name together), emergency contact, `aadhaar`, `abhaNumber`, and `acknowledgedDuplicateIds`. Gives the next UHID (`<CODE>-<YEAR>-<6 digits>`, gapless per calendar year). 409 `DUPLICATE_PATIENT` for the same Aadhaar or ABHA; 409 `POSSIBLE_DUPLICATE` for a possible duplicate not acknowledged. |
+| GET | `/patients/:id` | `patients.patient.read` | The record, with `aadhaarLast4` and `abhaNumberLast4`. Every view writes an audit event. |
+| PATCH | `/patients/:id` | `patients.patient.update` | Any registration field. `null` clears an optional one; an age replaces the date of birth. The UHID never changes. A new Aadhaar or ABHA number runs the duplicate block again. The audit event lists the field names, not values. |
+
 ## Error codes
 
 | Code | Status | When |
@@ -70,4 +82,6 @@ Lists take `?page=1&pageSize=50&q=text&includeInactive=true` and return `{ data,
 | `RATE_DATE_INVALID` | 422 | A new rate starts in the past, or not after the current rate's start. |
 | `BED_OCCUPIED` | 422 | Retiring a bed or ward that has a patient in it. |
 | `RATE_NOT_CANCELLABLE` | 422 | Cancelling a rate that has started, is followed by a later rate, or is already cancelled. |
+| `DUPLICATE_PATIENT` | 409 | The Aadhaar or ABHA number belongs to another patient of the hospital. `details.matches` lists `{ id, uhid }` only. |
+| `POSSIBLE_DUPLICATE` | 409 | A patient with the same mobile, or the same name and birth year, exists and was not acknowledged. `details.matches` lists `{ id, uhid }` only. |
 | `INTERNAL_ERROR` | 500 | Anything unexpected. Details are logged with the `X-Request-Id`, never returned. |

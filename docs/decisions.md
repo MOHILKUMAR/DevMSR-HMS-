@@ -266,3 +266,23 @@ Every non-obvious decision, oldest first. Each entry has the date, the decision 
 
 - Decision: `pnpm api:spec` compiles the API with `tsc` into `apps/api/.spec-build` (git-ignored, deleted afterwards) and runs the spec generator from there, instead of `nest build`.
 - Reason: `nest build` empties `apps/api/dist`, which the API in a running `pnpm dev` loads from, so regenerating the spec used to stop the dev API.
+
+## 2026-10-25: UHIDs come from a locked counter row
+
+- Decision: `number_counters` holds one row per hospital, number kind and period (the calendar year in IST for UHIDs). A registration takes its number with `INSERT ... ON CONFLICT DO UPDATE ... RETURNING` inside its own transaction, which locks the row until the registration commits or rolls back, so numbers are gapless and never repeat. A trigger only lets a counter move up by exactly one and refuses deletes; another trigger keeps a patient's UHID, hospital and registration fixed. The 50 seeded patients were numbered by the migration in registration order. Invoice and receipt series will reuse the table once their formats are decided.
+- Reason: `CLAUDE.md` asks for gapless numbers from a locked counter row in the same transaction, and `docs/billing-rules.md` fixes the UHID format. An API test registers 20 patients at once and checks they get 1 to 20.
+
+## 2026-10-25: Patient search is a POST, and the search text is never stored
+
+- Decision: `POST /patients/search` takes the search text in the body. The screen keeps it in the page, never in the address bar. The audit event records how the search ran (UHID, mobile, name, Aadhaar, ABHA) and how many records were shown, never what was typed. Aadhaar and ABHA searches compare blind indexes, so numbers are never decrypted to search.
+- Reason: section 7 forbids names and phone numbers in URLs and logs. A GET with `?q=` would put them in browser history, proxy logs and the Referer header.
+
+## 2026-10-25: Duplicate patients
+
+- Decision: as decided with the developer (`docs/billing-rules.md`), the same Aadhaar or ABHA number as an existing patient of the hospital is refused (`DUPLICATE_PATIENT`), backed by unique indexes on the blind indexes so two registrations at the same moment cannot both win. The same mobile, or the same name with a birth year within one year, is a warning: the registration form shows the matches and staff can register a new patient anyway, which the API only accepts with `acknowledgedDuplicateIds`. Error details carry only patient IDs and UHIDs; names come from `POST /patients/duplicate-check`, a normal response for staff allowed to register.
+- Reason: duplicate records split a patient's history and bills, but families in India often share one mobile, so only identity numbers can safely block. Section 7 keeps names out of error messages.
+
+## 2026-10-25: Registration details
+
+- Decision: mobile numbers are stored as E.164 (`+91` and 10 digits) whatever way they are typed. Aadhaar numbers must pass the Verhoeff check digit. When only an age is given, the date of birth is estimated (same day and month, that many years back) and flagged as estimated. Registration needs an `Idempotency-Key`, so a double click or a retried request returns the same patient. A patient's record page is a Server Component and every view is audited; the edit screen sends only changed fields and never shows Aadhaar or ABHA in full, so an empty box keeps the number on record.
+- Reason: one stored form makes mobile duplicate checks exact. The check digit catches typing mistakes before a wrong Aadhaar is saved. Registration creates a numbered record, so it gets the same protection against double submits as financial routes.

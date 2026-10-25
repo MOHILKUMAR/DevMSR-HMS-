@@ -797,6 +797,305 @@
         }
       }
     },
+    "/api/v1/patients": {
+      "post": {
+        "operationId": "patientsRegister",
+        "summary": "Register a patient and give them the next UHID",
+        "tags": [
+          "patients"
+        ],
+        "x-permission": "patients.patient.create",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "description": "Value of the CSRF cookie",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "description": "Unique per financial request. A repeat returns the stored response.",
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]{16,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatientsRegisterRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PatientsRegisterResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/patients/{id}": {
+      "get": {
+        "operationId": "patientsGet",
+        "summary": "Open a patient record (audited)",
+        "tags": [
+          "patients"
+        ],
+        "x-permission": "patients.patient.read",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PatientsGetResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "patientsUpdate",
+        "summary": "Edit patient details; the UHID never changes",
+        "tags": [
+          "patients"
+        ],
+        "x-permission": "patients.patient.update",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "description": "Value of the CSRF cookie",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatientsUpdateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PatientsUpdateResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/patients/duplicate-check": {
+      "post": {
+        "operationId": "patientsDuplicateCheck",
+        "summary": "Find registered patients who look like a new registration",
+        "tags": [
+          "patients"
+        ],
+        "x-permission": "patients.patient.create",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "description": "Value of the CSRF cookie",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatientsDuplicateCheckRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PatientsDuplicateCheckResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/patients/search": {
+      "post": {
+        "operationId": "patientsSearch",
+        "summary": "Find patients by UHID, mobile, name, Aadhaar or ABHA number",
+        "tags": [
+          "patients"
+        ],
+        "x-permission": "patients.patient.read",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "description": "Value of the CSRF cookie",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatientsSearchRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PatientsSearchResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/roles": {
       "get": {
         "operationId": "rolesList",
@@ -3095,6 +3394,1049 @@
           "pincode",
           "phone",
           "email"
+        ],
+        "additionalProperties": false
+      },
+      "PatientsRegisterRequest": {
+        "type": "object",
+        "properties": {
+          "fullName": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 120
+          },
+          "sex": {
+            "type": "string",
+            "enum": [
+              "male",
+              "female",
+              "other"
+            ]
+          },
+          "dateOfBirth": {
+            "type": "string",
+            "format": "date",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+          },
+          "ageYears": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 130
+          },
+          "phone": {
+            "type": "string"
+          },
+          "addressLine": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "city": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 80
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "state": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 80
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "pincode": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "guardianRelation": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "son_of",
+                  "daughter_of",
+                  "wife_of",
+                  "husband_of",
+                  "care_of"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "guardianName": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 120
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "emergencyContactName": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 120
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "emergencyContactPhone": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "aadhaar": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "abhaNumber": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "acknowledgedDuplicateIds": {
+            "maxItems": 20,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        },
+        "required": [
+          "fullName",
+          "sex",
+          "phone"
+        ]
+      },
+      "PatientsRegisterResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "uhid": {
+            "type": "string"
+          },
+          "fullName": {
+            "type": "string"
+          },
+          "sex": {
+            "type": "string",
+            "enum": [
+              "male",
+              "female",
+              "other",
+              "unknown"
+            ]
+          },
+          "dateOfBirth": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "dateOfBirthEstimated": {
+            "type": "boolean"
+          },
+          "phone": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "addressLine": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "city": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "state": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "pincode": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "guardianRelation": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "son_of",
+                  "daughter_of",
+                  "wife_of",
+                  "husband_of",
+                  "care_of"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "guardianName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "emergencyContactName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "emergencyContactPhone": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "aadhaarLast4": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "abhaNumberLast4": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "registeredAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          },
+          "registeredByName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          }
+        },
+        "required": [
+          "id",
+          "uhid",
+          "fullName",
+          "sex",
+          "dateOfBirth",
+          "dateOfBirthEstimated",
+          "phone",
+          "addressLine",
+          "city",
+          "state",
+          "pincode",
+          "guardianRelation",
+          "guardianName",
+          "emergencyContactName",
+          "emergencyContactPhone",
+          "aadhaarLast4",
+          "abhaNumberLast4",
+          "registeredAt",
+          "registeredByName",
+          "updatedAt"
+        ],
+        "additionalProperties": false
+      },
+      "PatientsGetResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "uhid": {
+            "type": "string"
+          },
+          "fullName": {
+            "type": "string"
+          },
+          "sex": {
+            "type": "string",
+            "enum": [
+              "male",
+              "female",
+              "other",
+              "unknown"
+            ]
+          },
+          "dateOfBirth": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "dateOfBirthEstimated": {
+            "type": "boolean"
+          },
+          "phone": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "addressLine": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "city": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "state": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "pincode": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "guardianRelation": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "son_of",
+                  "daughter_of",
+                  "wife_of",
+                  "husband_of",
+                  "care_of"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "guardianName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "emergencyContactName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "emergencyContactPhone": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "aadhaarLast4": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "abhaNumberLast4": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "registeredAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          },
+          "registeredByName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          }
+        },
+        "required": [
+          "id",
+          "uhid",
+          "fullName",
+          "sex",
+          "dateOfBirth",
+          "dateOfBirthEstimated",
+          "phone",
+          "addressLine",
+          "city",
+          "state",
+          "pincode",
+          "guardianRelation",
+          "guardianName",
+          "emergencyContactName",
+          "emergencyContactPhone",
+          "aadhaarLast4",
+          "abhaNumberLast4",
+          "registeredAt",
+          "registeredByName",
+          "updatedAt"
+        ],
+        "additionalProperties": false
+      },
+      "PatientsUpdateRequest": {
+        "type": "object",
+        "properties": {
+          "fullName": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 120
+          },
+          "sex": {
+            "type": "string",
+            "enum": [
+              "male",
+              "female",
+              "other"
+            ]
+          },
+          "dateOfBirth": {
+            "type": "string",
+            "format": "date",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+          },
+          "ageYears": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 130
+          },
+          "phone": {
+            "type": "string"
+          },
+          "addressLine": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "city": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 80
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "state": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 80
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "pincode": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "guardianRelation": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "son_of",
+                  "daughter_of",
+                  "wife_of",
+                  "husband_of",
+                  "care_of"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "guardianName": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 120
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "emergencyContactName": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 120
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "emergencyContactPhone": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "aadhaar": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "abhaNumber": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "PatientsUpdateResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "uhid": {
+            "type": "string"
+          },
+          "fullName": {
+            "type": "string"
+          },
+          "sex": {
+            "type": "string",
+            "enum": [
+              "male",
+              "female",
+              "other",
+              "unknown"
+            ]
+          },
+          "dateOfBirth": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "dateOfBirthEstimated": {
+            "type": "boolean"
+          },
+          "phone": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "addressLine": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "city": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "state": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "pincode": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "guardianRelation": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "son_of",
+                  "daughter_of",
+                  "wife_of",
+                  "husband_of",
+                  "care_of"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "guardianName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "emergencyContactName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "emergencyContactPhone": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "aadhaarLast4": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "abhaNumberLast4": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "registeredAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          },
+          "registeredByName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          }
+        },
+        "required": [
+          "id",
+          "uhid",
+          "fullName",
+          "sex",
+          "dateOfBirth",
+          "dateOfBirthEstimated",
+          "phone",
+          "addressLine",
+          "city",
+          "state",
+          "pincode",
+          "guardianRelation",
+          "guardianName",
+          "emergencyContactName",
+          "emergencyContactPhone",
+          "aadhaarLast4",
+          "abhaNumberLast4",
+          "registeredAt",
+          "registeredByName",
+          "updatedAt"
+        ],
+        "additionalProperties": false
+      },
+      "PatientsDuplicateCheckRequest": {
+        "type": "object",
+        "properties": {
+          "fullName": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 120
+          },
+          "dateOfBirth": {
+            "type": "string",
+            "format": "date",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+          },
+          "ageYears": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 130
+          },
+          "phone": {
+            "type": "string"
+          },
+          "aadhaar": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "abhaNumber": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "fullName"
+        ]
+      },
+      "PatientsDuplicateCheckResponse": {
+        "type": "object",
+        "properties": {
+          "blocking": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "uhid": {
+                  "type": "string"
+                },
+                "fullName": {
+                  "type": "string"
+                },
+                "sex": {
+                  "type": "string",
+                  "enum": [
+                    "male",
+                    "female",
+                    "other",
+                    "unknown"
+                  ]
+                },
+                "dateOfBirth": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "format": "date",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "dateOfBirthEstimated": {
+                  "type": "boolean"
+                },
+                "phone": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "reasons": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "aadhaar",
+                      "abha",
+                      "phone",
+                      "name_and_birth_year"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "id",
+                "uhid",
+                "fullName",
+                "sex",
+                "dateOfBirth",
+                "dateOfBirthEstimated",
+                "phone",
+                "reasons"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "possible": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "uhid": {
+                  "type": "string"
+                },
+                "fullName": {
+                  "type": "string"
+                },
+                "sex": {
+                  "type": "string",
+                  "enum": [
+                    "male",
+                    "female",
+                    "other",
+                    "unknown"
+                  ]
+                },
+                "dateOfBirth": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "format": "date",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "dateOfBirthEstimated": {
+                  "type": "boolean"
+                },
+                "phone": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "reasons": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "aadhaar",
+                      "abha",
+                      "phone",
+                      "name_and_birth_year"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "id",
+                "uhid",
+                "fullName",
+                "sex",
+                "dateOfBirth",
+                "dateOfBirthEstimated",
+                "phone",
+                "reasons"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "blocking",
+          "possible"
+        ],
+        "additionalProperties": false
+      },
+      "PatientsSearchRequest": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "default": 1,
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "pageSize": {
+            "default": 50,
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "sort": {
+            "type": "string",
+            "pattern": "^[a-zA-Z]+:(asc|desc)$"
+          },
+          "q": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60
+          }
+        },
+        "required": [
+          "q"
+        ]
+      },
+      "PatientsSearchResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "uhid": {
+                  "type": "string"
+                },
+                "fullName": {
+                  "type": "string"
+                },
+                "sex": {
+                  "type": "string",
+                  "enum": [
+                    "male",
+                    "female",
+                    "other",
+                    "unknown"
+                  ]
+                },
+                "dateOfBirth": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "format": "date",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "dateOfBirthEstimated": {
+                  "type": "boolean"
+                },
+                "phone": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "uhid",
+                "fullName",
+                "sex",
+                "dateOfBirth",
+                "dateOfBirthEstimated",
+                "phone"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "page": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "pageSize": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "total": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "data",
+          "page",
+          "pageSize",
+          "total"
         ],
         "additionalProperties": false
       },

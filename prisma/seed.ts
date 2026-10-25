@@ -5,7 +5,9 @@
 import { hashPassword } from '../apps/api/src/auth/password.js';
 import { syncHospitalRoles, syncPermissions, syncPlatformRoles } from '../apps/api/src/auth/role-sync.js';
 import { createFieldCipher } from '../apps/api/src/common/crypto/field-encryption.js';
+import { todayIst } from '../apps/api/src/common/dates.js';
 import { createPrismaClient } from '../apps/api/src/common/prisma/create-prisma-client.js';
+import { formatUhid, takeNumber } from '../apps/api/src/numbering/take-number.js';
 import {
   createRandom,
   DEMO_BRANCH,
@@ -184,6 +186,8 @@ try {
       const existingPatients = await tx.patient.count({ where: { hospitalId: hospital.id } });
       const random = createRandom(20_261_025);
       const createdById = userIds.get('reception') ?? null;
+      // Fake patients take UHIDs from the same counter as registrations at the desk.
+      const uhidYear = todayIst().slice(0, 4);
       for (let i = existingPatients; i < PATIENT_COUNT; i += 1) {
         const male = random() < 0.5;
         const firstName = pick(random, male ? MALE_FIRST_NAMES : FEMALE_FIRST_NAMES);
@@ -191,9 +195,11 @@ try {
         const dateOfBirth = new Date(Date.UTC(year, Math.floor(random() * 12), 1 + Math.floor(random() * 28)));
         const aadhaar = i % 3 === 0 ? cipher.protect('aadhaar', `0${digits(random, 11)}`) : null;
         const abha = i % 5 === 0 ? cipher.protect('abha_number', `00${digits(random, 12)}`) : null;
+        const uhid = formatUhid(DEMO_HOSPITAL.code, uhidYear, await takeNumber(tx, hospital.id, 'uhid', uhidYear));
         await tx.patient.create({
           data: {
             hospitalId: hospital.id,
+            uhid,
             fullName: `${firstName} ${pick(random, LAST_NAMES)}`,
             sex: male ? 'male' : 'female',
             dateOfBirth,

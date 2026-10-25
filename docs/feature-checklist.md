@@ -20,11 +20,13 @@ Progress against `CLAUDE.md`, section 11. Later phases need the developer's appr
 - [ ] Separate database role for the API that cannot UPDATE, DELETE or TRUNCATE audit rows (before go-live)
 - [ ] Idempotency key cleanup job (pg-boss)
 - [ ] Tighter web CSP with nonces or SRI (before go-live)
-- [ ] Patient search in the top bar (with patient registration)
+- [x] Patient search in the top bar (with patient registration)
 - [x] Settings and masters (admin setup slice): staff users and roles, hospital profile, departments, doctors, room categories, wards and beds, service items with dated rates, screens under `/settings`
 - [ ] Custom roles screen (`users.role.manage`)
 - [ ] Packages, discounts and other billing masters (waiting for answers in `docs/billing-rules.md`)
-- [ ] Patient registration
+- [x] Patient registration: UHIDs from a gapless yearly counter, duplicate checks (Aadhaar and ABHA block, mobile and name warn), search by UHID, mobile, name, Aadhaar or ABHA, audited record views, edits
+- [ ] Merging duplicate patient records, patient photo, printed UHID card
+- [ ] Registration fee (waiting for an answer in `docs/billing-rules.md`)
 - [ ] OPD
 - [ ] IPD and beds
 - [ ] Billing

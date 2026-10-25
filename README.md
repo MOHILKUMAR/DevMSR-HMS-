@@ -46,6 +46,8 @@ Open http://localhost:3000 and sign in. The seed creates a fake demo hospital wi
 
 Start with **Settings**. As `admin`, add staff users and their roles, departments, doctors (linked to their logins), room categories, wards and beds, and the hospital details printed on bills. As `accounts`, add service items and set their rates from a date. The demo rates are fake.
 
+At the front desk, sign in as `reception`: search patients from the top bar (press `/`) by UHID, mobile or name, and register new ones under **Patients**. Each new patient gets the next UHID, such as `DEMO-2026-000051`.
+
 ## Layout
 
 | Path | What it is |

@@ -1,0 +1,39 @@
+meta {
+  name: Register a patient
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/patients
+  body: json
+  auth: none
+}
+
+headers {
+  X-CSRF-Token: {{csrfToken}}
+  Idempotency-Key: {{idempotencyKey}}
+}
+
+body:json {
+  {
+    "fullName": "Asha Rao",
+    "sex": "female",
+    "ageYears": 40,
+    "phone": "{{mobile}}"
+  }
+}
+
+script:pre-request {
+  // A new key and a made-up mobile each run, so the request registers a new fake patient.
+  bru.setVar("idempotencyKey", require("crypto").randomUUID());
+  bru.setVar("mobile", "9" + String(Math.floor(100000000 + Math.random() * 899999999)));
+}
+
+script:post-response {
+  bru.setVar("patientId", res.body.id);
+}
+
+assert {
+  res.status: eq 201
+}

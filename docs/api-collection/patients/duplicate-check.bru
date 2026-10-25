@@ -1,0 +1,27 @@
+meta {
+  name: Check for duplicates
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/patients/duplicate-check
+  body: json
+  auth: none
+}
+
+headers {
+  X-CSRF-Token: {{csrfToken}}
+}
+
+body:json {
+  {
+    "fullName": "Asha Rao",
+    "ageYears": 40,
+    "phone": "9876543210"
+  }
+}
+
+assert {
+  res.status: eq 200
+}

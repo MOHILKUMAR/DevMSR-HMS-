@@ -15,6 +15,10 @@ const KNOWN_CODES = [
   'RATE_DATE_INVALID',
   'BED_OCCUPIED',
   'RATE_NOT_CANCELLABLE',
+  'IDEMPOTENCY_KEY_REUSED',
+  'IDEMPOTENCY_IN_PROGRESS',
+  'DUPLICATE_PATIENT',
+  'POSSIBLE_DUPLICATE',
 ] as const;
 
 export type ErrorMessageKey = (typeof KNOWN_CODES)[number] | 'network' | 'unknown';

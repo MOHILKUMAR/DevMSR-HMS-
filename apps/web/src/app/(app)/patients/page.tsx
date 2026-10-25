@@ -1,5 +1,9 @@
-import { ComingSoon } from '@/features/shell/coming-soon';
+import { redirect } from 'next/navigation';
+import { PatientsFinder } from '@/features/patients/patients-finder';
+import { getCurrentUser } from '@/lib/api/server';
 
-export default function PatientsPage() {
-  return <ComingSoon section="patients" />;
+export default async function PatientsPage() {
+  const me = await getCurrentUser();
+  if (me === null) redirect('/login');
+  return <PatientsFinder canRegister={me.permissions.includes('patients.patient.create')} />;
 }

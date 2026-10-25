@@ -194,6 +194,75 @@ export interface paths {
         patch: operations["hospitalProfileUpdate"];
         trace?: never;
     };
+    "/api/v1/patients": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Register a patient and give them the next UHID */
+        post: operations["patientsRegister"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/patients/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Open a patient record (audited) */
+        get: operations["patientsGet"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Edit patient details; the UHID never changes */
+        patch: operations["patientsUpdate"];
+        trace?: never;
+    };
+    "/api/v1/patients/duplicate-check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Find registered patients who look like a new registration */
+        post: operations["patientsDuplicateCheck"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/patients/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Find patients by UHID, mobile, name, Aadhaar or ABHA number */
+        post: operations["patientsSearch"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/roles": {
         parameters: {
             query?: never;
@@ -633,6 +702,182 @@ export interface components {
             pincode: string | null;
             phone: string | null;
             email: string | null;
+        };
+        PatientsRegisterRequest: {
+            fullName: string;
+            /** @enum {string} */
+            sex: "male" | "female" | "other";
+            /** Format: date */
+            dateOfBirth?: string;
+            ageYears?: number;
+            phone: string;
+            addressLine?: string | null;
+            city?: string | null;
+            state?: string | null;
+            pincode?: string | null;
+            guardianRelation?: ("son_of" | "daughter_of" | "wife_of" | "husband_of" | "care_of") | null;
+            guardianName?: string | null;
+            emergencyContactName?: string | null;
+            emergencyContactPhone?: string | null;
+            aadhaar?: string | null;
+            abhaNumber?: string | null;
+            acknowledgedDuplicateIds?: string[];
+        };
+        PatientsRegisterResponse: {
+            /** Format: uuid */
+            id: string;
+            uhid: string;
+            fullName: string;
+            /** @enum {string} */
+            sex: "male" | "female" | "other" | "unknown";
+            dateOfBirth: string | null;
+            dateOfBirthEstimated: boolean;
+            phone: string | null;
+            addressLine: string | null;
+            city: string | null;
+            state: string | null;
+            pincode: string | null;
+            guardianRelation: ("son_of" | "daughter_of" | "wife_of" | "husband_of" | "care_of") | null;
+            guardianName: string | null;
+            emergencyContactName: string | null;
+            emergencyContactPhone: string | null;
+            aadhaarLast4: string | null;
+            abhaNumberLast4: string | null;
+            /** Format: date-time */
+            registeredAt: string;
+            registeredByName: string | null;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        PatientsGetResponse: {
+            /** Format: uuid */
+            id: string;
+            uhid: string;
+            fullName: string;
+            /** @enum {string} */
+            sex: "male" | "female" | "other" | "unknown";
+            dateOfBirth: string | null;
+            dateOfBirthEstimated: boolean;
+            phone: string | null;
+            addressLine: string | null;
+            city: string | null;
+            state: string | null;
+            pincode: string | null;
+            guardianRelation: ("son_of" | "daughter_of" | "wife_of" | "husband_of" | "care_of") | null;
+            guardianName: string | null;
+            emergencyContactName: string | null;
+            emergencyContactPhone: string | null;
+            aadhaarLast4: string | null;
+            abhaNumberLast4: string | null;
+            /** Format: date-time */
+            registeredAt: string;
+            registeredByName: string | null;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        PatientsUpdateRequest: {
+            fullName?: string;
+            /** @enum {string} */
+            sex?: "male" | "female" | "other";
+            /** Format: date */
+            dateOfBirth?: string;
+            ageYears?: number;
+            phone?: string;
+            addressLine?: string | null;
+            city?: string | null;
+            state?: string | null;
+            pincode?: string | null;
+            guardianRelation?: ("son_of" | "daughter_of" | "wife_of" | "husband_of" | "care_of") | null;
+            guardianName?: string | null;
+            emergencyContactName?: string | null;
+            emergencyContactPhone?: string | null;
+            aadhaar?: string | null;
+            abhaNumber?: string | null;
+        };
+        PatientsUpdateResponse: {
+            /** Format: uuid */
+            id: string;
+            uhid: string;
+            fullName: string;
+            /** @enum {string} */
+            sex: "male" | "female" | "other" | "unknown";
+            dateOfBirth: string | null;
+            dateOfBirthEstimated: boolean;
+            phone: string | null;
+            addressLine: string | null;
+            city: string | null;
+            state: string | null;
+            pincode: string | null;
+            guardianRelation: ("son_of" | "daughter_of" | "wife_of" | "husband_of" | "care_of") | null;
+            guardianName: string | null;
+            emergencyContactName: string | null;
+            emergencyContactPhone: string | null;
+            aadhaarLast4: string | null;
+            abhaNumberLast4: string | null;
+            /** Format: date-time */
+            registeredAt: string;
+            registeredByName: string | null;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        PatientsDuplicateCheckRequest: {
+            fullName: string;
+            /** Format: date */
+            dateOfBirth?: string;
+            ageYears?: number;
+            phone?: string;
+            aadhaar?: string | null;
+            abhaNumber?: string | null;
+        };
+        PatientsDuplicateCheckResponse: {
+            blocking: {
+                /** Format: uuid */
+                id: string;
+                uhid: string;
+                fullName: string;
+                /** @enum {string} */
+                sex: "male" | "female" | "other" | "unknown";
+                dateOfBirth: string | null;
+                dateOfBirthEstimated: boolean;
+                phone: string | null;
+                reasons: ("aadhaar" | "abha" | "phone" | "name_and_birth_year")[];
+            }[];
+            possible: {
+                /** Format: uuid */
+                id: string;
+                uhid: string;
+                fullName: string;
+                /** @enum {string} */
+                sex: "male" | "female" | "other" | "unknown";
+                dateOfBirth: string | null;
+                dateOfBirthEstimated: boolean;
+                phone: string | null;
+                reasons: ("aadhaar" | "abha" | "phone" | "name_and_birth_year")[];
+            }[];
+        };
+        PatientsSearchRequest: {
+            /** @default 1 */
+            page: number;
+            /** @default 50 */
+            pageSize: number;
+            sort?: string;
+            q: string;
+        };
+        PatientsSearchResponse: {
+            data: {
+                /** Format: uuid */
+                id: string;
+                uhid: string;
+                fullName: string;
+                /** @enum {string} */
+                sex: "male" | "female" | "other" | "unknown";
+                dateOfBirth: string | null;
+                dateOfBirthEstimated: boolean;
+                phone: string | null;
+            }[];
+            page: number;
+            pageSize: number;
+            total: number;
         };
         RolesListResponse: {
             data: {
@@ -1407,6 +1652,185 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HospitalProfileUpdateResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    patientsRegister: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Value of the CSRF cookie */
+                "X-CSRF-Token": string;
+                /** @description Unique per financial request. A repeat returns the stored response. */
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PatientsRegisterRequest"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PatientsRegisterResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    patientsGet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PatientsGetResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    patientsUpdate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Value of the CSRF cookie */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PatientsUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PatientsUpdateResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    patientsDuplicateCheck: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Value of the CSRF cookie */
+                "X-CSRF-Token": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PatientsDuplicateCheckRequest"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PatientsDuplicateCheckResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    patientsSearch: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Value of the CSRF cookie */
+                "X-CSRF-Token": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PatientsSearchRequest"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PatientsSearchResponse"];
                 };
             };
             /** @description Error */

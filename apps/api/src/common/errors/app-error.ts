@@ -50,6 +50,15 @@ export const Errors = {
   rateDateInvalid: (message: string) => new AppError(422, 'RATE_DATE_INVALID', message),
   bedOccupied: () => new AppError(422, 'BED_OCCUPIED', 'A patient is in this bed or ward. Move or discharge the patient first.'),
   rateNotCancellable: (message: string) => new AppError(422, 'RATE_NOT_CANCELLABLE', message),
+  // Details carry only patient IDs and UHIDs: never names, phone numbers or Aadhaar in an error.
+  duplicatePatient: (matches: readonly { id: string; uhid: string }[]) =>
+    new AppError(409, 'DUPLICATE_PATIENT', 'This Aadhaar or ABHA number belongs to a registered patient. Open that patient instead.', {
+      matches,
+    }),
+  possibleDuplicate: (matches: readonly { id: string; uhid: string }[]) =>
+    new AppError(409, 'POSSIBLE_DUPLICATE', 'This may be a patient who is already registered. Check the matches before registering.', {
+      matches,
+    }),
   internal: () =>
     new AppError(500, 'INTERNAL_ERROR', 'Something went wrong on our side. Try again, and tell your admin if it keeps happening.'),
 };
