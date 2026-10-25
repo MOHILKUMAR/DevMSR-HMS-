@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 # Build from the repo root: docker build -f apps/api/Dockerfile .
 
-FROM node:22-slim AS build
+FROM node:26-slim AS build
 RUN npm install -g pnpm@12.15.0
 WORKDIR /repo
 
@@ -21,7 +21,7 @@ RUN pnpm db:generate \
   && pnpm --filter "@devmsr/api..." build \
   && pnpm --filter @devmsr/api deploy --prod /out
 
-FROM node:22-slim AS runtime
+FROM node:26-slim AS runtime
 ENV NODE_ENV=production \
     PORT=4000
 WORKDIR /app
