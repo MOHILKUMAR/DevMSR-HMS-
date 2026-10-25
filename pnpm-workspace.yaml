@@ -1,0 +1,28 @@
+packages:
+  - apps/*
+  - packages/*
+
+# One version of each shared tool across the workspace.
+catalog:
+  '@eslint/js': 9.39.5
+  '@types/node': 22.20.5
+  eslint: 9.39.5
+  typescript: 6.0.3
+  typescript-eslint: 8.72.0
+  vitest: 5.0.5
+  zod: 4.6.7
+
+# Security overrides for transitive dependencies. Each one names the advisory and when to remove it.
+overrides:
+  # GHSA-q7qp-rjg7-q26m: @nestjs/platform-express 12.2.0 pins multer 2.4.0.
+  # Remove once @nestjs/platform-express depends on multer 2.5.0 or later.
+  multer: 2.5.0
+
+# Dependency build scripts are blocked unless approved here.
+# unrs-resolver ships prebuilt binaries, so its script is not needed.
+allowBuilds:
+  unrs-resolver: false
+
+# Supply chain: skip versions published in the last 24 hours, so a hijacked
+# release has time to be caught before it reaches this repo.
+minimumReleaseAge: 1440
