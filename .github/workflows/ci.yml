@@ -88,6 +88,9 @@ jobs:
       JOBS_DATABASE_URL: postgresql://hms_jobs:hms_jobs_ci_only_pw@localhost:5432/hms
       # Fake demo users from the seed, on a throwaway database.
       SEED_USER_PASSWORD: ci-only-Passw0rd
+      # The whole suite signs the same demo users in well within a minute. The login limit itself
+      # is proven by the API tests (auth.api.spec.ts), so here it only needs to stay out of the way.
+      RATE_LIMIT_LOGIN_PER_MINUTE: "1000"
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
