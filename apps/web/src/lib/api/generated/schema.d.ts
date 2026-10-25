@@ -4,6 +4,92 @@
  */
 
 export interface paths {
+    "/api/v1/admissions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Admissions, newest first. ?status=admitted for the patients in now */
+        get: operations["admissionsList"];
+        put?: never;
+        /** Admit a patient into a free bed, with the next admission number */
+        post: operations["admissionsAdmit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admissions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One admission with its beds and the room and nursing charges posted (audited) */
+        get: operations["admissionsGet"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admissions/{id}/interim-bill": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What the stay has come to so far, without a bill number (audited) */
+        get: operations["admissionsInterimBill"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admissions/{id}/transfers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Move the patient to another free bed; the old bed goes to cleaning */
+        post: operations["admissionsTransfer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admissions/advised": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** OPD visits of the last 7 days where admission was advised and none followed */
+        get: operations["admissionsAdvised"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/approval-requests": {
         parameters: {
             query?: never;
@@ -106,6 +192,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/bed-board": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Every active ward with its beds, their state and who is in them */
+        get: operations["bedBoardBedBoard"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/beds/{id}": {
         parameters: {
             query?: never;
@@ -121,6 +224,23 @@ export interface paths {
         head?: never;
         /** Retire or restore a bed */
         patch: operations["bedsUpdate"];
+        trace?: never;
+    };
+    "/api/v1/beds/{id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set a bed free, cleaning, reserved or blocked; an occupied bed is refused */
+        put: operations["bedBoardSetStatus"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/cash-shifts": {
@@ -169,6 +289,57 @@ export interface paths {
         get: operations["cashShiftsCurrent"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/clearance-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ask the MD to clear a discharge while money is still due; everything else must be settled */
+        post: operations["clearanceRequestsRequest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/clearance-requests/{id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve: billing clearance is given for what is due now */
+        post: operations["clearanceRequestsApprove"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/clearance-requests/{id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reject a clearance with dues, with a reason */
+        post: operations["clearanceRequestsReject"];
         delete?: never;
         options?: never;
         head?: never;
@@ -289,6 +460,127 @@ export interface paths {
         put?: never;
         /** Take an advance deposit, held for the patient */
         post: operations["paymentsDeposit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/discharges": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Discharges, latest first. ?status=open for those still in progress */
+        get: operations["dischargesList"];
+        put?: never;
+        /** The treating doctor marks the patient fit for discharge, which starts the discharge */
+        post: operations["dischargesMarkFit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/discharges/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One discharge with the stay's bills and where the account stands (audited) */
+        get: operations["dischargesGet"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/discharges/{id}/clearance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Billing clearance at a zero balance, with every day charged */
+        post: operations["dischargesClear"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/discharges/{id}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** The patient leaves: the bed goes to cleaning and the admission closes */
+        post: operations["dischargesComplete"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/discharges/{id}/final-bill": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Post any room and nursing charges due, then draft a bill of every unbilled charge */
+        post: operations["dischargesFinalBill"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/discharges/{id}/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The discharge summary, for reading and printing (audited) */
+        get: operations["dischargesSummary"];
+        /** The treating doctor writes or rewrites the summary, until it is signed */
+        put: operations["dischargesSaveSummary"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/discharges/{id}/summary/sign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** The MD signs the summary off; it never changes after this */
+        post: operations["dischargesSignSummary"];
         delete?: never;
         options?: never;
         head?: never;
@@ -896,6 +1188,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/reports/collections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Day-end collection by cashier and payment mode, void receipts left out and refunds taken off */
+        get: operations["reportsCollection"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/day-book": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The day book for Tally as CSV: bills, receipts, credit notes and refunds */
+        get: operations["reportsDayBook"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/operations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The day's OPD visits, admissions and discharges, and the beds now */
+        get: operations["reportsOperations"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/roles": {
         parameters: {
             query?: never;
@@ -946,6 +1289,40 @@ export interface paths {
         head?: never;
         /** Rename, retire or restore a room category */
         patch: operations["roomCategoriesUpdate"];
+        trace?: never;
+    };
+    "/api/v1/room-categories/{id}/minimum-advance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set the minimum advance of a room category */
+        put: operations["bedBoardSetAdvance"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/room-categories/minimum-advances": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Each room category's minimum advance at admission */
+        get: operations["bedBoardAdvances"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/service-items": {
@@ -1185,12 +1562,312 @@ export interface components {
                 details?: unknown;
             };
         };
+        AdmissionsListResponse: {
+            data: {
+                /** Format: uuid */
+                id: string;
+                number: string;
+                /** @enum {string} */
+                status: "admitted" | "discharged";
+                patient: {
+                    /** Format: uuid */
+                    id: string;
+                    uhid: string;
+                    fullName: string;
+                    /** @enum {string} */
+                    sex: "male" | "female" | "other" | "unknown";
+                    dateOfBirth: string | null;
+                };
+                doctor: {
+                    /** Format: uuid */
+                    id: string;
+                    fullName: string;
+                };
+                bed: {
+                    /** Format: uuid */
+                    id: string;
+                    code: string;
+                    wardName: string;
+                    roomCategoryName: string | null;
+                } | null;
+                /** Format: date-time */
+                admittedAt: string;
+                dischargedAt: string | null;
+                minimumAdvancePaise: number;
+                depositHeldPaise: number;
+                advanceShort: boolean;
+            }[];
+            page: number;
+            pageSize: number;
+            total: number;
+        };
+        AdmissionsAdmitRequest: {
+            /** Format: uuid */
+            patientId: string;
+            /** Format: uuid */
+            doctorId: string;
+            /** Format: uuid */
+            bedId: string;
+            reason?: string;
+            /** Format: uuid */
+            opdVisitId?: string;
+        };
+        AdmissionsAdmitResponse: {
+            /** Format: uuid */
+            id: string;
+            number: string;
+            /** @enum {string} */
+            status: "admitted" | "discharged";
+            patient: {
+                /** Format: uuid */
+                id: string;
+                uhid: string;
+                fullName: string;
+                /** @enum {string} */
+                sex: "male" | "female" | "other" | "unknown";
+                dateOfBirth: string | null;
+            };
+            doctor: {
+                /** Format: uuid */
+                id: string;
+                fullName: string;
+            };
+            bed: {
+                /** Format: uuid */
+                id: string;
+                code: string;
+                wardName: string;
+                roomCategoryName: string | null;
+            } | null;
+            /** Format: date-time */
+            admittedAt: string;
+            dischargedAt: string | null;
+            minimumAdvancePaise: number;
+            depositHeldPaise: number;
+            advanceShort: boolean;
+            /** @enum {string} */
+            payerType: "self_pay";
+            reason: string | null;
+            opdVisitId: string | null;
+            admittedByName: string | null;
+            dischargeId: string | null;
+            beds: {
+                /** Format: uuid */
+                id: string;
+                code: string;
+                wardName: string;
+                roomCategoryName: string | null;
+                /** Format: date-time */
+                startedAt: string;
+                endedAt: string | null;
+                endReason: ("transfer" | "discharge") | null;
+            }[];
+            dailyCharges: {
+                /** Format: date */
+                chargeDate: string;
+                /** @enum {string} */
+                kind: "room" | "nursing";
+                description: string;
+                amountPaise: number;
+                bedCode: string;
+            }[];
+        };
+        AdmissionsGetResponse: {
+            /** Format: uuid */
+            id: string;
+            number: string;
+            /** @enum {string} */
+            status: "admitted" | "discharged";
+            patient: {
+                /** Format: uuid */
+                id: string;
+                uhid: string;
+                fullName: string;
+                /** @enum {string} */
+                sex: "male" | "female" | "other" | "unknown";
+                dateOfBirth: string | null;
+            };
+            doctor: {
+                /** Format: uuid */
+                id: string;
+                fullName: string;
+            };
+            bed: {
+                /** Format: uuid */
+                id: string;
+                code: string;
+                wardName: string;
+                roomCategoryName: string | null;
+            } | null;
+            /** Format: date-time */
+            admittedAt: string;
+            dischargedAt: string | null;
+            minimumAdvancePaise: number;
+            depositHeldPaise: number;
+            advanceShort: boolean;
+            /** @enum {string} */
+            payerType: "self_pay";
+            reason: string | null;
+            opdVisitId: string | null;
+            admittedByName: string | null;
+            dischargeId: string | null;
+            beds: {
+                /** Format: uuid */
+                id: string;
+                code: string;
+                wardName: string;
+                roomCategoryName: string | null;
+                /** Format: date-time */
+                startedAt: string;
+                endedAt: string | null;
+                endReason: ("transfer" | "discharge") | null;
+            }[];
+            dailyCharges: {
+                /** Format: date */
+                chargeDate: string;
+                /** @enum {string} */
+                kind: "room" | "nursing";
+                description: string;
+                amountPaise: number;
+                bedCode: string;
+            }[];
+        };
+        AdmissionsInterimBillResponse: {
+            /** Format: uuid */
+            admissionId: string;
+            admissionNumber: string;
+            issuer: {
+                name: string;
+                addressLine: string | null;
+                city: string | null;
+                state: string | null;
+                pincode: string | null;
+                phone: string | null;
+                email: string | null;
+                gstin: string | null;
+            };
+            patient: {
+                /** Format: uuid */
+                id: string;
+                uhid: string;
+                fullName: string;
+                /** @enum {string} */
+                sex: "male" | "female" | "other" | "unknown";
+                dateOfBirth: string | null;
+                phone: string | null;
+                address: string | null;
+            };
+            /** Format: date-time */
+            admittedAt: string;
+            /** Format: date-time */
+            generatedAt: string;
+            lines: {
+                description: string;
+                /** Format: date */
+                serviceDate: string;
+                quantity: number;
+                unitRatePaise: number;
+                taxRateBp: number;
+                amountPaise: number;
+                totalPaise: number;
+            }[];
+            subtotalPaise: number;
+            cgstPaise: number;
+            sgstPaise: number;
+            roundOffPaise: number;
+            totalPaise: number;
+            depositHeldPaise: number;
+        };
+        AdmissionsTransferRequest: {
+            /** Format: uuid */
+            bedId: string;
+        };
+        AdmissionsTransferResponse: {
+            /** Format: uuid */
+            id: string;
+            number: string;
+            /** @enum {string} */
+            status: "admitted" | "discharged";
+            patient: {
+                /** Format: uuid */
+                id: string;
+                uhid: string;
+                fullName: string;
+                /** @enum {string} */
+                sex: "male" | "female" | "other" | "unknown";
+                dateOfBirth: string | null;
+            };
+            doctor: {
+                /** Format: uuid */
+                id: string;
+                fullName: string;
+            };
+            bed: {
+                /** Format: uuid */
+                id: string;
+                code: string;
+                wardName: string;
+                roomCategoryName: string | null;
+            } | null;
+            /** Format: date-time */
+            admittedAt: string;
+            dischargedAt: string | null;
+            minimumAdvancePaise: number;
+            depositHeldPaise: number;
+            advanceShort: boolean;
+            /** @enum {string} */
+            payerType: "self_pay";
+            reason: string | null;
+            opdVisitId: string | null;
+            admittedByName: string | null;
+            dischargeId: string | null;
+            beds: {
+                /** Format: uuid */
+                id: string;
+                code: string;
+                wardName: string;
+                roomCategoryName: string | null;
+                /** Format: date-time */
+                startedAt: string;
+                endedAt: string | null;
+                endReason: ("transfer" | "discharge") | null;
+            }[];
+            dailyCharges: {
+                /** Format: date */
+                chargeDate: string;
+                /** @enum {string} */
+                kind: "room" | "nursing";
+                description: string;
+                amountPaise: number;
+                bedCode: string;
+            }[];
+        };
+        AdmissionsAdvisedResponse: {
+            data: {
+                /** Format: uuid */
+                visitId: string;
+                /** Format: date */
+                visitDate: string;
+                patient: {
+                    /** Format: uuid */
+                    id: string;
+                    uhid: string;
+                    fullName: string;
+                };
+                doctor: {
+                    /** Format: uuid */
+                    id: string;
+                    fullName: string;
+                };
+                diagnosis: string | null;
+            }[];
+        };
         ApprovalRequestsListResponse: {
             data: {
                 /** Format: uuid */
                 id: string;
                 /** @enum {string} */
-                kind: "discount" | "credit_note" | "refund" | "receipt_void";
+                kind: "discount" | "credit_note" | "refund" | "receipt_void" | "clearance_dues";
                 /** @enum {string} */
                 status: "pending" | "approved" | "rejected";
                 patient: {
@@ -1203,6 +1880,7 @@ export interface components {
                 invoiceNumber: string | null;
                 receiptId: string | null;
                 receiptNumber: string | null;
+                dischargeId: string | null;
                 amountPaise: number;
                 reason: string;
                 details: {
@@ -1245,6 +1923,12 @@ export interface components {
                     purpose: "bill_payment" | "deposit";
                     /** @enum {string} */
                     mode: "cash" | "upi" | "card" | "bank_transfer" | "cheque";
+                } | {
+                    /** @constant */
+                    kind: "clearance_dues";
+                    /** Format: uuid */
+                    admissionId: string;
+                    admissionNumber: string;
                 };
                 /** Format: uuid */
                 requestedById: string;
@@ -1278,7 +1962,7 @@ export interface components {
             /** Format: uuid */
             id: string;
             /** @enum {string} */
-            kind: "discount" | "credit_note" | "refund" | "receipt_void";
+            kind: "discount" | "credit_note" | "refund" | "receipt_void" | "clearance_dues";
             /** @enum {string} */
             status: "pending" | "approved" | "rejected";
             patient: {
@@ -1291,6 +1975,7 @@ export interface components {
             invoiceNumber: string | null;
             receiptId: string | null;
             receiptNumber: string | null;
+            dischargeId: string | null;
             amountPaise: number;
             reason: string;
             details: {
@@ -1333,6 +2018,12 @@ export interface components {
                 purpose: "bill_payment" | "deposit";
                 /** @enum {string} */
                 mode: "cash" | "upi" | "card" | "bank_transfer" | "cheque";
+            } | {
+                /** @constant */
+                kind: "clearance_dues";
+                /** Format: uuid */
+                admissionId: string;
+                admissionNumber: string;
             };
             /** Format: uuid */
             requestedById: string;
@@ -1410,6 +2101,34 @@ export interface components {
                 idleTimeoutSeconds: number;
             };
         };
+        BedBoardBedBoardResponse: {
+            wards: {
+                /** Format: uuid */
+                id: string;
+                code: string;
+                name: string;
+                roomCategory: {
+                    /** Format: uuid */
+                    id: string;
+                    name: string;
+                    minimumAdvancePaise: number;
+                } | null;
+                beds: {
+                    /** Format: uuid */
+                    id: string;
+                    code: string;
+                    /** @enum {string} */
+                    status: "free" | "occupied" | "cleaning" | "reserved" | "blocked";
+                    occupant: {
+                        /** Format: uuid */
+                        admissionId: string;
+                        admissionNumber: string;
+                        patientName: string;
+                        uhid: string;
+                    } | null;
+                }[];
+            }[];
+        };
         BedsUpdateRequest: {
             isActive: boolean;
         };
@@ -1422,6 +2141,10 @@ export interface components {
             /** @enum {string} */
             status: "free" | "occupied" | "cleaning" | "reserved" | "blocked";
             isActive: boolean;
+        };
+        BedBoardSetStatusRequest: {
+            /** @enum {string} */
+            status: "free" | "cleaning" | "reserved" | "blocked";
         };
         CashShiftsListResponse: {
             data: {
@@ -1529,30 +2252,16 @@ export interface components {
                 cashRefundsPaise: number;
             } | null;
         };
-        CreditNoteRequestsRequestRequest: {
+        ClearanceRequestsRequestRequest: {
             /** Format: uuid */
-            invoiceId: string;
+            dischargeId: string;
             reason: string;
-            credit: {
-                /** @constant */
-                scope: "whole_bill";
-            } | {
-                /** @constant */
-                scope: "lines";
-                lines: ({
-                    lineNo: number;
-                    quantity: number;
-                } | {
-                    lineNo: number;
-                    amountPaise: number;
-                })[];
-            };
         };
-        CreditNoteRequestsRequestResponse: {
+        ClearanceRequestsRequestResponse: {
             /** Format: uuid */
             id: string;
             /** @enum {string} */
-            kind: "discount" | "credit_note" | "refund" | "receipt_void";
+            kind: "discount" | "credit_note" | "refund" | "receipt_void" | "clearance_dues";
             /** @enum {string} */
             status: "pending" | "approved" | "rejected";
             patient: {
@@ -1565,6 +2274,7 @@ export interface components {
             invoiceNumber: string | null;
             receiptId: string | null;
             receiptNumber: string | null;
+            dischargeId: string | null;
             amountPaise: number;
             reason: string;
             details: {
@@ -1607,6 +2317,310 @@ export interface components {
                 purpose: "bill_payment" | "deposit";
                 /** @enum {string} */
                 mode: "cash" | "upi" | "card" | "bank_transfer" | "cheque";
+            } | {
+                /** @constant */
+                kind: "clearance_dues";
+                /** Format: uuid */
+                admissionId: string;
+                admissionNumber: string;
+            };
+            /** Format: uuid */
+            requestedById: string;
+            requestedByName: string | null;
+            /** Format: date-time */
+            requestedAt: string;
+            decidedByName: string | null;
+            decidedAt: string | null;
+            decisionNote: string | null;
+            resultInvoiceId: string | null;
+            creditNote: {
+                /** Format: uuid */
+                id: string;
+                number: string;
+                totalPaise: number;
+            } | null;
+            refund: {
+                /** Format: uuid */
+                id: string;
+                number: string;
+                /** Format: date-time */
+                createdAt: string;
+            } | null;
+            aboveLimit: boolean;
+        };
+        ClearanceRequestsApproveRequest: {
+            note?: string;
+        };
+        ClearanceRequestsApproveResponse: {
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            kind: "discount" | "credit_note" | "refund" | "receipt_void" | "clearance_dues";
+            /** @enum {string} */
+            status: "pending" | "approved" | "rejected";
+            patient: {
+                /** Format: uuid */
+                id: string;
+                uhid: string;
+                fullName: string;
+            };
+            invoiceId: string | null;
+            invoiceNumber: string | null;
+            receiptId: string | null;
+            receiptNumber: string | null;
+            dischargeId: string | null;
+            amountPaise: number;
+            reason: string;
+            details: {
+                /** @constant */
+                kind: "discount";
+                /** @enum {string} */
+                scope: "bill_amount" | "bill_percent" | "lines";
+                percentBp: number | null;
+                lines: {
+                    lineNo: number;
+                    description: string;
+                    amountPaise: number;
+                    discountPaise: number;
+                }[];
+            } | {
+                /** @constant */
+                kind: "credit_note";
+                wholeBill: boolean;
+                lines: {
+                    lineNo: number;
+                    description: string;
+                    quantity: number | null;
+                    amountPaise: number | null;
+                    taxablePaise: number;
+                    cgstPaise: number;
+                    sgstPaise: number;
+                    totalPaise: number;
+                }[];
+            } | {
+                /** @constant */
+                kind: "refund";
+                /** @enum {string} */
+                source: "deposit" | "bill";
+                /** @enum {string} */
+                mode: "cash" | "upi" | "bank_transfer" | "cheque";
+            } | {
+                /** @constant */
+                kind: "receipt_void";
+                /** @enum {string} */
+                purpose: "bill_payment" | "deposit";
+                /** @enum {string} */
+                mode: "cash" | "upi" | "card" | "bank_transfer" | "cheque";
+            } | {
+                /** @constant */
+                kind: "clearance_dues";
+                /** Format: uuid */
+                admissionId: string;
+                admissionNumber: string;
+            };
+            /** Format: uuid */
+            requestedById: string;
+            requestedByName: string | null;
+            /** Format: date-time */
+            requestedAt: string;
+            decidedByName: string | null;
+            decidedAt: string | null;
+            decisionNote: string | null;
+            resultInvoiceId: string | null;
+            creditNote: {
+                /** Format: uuid */
+                id: string;
+                number: string;
+                totalPaise: number;
+            } | null;
+            refund: {
+                /** Format: uuid */
+                id: string;
+                number: string;
+                /** Format: date-time */
+                createdAt: string;
+            } | null;
+            aboveLimit: boolean;
+        };
+        ClearanceRequestsRejectRequest: {
+            note: string;
+        };
+        ClearanceRequestsRejectResponse: {
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            kind: "discount" | "credit_note" | "refund" | "receipt_void" | "clearance_dues";
+            /** @enum {string} */
+            status: "pending" | "approved" | "rejected";
+            patient: {
+                /** Format: uuid */
+                id: string;
+                uhid: string;
+                fullName: string;
+            };
+            invoiceId: string | null;
+            invoiceNumber: string | null;
+            receiptId: string | null;
+            receiptNumber: string | null;
+            dischargeId: string | null;
+            amountPaise: number;
+            reason: string;
+            details: {
+                /** @constant */
+                kind: "discount";
+                /** @enum {string} */
+                scope: "bill_amount" | "bill_percent" | "lines";
+                percentBp: number | null;
+                lines: {
+                    lineNo: number;
+                    description: string;
+                    amountPaise: number;
+                    discountPaise: number;
+                }[];
+            } | {
+                /** @constant */
+                kind: "credit_note";
+                wholeBill: boolean;
+                lines: {
+                    lineNo: number;
+                    description: string;
+                    quantity: number | null;
+                    amountPaise: number | null;
+                    taxablePaise: number;
+                    cgstPaise: number;
+                    sgstPaise: number;
+                    totalPaise: number;
+                }[];
+            } | {
+                /** @constant */
+                kind: "refund";
+                /** @enum {string} */
+                source: "deposit" | "bill";
+                /** @enum {string} */
+                mode: "cash" | "upi" | "bank_transfer" | "cheque";
+            } | {
+                /** @constant */
+                kind: "receipt_void";
+                /** @enum {string} */
+                purpose: "bill_payment" | "deposit";
+                /** @enum {string} */
+                mode: "cash" | "upi" | "card" | "bank_transfer" | "cheque";
+            } | {
+                /** @constant */
+                kind: "clearance_dues";
+                /** Format: uuid */
+                admissionId: string;
+                admissionNumber: string;
+            };
+            /** Format: uuid */
+            requestedById: string;
+            requestedByName: string | null;
+            /** Format: date-time */
+            requestedAt: string;
+            decidedByName: string | null;
+            decidedAt: string | null;
+            decisionNote: string | null;
+            resultInvoiceId: string | null;
+            creditNote: {
+                /** Format: uuid */
+                id: string;
+                number: string;
+                totalPaise: number;
+            } | null;
+            refund: {
+                /** Format: uuid */
+                id: string;
+                number: string;
+                /** Format: date-time */
+                createdAt: string;
+            } | null;
+            aboveLimit: boolean;
+        };
+        CreditNoteRequestsRequestRequest: {
+            /** Format: uuid */
+            invoiceId: string;
+            reason: string;
+            credit: {
+                /** @constant */
+                scope: "whole_bill";
+            } | {
+                /** @constant */
+                scope: "lines";
+                lines: ({
+                    lineNo: number;
+                    quantity: number;
+                } | {
+                    lineNo: number;
+                    amountPaise: number;
+                })[];
+            };
+        };
+        CreditNoteRequestsRequestResponse: {
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            kind: "discount" | "credit_note" | "refund" | "receipt_void" | "clearance_dues";
+            /** @enum {string} */
+            status: "pending" | "approved" | "rejected";
+            patient: {
+                /** Format: uuid */
+                id: string;
+                uhid: string;
+                fullName: string;
+            };
+            invoiceId: string | null;
+            invoiceNumber: string | null;
+            receiptId: string | null;
+            receiptNumber: string | null;
+            dischargeId: string | null;
+            amountPaise: number;
+            reason: string;
+            details: {
+                /** @constant */
+                kind: "discount";
+                /** @enum {string} */
+                scope: "bill_amount" | "bill_percent" | "lines";
+                percentBp: number | null;
+                lines: {
+                    lineNo: number;
+                    description: string;
+                    amountPaise: number;
+                    discountPaise: number;
+                }[];
+            } | {
+                /** @constant */
+                kind: "credit_note";
+                wholeBill: boolean;
+                lines: {
+                    lineNo: number;
+                    description: string;
+                    quantity: number | null;
+                    amountPaise: number | null;
+                    taxablePaise: number;
+                    cgstPaise: number;
+                    sgstPaise: number;
+                    totalPaise: number;
+                }[];
+            } | {
+                /** @constant */
+                kind: "refund";
+                /** @enum {string} */
+                source: "deposit" | "bill";
+                /** @enum {string} */
+                mode: "cash" | "upi" | "bank_transfer" | "cheque";
+            } | {
+                /** @constant */
+                kind: "receipt_void";
+                /** @enum {string} */
+                purpose: "bill_payment" | "deposit";
+                /** @enum {string} */
+                mode: "cash" | "upi" | "card" | "bank_transfer" | "cheque";
+            } | {
+                /** @constant */
+                kind: "clearance_dues";
+                /** Format: uuid */
+                admissionId: string;
+                admissionNumber: string;
             };
             /** Format: uuid */
             requestedById: string;
@@ -1639,7 +2653,7 @@ export interface components {
             /** Format: uuid */
             id: string;
             /** @enum {string} */
-            kind: "discount" | "credit_note" | "refund" | "receipt_void";
+            kind: "discount" | "credit_note" | "refund" | "receipt_void" | "clearance_dues";
             /** @enum {string} */
             status: "pending" | "approved" | "rejected";
             patient: {
@@ -1652,6 +2666,7 @@ export interface components {
             invoiceNumber: string | null;
             receiptId: string | null;
             receiptNumber: string | null;
+            dischargeId: string | null;
             amountPaise: number;
             reason: string;
             details: {
@@ -1694,6 +2709,12 @@ export interface components {
                 purpose: "bill_payment" | "deposit";
                 /** @enum {string} */
                 mode: "cash" | "upi" | "card" | "bank_transfer" | "cheque";
+            } | {
+                /** @constant */
+                kind: "clearance_dues";
+                /** Format: uuid */
+                admissionId: string;
+                admissionNumber: string;
             };
             /** Format: uuid */
             requestedById: string;
@@ -1726,7 +2747,7 @@ export interface components {
             /** Format: uuid */
             id: string;
             /** @enum {string} */
-            kind: "discount" | "credit_note" | "refund" | "receipt_void";
+            kind: "discount" | "credit_note" | "refund" | "receipt_void" | "clearance_dues";
             /** @enum {string} */
             status: "pending" | "approved" | "rejected";
             patient: {
@@ -1739,6 +2760,7 @@ export interface components {
             invoiceNumber: string | null;
             receiptId: string | null;
             receiptNumber: string | null;
+            dischargeId: string | null;
             amountPaise: number;
             reason: string;
             details: {
@@ -1781,6 +2803,12 @@ export interface components {
                 purpose: "bill_payment" | "deposit";
                 /** @enum {string} */
                 mode: "cash" | "upi" | "card" | "bank_transfer" | "cheque";
+            } | {
+                /** @constant */
+                kind: "clearance_dues";
+                /** Format: uuid */
+                admissionId: string;
+                admissionNumber: string;
             };
             /** Format: uuid */
             requestedById: string;
@@ -1946,6 +2974,630 @@ export interface components {
             heldPaise: number;
             voidedAt: string | null;
         };
+        DischargesListResponse: {
+            data: {
+                /** Format: uuid */
+                id: string;
+                admission: {
+                    /** Format: uuid */
+                    id: string;
+                    number: string;
+                    /** @enum {string} */
+                    status: "admitted" | "discharged";
+                    patient: {
+                        /** Format: uuid */
+                        id: string;
+                        uhid: string;
+                        fullName: string;
+                        /** @enum {string} */
+                        sex: "male" | "female" | "other" | "unknown";
+                        dateOfBirth: string | null;
+                    };
+                    doctor: {
+                        /** Format: uuid */
+                        id: string;
+                        fullName: string;
+                    };
+                    bed: {
+                        /** Format: uuid */
+                        id: string;
+                        code: string;
+                        wardName: string;
+                        roomCategoryName: string | null;
+                    } | null;
+                    /** Format: date-time */
+                    admittedAt: string;
+                    dischargedAt: string | null;
+                    minimumAdvancePaise: number;
+                    depositHeldPaise: number;
+                    advanceShort: boolean;
+                };
+                /** Format: date-time */
+                fitAt: string;
+                fitByName: string | null;
+                clearedAt: string | null;
+                /** @enum {string} */
+                summaryStatus: "none" | "draft" | "signed";
+                completedAt: string | null;
+            }[];
+            page: number;
+            pageSize: number;
+            total: number;
+        };
+        DischargesMarkFitRequest: {
+            /** Format: uuid */
+            admissionId: string;
+            note?: string;
+        };
+        DischargesMarkFitResponse: {
+            /** Format: uuid */
+            id: string;
+            admission: {
+                /** Format: uuid */
+                id: string;
+                number: string;
+                /** @enum {string} */
+                status: "admitted" | "discharged";
+                patient: {
+                    /** Format: uuid */
+                    id: string;
+                    uhid: string;
+                    fullName: string;
+                    /** @enum {string} */
+                    sex: "male" | "female" | "other" | "unknown";
+                    dateOfBirth: string | null;
+                };
+                doctor: {
+                    /** Format: uuid */
+                    id: string;
+                    fullName: string;
+                };
+                bed: {
+                    /** Format: uuid */
+                    id: string;
+                    code: string;
+                    wardName: string;
+                    roomCategoryName: string | null;
+                } | null;
+                /** Format: date-time */
+                admittedAt: string;
+                dischargedAt: string | null;
+                minimumAdvancePaise: number;
+                depositHeldPaise: number;
+                advanceShort: boolean;
+            };
+            /** Format: date-time */
+            fitAt: string;
+            fitByName: string | null;
+            clearedAt: string | null;
+            /** @enum {string} */
+            summaryStatus: "none" | "draft" | "signed";
+            completedAt: string | null;
+            fitNote: string | null;
+            clearance: {
+                /** Format: date-time */
+                clearedAt: string;
+                clearedByName: string | null;
+                duePaise: number;
+                approvalRequestId: string | null;
+            } | null;
+            pendingDuesRequestId: string | null;
+            summary: {
+                draftedByName: string | null;
+                /** Format: date-time */
+                draftedAt: string;
+                signedByName: string | null;
+                signedAt: string | null;
+            } | null;
+            bills: {
+                /** Format: uuid */
+                id: string;
+                /** @enum {string} */
+                status: "draft" | "issued" | "discarded";
+                number: string | null;
+                /** Format: uuid */
+                patientId: string;
+                patientUhid: string;
+                patientName: string;
+                totalPaise: number;
+                paidPaise: number;
+                creditedPaise: number;
+                refundedPaise: number;
+                duePaise: number;
+                refundablePaise: number;
+                issuedAt: string | null;
+                /** Format: date-time */
+                createdAt: string;
+            }[];
+            balance: {
+                unbilledCount: number;
+                unbilledPaise: number;
+                duePaise: number;
+                depositHeldPaise: number;
+                refundablePaise: number;
+                missingRoomCharges: string[];
+                settled: boolean;
+            };
+            completedByName: string | null;
+            isTreatingDoctor: boolean;
+        };
+        DischargesGetResponse: {
+            /** Format: uuid */
+            id: string;
+            admission: {
+                /** Format: uuid */
+                id: string;
+                number: string;
+                /** @enum {string} */
+                status: "admitted" | "discharged";
+                patient: {
+                    /** Format: uuid */
+                    id: string;
+                    uhid: string;
+                    fullName: string;
+                    /** @enum {string} */
+                    sex: "male" | "female" | "other" | "unknown";
+                    dateOfBirth: string | null;
+                };
+                doctor: {
+                    /** Format: uuid */
+                    id: string;
+                    fullName: string;
+                };
+                bed: {
+                    /** Format: uuid */
+                    id: string;
+                    code: string;
+                    wardName: string;
+                    roomCategoryName: string | null;
+                } | null;
+                /** Format: date-time */
+                admittedAt: string;
+                dischargedAt: string | null;
+                minimumAdvancePaise: number;
+                depositHeldPaise: number;
+                advanceShort: boolean;
+            };
+            /** Format: date-time */
+            fitAt: string;
+            fitByName: string | null;
+            clearedAt: string | null;
+            /** @enum {string} */
+            summaryStatus: "none" | "draft" | "signed";
+            completedAt: string | null;
+            fitNote: string | null;
+            clearance: {
+                /** Format: date-time */
+                clearedAt: string;
+                clearedByName: string | null;
+                duePaise: number;
+                approvalRequestId: string | null;
+            } | null;
+            pendingDuesRequestId: string | null;
+            summary: {
+                draftedByName: string | null;
+                /** Format: date-time */
+                draftedAt: string;
+                signedByName: string | null;
+                signedAt: string | null;
+            } | null;
+            bills: {
+                /** Format: uuid */
+                id: string;
+                /** @enum {string} */
+                status: "draft" | "issued" | "discarded";
+                number: string | null;
+                /** Format: uuid */
+                patientId: string;
+                patientUhid: string;
+                patientName: string;
+                totalPaise: number;
+                paidPaise: number;
+                creditedPaise: number;
+                refundedPaise: number;
+                duePaise: number;
+                refundablePaise: number;
+                issuedAt: string | null;
+                /** Format: date-time */
+                createdAt: string;
+            }[];
+            balance: {
+                unbilledCount: number;
+                unbilledPaise: number;
+                duePaise: number;
+                depositHeldPaise: number;
+                refundablePaise: number;
+                missingRoomCharges: string[];
+                settled: boolean;
+            };
+            completedByName: string | null;
+            isTreatingDoctor: boolean;
+        };
+        DischargesClearResponse: {
+            /** Format: uuid */
+            id: string;
+            admission: {
+                /** Format: uuid */
+                id: string;
+                number: string;
+                /** @enum {string} */
+                status: "admitted" | "discharged";
+                patient: {
+                    /** Format: uuid */
+                    id: string;
+                    uhid: string;
+                    fullName: string;
+                    /** @enum {string} */
+                    sex: "male" | "female" | "other" | "unknown";
+                    dateOfBirth: string | null;
+                };
+                doctor: {
+                    /** Format: uuid */
+                    id: string;
+                    fullName: string;
+                };
+                bed: {
+                    /** Format: uuid */
+                    id: string;
+                    code: string;
+                    wardName: string;
+                    roomCategoryName: string | null;
+                } | null;
+                /** Format: date-time */
+                admittedAt: string;
+                dischargedAt: string | null;
+                minimumAdvancePaise: number;
+                depositHeldPaise: number;
+                advanceShort: boolean;
+            };
+            /** Format: date-time */
+            fitAt: string;
+            fitByName: string | null;
+            clearedAt: string | null;
+            /** @enum {string} */
+            summaryStatus: "none" | "draft" | "signed";
+            completedAt: string | null;
+            fitNote: string | null;
+            clearance: {
+                /** Format: date-time */
+                clearedAt: string;
+                clearedByName: string | null;
+                duePaise: number;
+                approvalRequestId: string | null;
+            } | null;
+            pendingDuesRequestId: string | null;
+            summary: {
+                draftedByName: string | null;
+                /** Format: date-time */
+                draftedAt: string;
+                signedByName: string | null;
+                signedAt: string | null;
+            } | null;
+            bills: {
+                /** Format: uuid */
+                id: string;
+                /** @enum {string} */
+                status: "draft" | "issued" | "discarded";
+                number: string | null;
+                /** Format: uuid */
+                patientId: string;
+                patientUhid: string;
+                patientName: string;
+                totalPaise: number;
+                paidPaise: number;
+                creditedPaise: number;
+                refundedPaise: number;
+                duePaise: number;
+                refundablePaise: number;
+                issuedAt: string | null;
+                /** Format: date-time */
+                createdAt: string;
+            }[];
+            balance: {
+                unbilledCount: number;
+                unbilledPaise: number;
+                duePaise: number;
+                depositHeldPaise: number;
+                refundablePaise: number;
+                missingRoomCharges: string[];
+                settled: boolean;
+            };
+            completedByName: string | null;
+            isTreatingDoctor: boolean;
+        };
+        DischargesCompleteResponse: {
+            /** Format: uuid */
+            id: string;
+            admission: {
+                /** Format: uuid */
+                id: string;
+                number: string;
+                /** @enum {string} */
+                status: "admitted" | "discharged";
+                patient: {
+                    /** Format: uuid */
+                    id: string;
+                    uhid: string;
+                    fullName: string;
+                    /** @enum {string} */
+                    sex: "male" | "female" | "other" | "unknown";
+                    dateOfBirth: string | null;
+                };
+                doctor: {
+                    /** Format: uuid */
+                    id: string;
+                    fullName: string;
+                };
+                bed: {
+                    /** Format: uuid */
+                    id: string;
+                    code: string;
+                    wardName: string;
+                    roomCategoryName: string | null;
+                } | null;
+                /** Format: date-time */
+                admittedAt: string;
+                dischargedAt: string | null;
+                minimumAdvancePaise: number;
+                depositHeldPaise: number;
+                advanceShort: boolean;
+            };
+            /** Format: date-time */
+            fitAt: string;
+            fitByName: string | null;
+            clearedAt: string | null;
+            /** @enum {string} */
+            summaryStatus: "none" | "draft" | "signed";
+            completedAt: string | null;
+            fitNote: string | null;
+            clearance: {
+                /** Format: date-time */
+                clearedAt: string;
+                clearedByName: string | null;
+                duePaise: number;
+                approvalRequestId: string | null;
+            } | null;
+            pendingDuesRequestId: string | null;
+            summary: {
+                draftedByName: string | null;
+                /** Format: date-time */
+                draftedAt: string;
+                signedByName: string | null;
+                signedAt: string | null;
+            } | null;
+            bills: {
+                /** Format: uuid */
+                id: string;
+                /** @enum {string} */
+                status: "draft" | "issued" | "discarded";
+                number: string | null;
+                /** Format: uuid */
+                patientId: string;
+                patientUhid: string;
+                patientName: string;
+                totalPaise: number;
+                paidPaise: number;
+                creditedPaise: number;
+                refundedPaise: number;
+                duePaise: number;
+                refundablePaise: number;
+                issuedAt: string | null;
+                /** Format: date-time */
+                createdAt: string;
+            }[];
+            balance: {
+                unbilledCount: number;
+                unbilledPaise: number;
+                duePaise: number;
+                depositHeldPaise: number;
+                refundablePaise: number;
+                missingRoomCharges: string[];
+                settled: boolean;
+            };
+            completedByName: string | null;
+            isTreatingDoctor: boolean;
+        };
+        DischargesFinalBillResponse: {
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            status: "draft" | "issued" | "discarded";
+            number: string | null;
+            financialYear: string | null;
+            subtotalPaise: number;
+            discountPaise: number;
+            taxablePaise: number;
+            cgstPaise: number;
+            sgstPaise: number;
+            roundOffPaise: number;
+            totalPaise: number;
+            paidPaise: number;
+            creditedPaise: number;
+            refundedPaise: number;
+            duePaise: number;
+            refundablePaise: number;
+            issuer: {
+                name: string;
+                addressLine: string | null;
+                city: string | null;
+                state: string | null;
+                pincode: string | null;
+                phone: string | null;
+                email: string | null;
+                gstin: string | null;
+            };
+            patient: {
+                /** Format: uuid */
+                id: string;
+                uhid: string;
+                fullName: string;
+                /** @enum {string} */
+                sex: "male" | "female" | "other" | "unknown";
+                dateOfBirth: string | null;
+                phone: string | null;
+                address: string | null;
+            };
+            lines: {
+                lineNo: number;
+                description: string;
+                /** Format: date */
+                serviceDate: string;
+                quantity: number;
+                unitRatePaise: number;
+                amountPaise: number;
+                discountPaise: number;
+                taxablePaise: number;
+                taxRateBp: number;
+                cgstPaise: number;
+                sgstPaise: number;
+                totalPaise: number;
+            }[];
+            /** Format: date-time */
+            createdAt: string;
+            createdByName: string | null;
+            issuedAt: string | null;
+            issuedByName: string | null;
+        };
+        DischargesSummaryResponse: {
+            /** Format: uuid */
+            dischargeId: string;
+            admissionNumber: string;
+            issuer: {
+                name: string;
+                addressLine: string | null;
+                city: string | null;
+                state: string | null;
+                pincode: string | null;
+                phone: string | null;
+                email: string | null;
+                gstin: string | null;
+            };
+            patient: {
+                /** Format: uuid */
+                id: string;
+                uhid: string;
+                fullName: string;
+                /** @enum {string} */
+                sex: "male" | "female" | "other" | "unknown";
+                dateOfBirth: string | null;
+                phone: string | null;
+                address: string | null;
+            };
+            doctorName: string;
+            departmentName: string;
+            /** Format: date-time */
+            admittedAt: string;
+            dischargedAt: string | null;
+            wardName: string | null;
+            content: {
+                diagnosis: string;
+                courseInHospital: string;
+                conditionAtDischarge: string;
+                medications: string | null;
+                advice: string | null;
+                followUpDate: string | null;
+            } | null;
+            draftedByName: string | null;
+            draftedAt: string | null;
+            signedByName: string | null;
+            signedAt: string | null;
+        };
+        DischargesSaveSummaryRequest: {
+            diagnosis: string;
+            courseInHospital: string;
+            conditionAtDischarge: string;
+            medications: string | null;
+            advice: string | null;
+            followUpDate: string | null;
+        };
+        DischargesSaveSummaryResponse: {
+            /** Format: uuid */
+            dischargeId: string;
+            admissionNumber: string;
+            issuer: {
+                name: string;
+                addressLine: string | null;
+                city: string | null;
+                state: string | null;
+                pincode: string | null;
+                phone: string | null;
+                email: string | null;
+                gstin: string | null;
+            };
+            patient: {
+                /** Format: uuid */
+                id: string;
+                uhid: string;
+                fullName: string;
+                /** @enum {string} */
+                sex: "male" | "female" | "other" | "unknown";
+                dateOfBirth: string | null;
+                phone: string | null;
+                address: string | null;
+            };
+            doctorName: string;
+            departmentName: string;
+            /** Format: date-time */
+            admittedAt: string;
+            dischargedAt: string | null;
+            wardName: string | null;
+            content: {
+                diagnosis: string;
+                courseInHospital: string;
+                conditionAtDischarge: string;
+                medications: string | null;
+                advice: string | null;
+                followUpDate: string | null;
+            } | null;
+            draftedByName: string | null;
+            draftedAt: string | null;
+            signedByName: string | null;
+            signedAt: string | null;
+        };
+        DischargesSignSummaryResponse: {
+            /** Format: uuid */
+            dischargeId: string;
+            admissionNumber: string;
+            issuer: {
+                name: string;
+                addressLine: string | null;
+                city: string | null;
+                state: string | null;
+                pincode: string | null;
+                phone: string | null;
+                email: string | null;
+                gstin: string | null;
+            };
+            patient: {
+                /** Format: uuid */
+                id: string;
+                uhid: string;
+                fullName: string;
+                /** @enum {string} */
+                sex: "male" | "female" | "other" | "unknown";
+                dateOfBirth: string | null;
+                phone: string | null;
+                address: string | null;
+            };
+            doctorName: string;
+            departmentName: string;
+            /** Format: date-time */
+            admittedAt: string;
+            dischargedAt: string | null;
+            wardName: string | null;
+            content: {
+                diagnosis: string;
+                courseInHospital: string;
+                conditionAtDischarge: string;
+                medications: string | null;
+                advice: string | null;
+                followUpDate: string | null;
+            } | null;
+            draftedByName: string | null;
+            draftedAt: string | null;
+            signedByName: string | null;
+            signedAt: string | null;
+        };
         DiscountRequestsRequestRequest: {
             /** Format: uuid */
             invoiceId: string;
@@ -1971,7 +3623,7 @@ export interface components {
             /** Format: uuid */
             id: string;
             /** @enum {string} */
-            kind: "discount" | "credit_note" | "refund" | "receipt_void";
+            kind: "discount" | "credit_note" | "refund" | "receipt_void" | "clearance_dues";
             /** @enum {string} */
             status: "pending" | "approved" | "rejected";
             patient: {
@@ -1984,6 +3636,7 @@ export interface components {
             invoiceNumber: string | null;
             receiptId: string | null;
             receiptNumber: string | null;
+            dischargeId: string | null;
             amountPaise: number;
             reason: string;
             details: {
@@ -2026,6 +3679,12 @@ export interface components {
                 purpose: "bill_payment" | "deposit";
                 /** @enum {string} */
                 mode: "cash" | "upi" | "card" | "bank_transfer" | "cheque";
+            } | {
+                /** @constant */
+                kind: "clearance_dues";
+                /** Format: uuid */
+                admissionId: string;
+                admissionNumber: string;
             };
             /** Format: uuid */
             requestedById: string;
@@ -2058,7 +3717,7 @@ export interface components {
             /** Format: uuid */
             id: string;
             /** @enum {string} */
-            kind: "discount" | "credit_note" | "refund" | "receipt_void";
+            kind: "discount" | "credit_note" | "refund" | "receipt_void" | "clearance_dues";
             /** @enum {string} */
             status: "pending" | "approved" | "rejected";
             patient: {
@@ -2071,6 +3730,7 @@ export interface components {
             invoiceNumber: string | null;
             receiptId: string | null;
             receiptNumber: string | null;
+            dischargeId: string | null;
             amountPaise: number;
             reason: string;
             details: {
@@ -2113,6 +3773,12 @@ export interface components {
                 purpose: "bill_payment" | "deposit";
                 /** @enum {string} */
                 mode: "cash" | "upi" | "card" | "bank_transfer" | "cheque";
+            } | {
+                /** @constant */
+                kind: "clearance_dues";
+                /** Format: uuid */
+                admissionId: string;
+                admissionNumber: string;
             };
             /** Format: uuid */
             requestedById: string;
@@ -2145,7 +3811,7 @@ export interface components {
             /** Format: uuid */
             id: string;
             /** @enum {string} */
-            kind: "discount" | "credit_note" | "refund" | "receipt_void";
+            kind: "discount" | "credit_note" | "refund" | "receipt_void" | "clearance_dues";
             /** @enum {string} */
             status: "pending" | "approved" | "rejected";
             patient: {
@@ -2158,6 +3824,7 @@ export interface components {
             invoiceNumber: string | null;
             receiptId: string | null;
             receiptNumber: string | null;
+            dischargeId: string | null;
             amountPaise: number;
             reason: string;
             details: {
@@ -2200,6 +3867,12 @@ export interface components {
                 purpose: "bill_payment" | "deposit";
                 /** @enum {string} */
                 mode: "cash" | "upi" | "card" | "bank_transfer" | "cheque";
+            } | {
+                /** @constant */
+                kind: "clearance_dues";
+                /** Format: uuid */
+                admissionId: string;
+                admissionNumber: string;
             };
             /** Format: uuid */
             requestedById: string;
@@ -3627,7 +5300,7 @@ export interface components {
             /** Format: uuid */
             id: string;
             /** @enum {string} */
-            kind: "discount" | "credit_note" | "refund" | "receipt_void";
+            kind: "discount" | "credit_note" | "refund" | "receipt_void" | "clearance_dues";
             /** @enum {string} */
             status: "pending" | "approved" | "rejected";
             patient: {
@@ -3640,6 +5313,7 @@ export interface components {
             invoiceNumber: string | null;
             receiptId: string | null;
             receiptNumber: string | null;
+            dischargeId: string | null;
             amountPaise: number;
             reason: string;
             details: {
@@ -3682,6 +5356,12 @@ export interface components {
                 purpose: "bill_payment" | "deposit";
                 /** @enum {string} */
                 mode: "cash" | "upi" | "card" | "bank_transfer" | "cheque";
+            } | {
+                /** @constant */
+                kind: "clearance_dues";
+                /** Format: uuid */
+                admissionId: string;
+                admissionNumber: string;
             };
             /** Format: uuid */
             requestedById: string;
@@ -3714,7 +5394,7 @@ export interface components {
             /** Format: uuid */
             id: string;
             /** @enum {string} */
-            kind: "discount" | "credit_note" | "refund" | "receipt_void";
+            kind: "discount" | "credit_note" | "refund" | "receipt_void" | "clearance_dues";
             /** @enum {string} */
             status: "pending" | "approved" | "rejected";
             patient: {
@@ -3727,6 +5407,7 @@ export interface components {
             invoiceNumber: string | null;
             receiptId: string | null;
             receiptNumber: string | null;
+            dischargeId: string | null;
             amountPaise: number;
             reason: string;
             details: {
@@ -3769,6 +5450,12 @@ export interface components {
                 purpose: "bill_payment" | "deposit";
                 /** @enum {string} */
                 mode: "cash" | "upi" | "card" | "bank_transfer" | "cheque";
+            } | {
+                /** @constant */
+                kind: "clearance_dues";
+                /** Format: uuid */
+                admissionId: string;
+                admissionNumber: string;
             };
             /** Format: uuid */
             requestedById: string;
@@ -3846,7 +5533,7 @@ export interface components {
             /** Format: uuid */
             id: string;
             /** @enum {string} */
-            kind: "discount" | "credit_note" | "refund" | "receipt_void";
+            kind: "discount" | "credit_note" | "refund" | "receipt_void" | "clearance_dues";
             /** @enum {string} */
             status: "pending" | "approved" | "rejected";
             patient: {
@@ -3859,6 +5546,7 @@ export interface components {
             invoiceNumber: string | null;
             receiptId: string | null;
             receiptNumber: string | null;
+            dischargeId: string | null;
             amountPaise: number;
             reason: string;
             details: {
@@ -3901,6 +5589,12 @@ export interface components {
                 purpose: "bill_payment" | "deposit";
                 /** @enum {string} */
                 mode: "cash" | "upi" | "card" | "bank_transfer" | "cheque";
+            } | {
+                /** @constant */
+                kind: "clearance_dues";
+                /** Format: uuid */
+                admissionId: string;
+                admissionNumber: string;
             };
             /** Format: uuid */
             requestedById: string;
@@ -3967,6 +5661,74 @@ export interface components {
             /** Format: date-time */
             createdAt: string;
         };
+        ReportsCollectionResponse: {
+            /** Format: date */
+            date: string;
+            /** Format: date-time */
+            generatedAt: string;
+            rows: {
+                /** Format: uuid */
+                cashierId: string;
+                cashierName: string | null;
+                /** @enum {string} */
+                mode: "cash" | "upi" | "card" | "bank_transfer" | "cheque";
+                paymentsPaise: number;
+                depositsPaise: number;
+                refundsPaise: number;
+                netPaise: number;
+                receipts: number;
+                refunds: number;
+            }[];
+            byMode: {
+                /** @enum {string} */
+                mode: "cash" | "upi" | "card" | "bank_transfer" | "cheque";
+                paymentsPaise: number;
+                depositsPaise: number;
+                refundsPaise: number;
+                netPaise: number;
+                receipts: number;
+                refunds: number;
+            }[];
+            totals: {
+                paymentsPaise: number;
+                depositsPaise: number;
+                refundsPaise: number;
+                netPaise: number;
+                receipts: number;
+                refunds: number;
+            };
+            voided: {
+                count: number;
+                amountPaise: number;
+            };
+        };
+        ReportsDayBookResponse: string;
+        ReportsOperationsResponse: {
+            /** Format: date */
+            date: string;
+            /** Format: date-time */
+            generatedAt: string;
+            opd: {
+                tokens: number;
+                seen: number;
+                cancelled: number;
+            };
+            admissions: number;
+            discharges: number;
+            beds: {
+                total: number;
+                occupied: number;
+                free: number;
+                cleaning: number;
+                reserved: number;
+                blocked: number;
+            };
+            wards: {
+                name: string;
+                total: number;
+                occupied: number;
+            }[];
+        };
         RolesListResponse: {
             data: {
                 /** Format: uuid */
@@ -4010,6 +5772,29 @@ export interface components {
             code: string;
             name: string;
             isActive: boolean;
+        };
+        BedBoardSetAdvanceRequest: {
+            minimumAdvancePaise: number;
+        };
+        BedBoardSetAdvanceResponse: {
+            data: {
+                /** Format: uuid */
+                id: string;
+                code: string;
+                name: string;
+                isActive: boolean;
+                minimumAdvancePaise: number;
+            }[];
+        };
+        BedBoardAdvancesResponse: {
+            data: {
+                /** Format: uuid */
+                id: string;
+                code: string;
+                name: string;
+                isActive: boolean;
+                minimumAdvancePaise: number;
+            }[];
         };
         TariffsListResponse: {
             data: {
@@ -4208,7 +5993,7 @@ export interface components {
             /** Format: uuid */
             id: string;
             /** @enum {string} */
-            kind: "discount" | "credit_note" | "refund" | "receipt_void";
+            kind: "discount" | "credit_note" | "refund" | "receipt_void" | "clearance_dues";
             /** @enum {string} */
             status: "pending" | "approved" | "rejected";
             patient: {
@@ -4221,6 +6006,7 @@ export interface components {
             invoiceNumber: string | null;
             receiptId: string | null;
             receiptNumber: string | null;
+            dischargeId: string | null;
             amountPaise: number;
             reason: string;
             details: {
@@ -4263,6 +6049,12 @@ export interface components {
                 purpose: "bill_payment" | "deposit";
                 /** @enum {string} */
                 mode: "cash" | "upi" | "card" | "bank_transfer" | "cheque";
+            } | {
+                /** @constant */
+                kind: "clearance_dues";
+                /** Format: uuid */
+                admissionId: string;
+                admissionNumber: string;
             };
             /** Format: uuid */
             requestedById: string;
@@ -4295,7 +6087,7 @@ export interface components {
             /** Format: uuid */
             id: string;
             /** @enum {string} */
-            kind: "discount" | "credit_note" | "refund" | "receipt_void";
+            kind: "discount" | "credit_note" | "refund" | "receipt_void" | "clearance_dues";
             /** @enum {string} */
             status: "pending" | "approved" | "rejected";
             patient: {
@@ -4308,6 +6100,7 @@ export interface components {
             invoiceNumber: string | null;
             receiptId: string | null;
             receiptNumber: string | null;
+            dischargeId: string | null;
             amountPaise: number;
             reason: string;
             details: {
@@ -4350,6 +6143,12 @@ export interface components {
                 purpose: "bill_payment" | "deposit";
                 /** @enum {string} */
                 mode: "cash" | "upi" | "card" | "bank_transfer" | "cheque";
+            } | {
+                /** @constant */
+                kind: "clearance_dues";
+                /** Format: uuid */
+                admissionId: string;
+                admissionNumber: string;
             };
             /** Format: uuid */
             requestedById: string;
@@ -4382,7 +6181,7 @@ export interface components {
             /** Format: uuid */
             id: string;
             /** @enum {string} */
-            kind: "discount" | "credit_note" | "refund" | "receipt_void";
+            kind: "discount" | "credit_note" | "refund" | "receipt_void" | "clearance_dues";
             /** @enum {string} */
             status: "pending" | "approved" | "rejected";
             patient: {
@@ -4395,6 +6194,7 @@ export interface components {
             invoiceNumber: string | null;
             receiptId: string | null;
             receiptNumber: string | null;
+            dischargeId: string | null;
             amountPaise: number;
             reason: string;
             details: {
@@ -4437,6 +6237,12 @@ export interface components {
                 purpose: "bill_payment" | "deposit";
                 /** @enum {string} */
                 mode: "cash" | "upi" | "card" | "bank_transfer" | "cheque";
+            } | {
+                /** @constant */
+                kind: "clearance_dues";
+                /** Format: uuid */
+                admissionId: string;
+                admissionNumber: string;
             };
             /** Format: uuid */
             requestedById: string;
@@ -4541,6 +6347,207 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    admissionsList: {
+        parameters: {
+            query?: {
+                page?: number;
+                pageSize?: number;
+                sort?: string;
+                status?: "admitted" | "discharged";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionsListResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    admissionsAdmit: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Value of the CSRF cookie */
+                "X-CSRF-Token": string;
+                /** @description Unique per financial request. A repeat returns the stored response. */
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdmissionsAdmitRequest"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionsAdmitResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    admissionsGet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionsGetResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    admissionsInterimBill: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionsInterimBillResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    admissionsTransfer: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Value of the CSRF cookie */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdmissionsTransferRequest"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionsTransferResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    admissionsAdvised: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionsAdvisedResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
     approvalRequestsList: {
         parameters: {
             query?: {
@@ -4548,7 +6555,7 @@ export interface operations {
                 pageSize?: number;
                 sort?: string;
                 status?: "pending" | "approved" | "rejected";
-                kind?: "discount" | "credit_note" | "refund" | "receipt_void";
+                kind?: "discount" | "credit_note" | "refund" | "receipt_void" | "clearance_dues";
                 patientId?: string;
                 invoiceId?: string;
             };
@@ -4733,6 +6740,35 @@ export interface operations {
             };
         };
     };
+    bedBoardBedBoard: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BedBoardBedBoardResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
     bedsUpdate: {
         parameters: {
             query?: never;
@@ -4759,6 +6795,42 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["BedsUpdateResponse"];
                 };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    bedBoardSetStatus: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Value of the CSRF cookie */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BedBoardSetStatusRequest"];
+            };
+        };
+        responses: {
+            /** @description No content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Error */
             default: {
@@ -4894,6 +6966,120 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CashShiftsCurrentResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    clearanceRequestsRequest: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Value of the CSRF cookie */
+                "X-CSRF-Token": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClearanceRequestsRequestRequest"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClearanceRequestsRequestResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    clearanceRequestsApprove: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Value of the CSRF cookie */
+                "X-CSRF-Token": string;
+                /** @description Unique per financial request. A repeat returns the stored response. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClearanceRequestsApproveRequest"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClearanceRequestsApproveResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    clearanceRequestsReject: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Value of the CSRF cookie */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClearanceRequestsRejectRequest"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClearanceRequestsRejectResponse"];
                 };
             };
             /** @description Error */
@@ -5186,6 +7372,314 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PaymentsDepositResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    dischargesList: {
+        parameters: {
+            query?: {
+                page?: number;
+                pageSize?: number;
+                sort?: string;
+                status?: "open" | "completed";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DischargesListResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    dischargesMarkFit: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Value of the CSRF cookie */
+                "X-CSRF-Token": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DischargesMarkFitRequest"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DischargesMarkFitResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    dischargesGet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DischargesGetResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    dischargesClear: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Value of the CSRF cookie */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DischargesClearResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    dischargesComplete: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Value of the CSRF cookie */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DischargesCompleteResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    dischargesFinalBill: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Value of the CSRF cookie */
+                "X-CSRF-Token": string;
+                /** @description Unique per financial request. A repeat returns the stored response. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DischargesFinalBillResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    dischargesSummary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DischargesSummaryResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    dischargesSaveSummary: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Value of the CSRF cookie */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DischargesSaveSummaryRequest"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DischargesSaveSummaryResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    dischargesSignSummary: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Value of the CSRF cookie */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DischargesSignSummaryResponse"];
                 };
             };
             /** @description Error */
@@ -6657,6 +9151,99 @@ export interface operations {
             };
         };
     };
+    reportsCollection: {
+        parameters: {
+            query?: {
+                date?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportsCollectionResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    reportsDayBook: {
+        parameters: {
+            query?: {
+                date?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": components["schemas"]["ReportsDayBookResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    reportsOperations: {
+        parameters: {
+            query?: {
+                date?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportsOperationsResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
     rolesList: {
         parameters: {
             query?: never;
@@ -6782,6 +9369,73 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RoomCategoriesUpdateResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    bedBoardSetAdvance: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Value of the CSRF cookie */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BedBoardSetAdvanceRequest"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BedBoardSetAdvanceResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    bedBoardAdvances: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BedBoardAdvancesResponse"];
                 };
             };
             /** @description Error */

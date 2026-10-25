@@ -8,6 +8,7 @@ export const DECIDE_PERMISSION: Record<ApprovalKind, string> = {
   credit_note: 'billing.credit-note.approve',
   refund: 'billing.refund.approve',
   receipt_void: 'billing.void.approve',
+  clearance_dues: 'billing.clearance.approve-dues',
 };
 
 /** Every permission that lets someone decide some request: these users see the approvals inbox. */

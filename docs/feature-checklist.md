@@ -28,15 +28,15 @@ Everything else needed before real patients (hosting, backups, audits, paperwork
 - [ ] Packages, discounts and other billing masters (waiting for answers in `docs/billing-rules.md`)
 - [x] Patient registration: UHIDs from a gapless yearly counter, duplicate checks (Aadhaar and ABHA block, mobile and name warn), search by UHID, mobile, name, Aadhaar or ABHA, audited record views, edits
 - [ ] Merging duplicate patient records, patient photo, printed UHID card
-- [ ] Registration fee (waiting for an answer in `docs/billing-rules.md`)
+- [x] Registration fee: none, confirmed in `docs/billing-rules.md`
 - [x] OPD (slice 4): walk-in tokens numbered daily for the whole hospital, the consultation fee billed and receipted at the cash counter, the doctor's own queue, notes locked once the visit is done, orders that post charges, an 80 mm token slip
-- [ ] IPD and beds
+- [x] IPD and beds (slice 5): admission numbers per financial year, a free-bed check enforced by the database, the minimum advance warning, admissions advised in OPD, transfers, a live bed board with bed states set by nurses, room and nursing charges posted per night by the midnight job (pg-boss), an A4 interim bill
 - [x] Billing (slice 3a): charges at the dated rate, draft bills, issue with gapless `INV` numbers per financial year, locked issued bills, discard, A4 and 80 mm print
 - [x] Payments and cash shifts (slice 3a): one open shift per cashier, payments by cash, UPI, card, bank transfer or cheque, deposits, deposits set against bills, gapless `RCT` numbers, shift close with counted cash and a reason for any difference, shift list for finance
 - [x] Discounts, refunds, credit notes and voids with maker-checker approvals (slice 3b): requests on bills and receipts, an approvals inbox, the MD-only finance limit for discounts, CN and RF numbers, refunds paid from the cashier's shift, A4 and 80 mm credit notes and refunds
-- [ ] Day-end collection report and Tally export
-- [ ] Discharge
-- [ ] Basic reports
+- [x] Day-end collection report and Tally export (slice 6): by cashier and mode for a calendar day in IST, voids left out and refunds taken off; a daily CSV day book, 10 exports an hour per user
+- [x] Discharge (slice 6): fit by the treating doctor, a final bill that posts any days not charged, billing clearance at a settled account or on the MD approval with money due, a summary drafted by the doctor and signed off by the MD (A4 print), completion that sends the bed to cleaning
+- [x] Basic reports (slice 6): OPD, admissions, discharges and bed occupancy for a day
 - [ ] Emailed bills
 
 ## Phase 2 (needs approval)

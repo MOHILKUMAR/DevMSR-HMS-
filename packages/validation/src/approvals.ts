@@ -3,10 +3,10 @@ import { billedPatientSchema, issuerSchema, PAYMENT_MODES, RECEIPT_PURPOSES, ref
 import { listResponseSchema, paiseSchema, uuidSchema } from './common.js';
 import { paginationQuerySchema } from './pagination.js';
 
-// Discounts, credit notes, refunds and receipt voids: asked for by one user, decided by another
-// (maker-checker). The rules are in docs/billing-rules.md.
+// Discounts, credit notes, refunds, receipt voids and billing clearance with money still due: asked
+// for by one user, decided by another (maker-checker). The rules are in docs/billing-rules.md.
 
-export const APPROVAL_KINDS = ['discount', 'credit_note', 'refund', 'receipt_void'] as const;
+export const APPROVAL_KINDS = ['discount', 'credit_note', 'refund', 'receipt_void', 'clearance_dues'] as const;
 export type ApprovalKind = (typeof APPROVAL_KINDS)[number];
 export const APPROVAL_STATUSES = ['pending', 'approved', 'rejected'] as const;
 export type ApprovalStatus = (typeof APPROVAL_STATUSES)[number];
@@ -82,6 +82,10 @@ export type PayRefund = z.infer<typeof payRefundSchema>;
 export const requestReceiptVoidSchema = z.object({ receiptId: uuidSchema, reason: reasonSchema });
 export type RequestReceiptVoid = z.infer<typeof requestReceiptVoidSchema>;
 
+/** Billing clearance for a discharge while the patient still owes money: the amount due now, for the MD. */
+export const requestClearanceDuesSchema = z.object({ dischargeId: uuidSchema, reason: reasonSchema });
+export type RequestClearanceDues = z.infer<typeof requestClearanceDuesSchema>;
+
 export const approveRequestSchema = z.object({ note: z.string().trim().min(3).max(500).optional() });
 export type ApproveRequest = z.infer<typeof approveRequestSchema>;
 
@@ -116,6 +120,7 @@ export const approvalDetailsSchema = z.discriminatedUnion('kind', [
   }),
   z.object({ kind: z.literal('refund'), source: z.enum(['deposit', 'bill']), mode: z.enum(REFUND_MODES) }),
   z.object({ kind: z.literal('receipt_void'), purpose: z.enum(RECEIPT_PURPOSES), mode: z.enum(PAYMENT_MODES) }),
+  z.object({ kind: z.literal('clearance_dues'), admissionId: z.uuid(), admissionNumber: z.string() }),
 ]);
 export type ApprovalDetails = z.infer<typeof approvalDetailsSchema>;
 
@@ -129,6 +134,8 @@ export const approvalRequestSchema = z.object({
   invoiceNumber: z.string().nullable(),
   receiptId: z.uuid().nullable(),
   receiptNumber: z.string().nullable(),
+  /** For a clearance with dues: the discharge it clears. */
+  dischargeId: z.uuid().nullable(),
   amountPaise: z.number().int(),
   reason: z.string(),
   details: approvalDetailsSchema,

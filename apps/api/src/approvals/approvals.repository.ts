@@ -11,6 +11,7 @@ export const REQUEST_SELECT = {
   patientId: true,
   invoiceId: true,
   receiptId: true,
+  dischargeId: true,
   amountPaise: true,
   reason: true,
   details: true,
@@ -86,6 +87,7 @@ export interface NewRequest {
   patientId: string;
   invoiceId: string | null;
   receiptId: string | null;
+  dischargeId: string | null;
   amountPaise: bigint;
   reason: string;
   details: Prisma.InputJsonValue;

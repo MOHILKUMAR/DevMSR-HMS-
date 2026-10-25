@@ -14,6 +14,8 @@ export interface ApiContractOptions {
   params?: ZodType;
   /** Omit for routes that return 204 No Content. */
   response?: ZodType;
+  /** For a file download such as a CSV; JSON when left out. The handler sets the header itself. */
+  contentType?: 'text/csv';
 }
 
 export const API_CONTRACT = 'api:contract';

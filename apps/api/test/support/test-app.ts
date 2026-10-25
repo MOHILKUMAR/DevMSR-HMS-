@@ -30,7 +30,8 @@ const TEST_SECRETS = {
 
 /** The API connects as the restricted role, so a missing grant fails a test instead of production. */
 export function testEnv(overrides: Record<string, string> = {}): Env {
-  return loadEnv({ NODE_ENV: 'test', LOG_LEVEL: 'silent', DATABASE_URL: inject('apiDatabaseUrl'), ...TEST_SECRETS, ...overrides });
+  // No pg-boss in API tests: tests run a job's work directly, with the time they choose.
+  return loadEnv({ NODE_ENV: 'test', LOG_LEVEL: 'silent', DATABASE_URL: inject('apiDatabaseUrl'), JOBS_ENABLED: 'false', ...TEST_SECRETS, ...overrides });
 }
 
 export function ownerDatabaseUrl(): string {

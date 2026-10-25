@@ -108,45 +108,47 @@ export class BillingService {
   async createDraft(auth: AuthContext, input: CreateInvoice, meta: RequestMeta): Promise<Invoice> {
     const hospitalId = hospitalOf(auth);
     await this.requirePatient(hospitalId, input.patientId);
-    const ids = [...new Set(input.chargeIds)];
+    return this.transactions.run((tx) => this.draftFromCharges(hospitalId, auth.userId, input.patientId, input.chargeIds, meta, tx));
+  }
 
-    return this.transactions.run(async (tx) => {
-      const charges = await this.billing.lockCharges(hospitalId, ids, tx);
-      const usable = charges.length === ids.length && charges.every((c) => c.patientId === input.patientId && c.status === 'pending' && c.invoiceId === null);
-      if (!usable) throw Errors.chargeUnavailable();
+  /** Drafts a bill inside the caller's transaction, such as the final bill of a discharge. */
+  async draftFromCharges(hospitalId: string, userId: string, patientId: string, chargeIds: readonly string[], meta: RequestMeta, tx: Tx): Promise<Invoice> {
+    const ids = [...new Set(chargeIds)];
+    const charges = await this.billing.lockCharges(hospitalId, ids, tx);
+    const usable = charges.length === ids.length && charges.every((c) => c.patientId === patientId && c.status === 'pending' && c.invoiceId === null);
+    if (!usable) throw Errors.chargeUnavailable();
 
-      const bill = billAmounts(charges.map((c) => ({ unitRatePaise: c.unitRatePaise, quantity: c.quantity, taxRateBp: c.taxRateBp })));
-      const lines = charges.map((charge, index) => {
-        const amounts = bill.lines[index];
-        if (amounts === undefined) throw new Error('Every charge has a line');
-        return {
-          chargeId: charge.id,
-          lineNo: index + 1,
-          description: charge.description,
-          serviceDate: charge.serviceDate,
-          quantity: charge.quantity,
-          unitRatePaise: charge.unitRatePaise,
-          taxRateBp: charge.taxRateBp,
-          ...amounts,
-        };
-      });
-      const { lines: _lines, ...totals } = bill;
-      const draft = await this.billing.createDraft(hospitalId, input.patientId, auth.userId, totals, lines, tx);
-      if ((await this.billing.attachCharges(hospitalId, ids, draft.id, tx)) !== ids.length) throw Errors.chargeUnavailable();
-      await this.audit.record(
-        {
-          action: 'billing.invoice.drafted',
-          hospitalId,
-          actorUserId: auth.userId,
-          entityType: 'invoice',
-          entityId: draft.id,
-          meta,
-          details: { patientId: input.patientId, lines: lines.length, totalPaise: paise(draft.totalPaise) },
-        },
-        tx,
-      );
-      return this.view(hospitalId, draft, tx);
+    const bill = billAmounts(charges.map((c) => ({ unitRatePaise: c.unitRatePaise, quantity: c.quantity, taxRateBp: c.taxRateBp })));
+    const lines = charges.map((charge, index) => {
+      const amounts = bill.lines[index];
+      if (amounts === undefined) throw new Error('Every charge has a line');
+      return {
+        chargeId: charge.id,
+        lineNo: index + 1,
+        description: charge.description,
+        serviceDate: charge.serviceDate,
+        quantity: charge.quantity,
+        unitRatePaise: charge.unitRatePaise,
+        taxRateBp: charge.taxRateBp,
+        ...amounts,
+      };
     });
+    const { lines: _lines, ...totals } = bill;
+    const draft = await this.billing.createDraft(hospitalId, patientId, userId, totals, lines, tx);
+    if ((await this.billing.attachCharges(hospitalId, ids, draft.id, tx)) !== ids.length) throw Errors.chargeUnavailable();
+    await this.audit.record(
+      {
+        action: 'billing.invoice.drafted',
+        hospitalId,
+        actorUserId: userId,
+        entityType: 'invoice',
+        entityId: draft.id,
+        meta,
+        details: { patientId, lines: lines.length, totalPaise: paise(draft.totalPaise) },
+      },
+      tx,
+    );
+    return this.view(hospitalId, draft, tx);
   }
 
   /** Opens a bill. Bills carry patient details, so every view is audited like a record view. */

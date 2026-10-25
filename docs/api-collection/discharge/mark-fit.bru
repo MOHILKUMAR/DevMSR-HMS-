@@ -1,0 +1,34 @@
+meta {
+  name: Mark the patient fit
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/discharges
+  body: json
+  auth: none
+}
+
+headers {
+  X-CSRF-Token: {{csrfToken}}
+}
+
+body:json {
+  {
+    "admissionId": "{{admissionId}}",
+    "note": "Afebrile for 48 hours"
+  }
+}
+
+docs {
+  As the treating doctor (the doctor linked to this login), on an admission from the ipd folder. 403 NOT_TREATING_DOCTOR for any other doctor.
+}
+
+script:post-response {
+  bru.setVar("dischargeId", res.body.id);
+}
+
+assert {
+  res.status: eq 201
+}

@@ -58,8 +58,8 @@ Each slice comes with its migration, API, screens, tests, seed data and docs. De
 
 - [x] Slice 3b: discounts, refunds, credit notes and voids, each approved by a second user. **Dev**
 - [x] Slice 4, OPD: tokens, doctor queue, consultation fee, orders that post charges, follow-up dates. **Dev**
-- [ ] Slice 5, IPD and beds: admission with deposit, bed board, transfers, interim bills, room and nursing charges posted at midnight IST. The midnight job needs pg-boss, a new dependency to approve. **Dev**
-- [ ] Slice 6, discharge and reports: fit for discharge, final bill, refund of excess deposit, billing clearance, discharge summary, day-end collection report, Tally export. **Dev**
+- [x] Slice 5, IPD and beds: admission with deposit, bed board, transfers, interim bills, room and nursing charges posted at midnight IST by a pg-boss job. **Dev**
+- [x] Slice 6, discharge and reports: fit for discharge, final bill, refund of excess deposit, billing clearance, discharge summary, day-end collection report, Tally export. **Dev**
 - [ ] PDF bills and receipts (PDFKit), and emailed bills: a password-protected PDF, the Resend adapter behind `MessageSender`, the pg-boss outbox, message templates in a table, and the dev inbox for mock mode (`CLAUDE.md` section 14). **Dev**
 - [ ] Hospital logo upload to R2 (PDF, JPG or PNG, 10 MB at most, type checked, private bucket, links that expire after 5 minutes), shown on printed bills and receipts. **Dev**
 - [ ] The full Playwright journey: register, OPD visit with receipt, admit, transfer, final bill, discharge (`CLAUDE.md` section 18). **Dev**
@@ -75,12 +75,12 @@ From `CLAUDE.md` section 9.
 - [ ] Staff can see and end their own sessions. **Dev**
 - [ ] Break-glass access: written reason, 1 hour expiry, audit event, hospital admin notified. **Dev**
 - [ ] Alert when there are more than 20 failed logins in 10 minutes. **Dev**
-- [x] A separate database role for the API, with no UPDATE, DELETE or TRUNCATE on audit rows and no schema changes; migrations run as another role. The API logs in as a member of `hms_api` (`pnpm db:api-user`) and refuses to start in production as anything stronger. **Dev**
+- [x] A separate database role for the API, with no UPDATE, DELETE or TRUNCATE on audit rows and no schema changes; migrations run as another role. The API logs in as a member of `hms_api` (`pnpm db:api-user`) and refuses to start in production as anything stronger. Background jobs log in separately (`JOBS_DATABASE_URL`, owner of the `pgboss` schema only), also made by `pnpm db:api-user`; production refuses to start without it. **Dev**
 - [x] A tighter Content-Security-Policy for the web app, using nonces. **Dev**
 - [x] Production start-up guard: the API refuses to start with a mock adapter, a missing Sentry DSN or a demo secret (`APP_ENV=production`). **Dev**
 - [x] A safe way to apply permission matrix changes to a live hospital: `pnpm db:sync-roles --apply` in every deploy, and production refuses to start while roles differ from the matrix. **Dev**
 - [ ] Clean-up job for old idempotency keys (pg-boss). **Dev**
-- [ ] Rate limits on exports and PDFs (10 per hour per user) once those routes exist. **Dev**
+- [x] Rate limits on exports and PDFs (10 per hour per user): the day book export has it (`@ExportRateLimit()`); PDFs take the same decorator when they arrive. **Dev**
 - [ ] Rate limit counts live in memory, which is right for one API container. If production runs more than one, move them to PostgreSQL. **Dev**
 
 ## Stage 5: Staging environment

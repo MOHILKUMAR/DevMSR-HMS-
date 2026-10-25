@@ -357,3 +357,48 @@ Every non-obvious decision, oldest first. Each entry has the date, the decision 
 
 - Decision: tokens come from `number_counters` with kind `opd_token` and the IST date as the period (its format check now allows `YYYY-MM-DD`), so they are gapless and restart daily for the whole hospital. A visit only moves forward (fee due, waiting, with the doctor, seen; or cancelled before payment), enforced by a trigger, which also lets notes change only while the patient is with the doctor and never after. Notes and orders are for the visit's own doctor (the doctor record linked to their login); desks read visits through `opd.visit.read` without notes. Doctors also get `tariffs.tariff.read` to choose tests with their rates, and the new `clinical.order.create` to order them. Orders are append-only rows linking the visit to the charge they posted. One open token per patient, doctor and day is checked by the service.
 - Reason: section 12 has orders post charges automatically, and section 7 keeps clinical records unchanged once written. A daily counter row keeps numbers gapless under load, as the bill counters do.
+
+## 2026-10-26: Background jobs on pg-boss, with a login of their own
+
+- Decision: pg-boss 12.37.1 (approved with the slice 4 to 6 plan) runs inside the API process. It keeps its queue in the `pgboss` schema through `JOBS_DATABASE_URL`, a login that owns that schema and nothing else; `pnpm db:api-user` creates the login and the schema (pg-boss is told not to create schemas itself). The API login cannot read the queue, and the jobs login cannot read hospital tables or create other schemas. The jobs' own work (posting charges) runs through the API's restricted login like any request. In production the API refuses to start with jobs on and `JOBS_DATABASE_URL` missing or the same login as `DATABASE_URL`. Each job is scheduled in IST and also sent once at start-up, so a run missed while the API was down is caught up; every job must therefore be safe to run twice. `JOBS_ENABLED=false` turns jobs off (API tests and OpenAPI generation).
+- Reason: pg-boss creates and migrates its own tables at start-up, which the restricted `hms_api` role (2026-10-25) must not be able to do. A separate login keeps that right away from the API without weakening it. CLAUDE.md section 3 names pg-boss and rules out Redis.
+
+## 2026-10-26: Room and nursing charges are posted per night by the midnight job
+
+- Decision: at 00:05 IST the job `ipd-midnight-charges` looks at every open admission (and those discharged in the last 7 days) and, for each midnight the patient was in a bed and not yet charged, posts one room charge and one nursing charge at the rates in force that day for the room category of the bed held at that midnight. A `daily_charges` row links each night and kind to its charge, with a unique key on (admission, night, kind), so a repeated or overlapping run posts nothing twice. A night whose room category has no rate that day is skipped, logged, and posted by a later run once the rate exists. These charges have no `posted_by` (the audit event has no actor). The same-day admission and discharge (charged one day) is posted by the discharge step in slice 6, since no midnight passes.
+- Reason: `docs/billing-rules.md` (IPD and beds) charges one day per midnight crossed, at the room held at midnight. Posting each night separately, keyed by the night, makes the job idempotent and lets it catch up after downtime without double charging.
+
+## 2026-10-26: Bed state is kept by the database
+
+- Decision: a bed assignment row records each stay in a bed. Partial unique indexes allow one open assignment per bed and per admission, and one open admission per patient. Triggers make an assignment only ever end (once), let an admission change only from admitted to discharged (once), allow a new assignment only into a free, active bed of an open admission, and keep a bed `occupied` exactly while it has an open assignment. Staff set the other states (free, cleaning, reserved, blocked) by hand on empty beds; a transfer sends the old bed to cleaning. The service maps a unique violation (two desks taking the same bed at once) to 409 `BED_TAKEN`.
+- Reason: CLAUDE.md section 7 asks for the partial unique index on beds. Doing the rest in the database too means a bug in one screen or a race between two desks cannot leave the bed board wrong.
+
+## 2026-10-26: Minimum advance per room category, recorded at admission
+
+- Decision: room categories gain a minimum advance in paise (0 for none), set by finance (`tariffs.tariff.manage`). At admission the deposit the patient holds (deposits less what was used or refunded, void receipts left out) and the minimum are both stored on the admission, and the response flags `advanceShort` when the deposit is less. Nothing is blocked.
+- Reason: `docs/billing-rules.md` says a short advance gives a warning only. Storing both amounts keeps the warning provable later, since the deposit changes after admission.
+
+## 2026-10-26: A discharge is its own record, written step by step
+
+- Decision: the doctor marking a patient fit creates a `discharges` row for the admission (one per admission). Billing clearances are rows of their own (`discharge_clearances`, append-only), and the summary is one row (`discharge_summaries`). Triggers keep the fit mark unchanged, let completion be written once, refuse any change to a clearance, and lock the summary once signed (signing writes only the signature, and the signer can never be whoever last wrote it). Completing a discharge ends the bed assignment (reason `discharge`), sets the bed to cleaning, closes the admission and marks the discharge complete in one transaction. Admission views (`GET /admissions/:id`) are now audited too, which slice 5 had missed.
+- Reason: section 7 keeps clinical and financial records as written. Separate rows let each step carry its own who and when, and let clearance be given again without changing the first.
+
+## 2026-10-26: What billing clearance checks
+
+- Decision: clearance looks at the patient's whole account, not only the stay: every day of the stay charged (one per midnight crossed, or one for a same-day stay), no charge unbilled or only on a draft, no deposit held, nothing overpaid left to refund, and nothing due on issued bills. Money due can be cleared only by the MD, through an approval request of the new kind `clearance_dues`; approving gives clearance at once for what is due then, never more than was asked. Completion checks the account again against the latest clearance, so a charge, a night or a payment change after clearance means clearing again. To confirm with the hospital (`docs/hospital-questions.md`, D-15).
+- Reason: `docs/billing-rules.md` asks for a zero balance or the MD's approval with a reason. Reading "zero balance" both ways makes sure excess deposit is refunded before the patient leaves (section 12), and checking again at completion stops a night posted after clearance from slipping through.
+
+## 2026-10-26: The final bill posts the days not charged yet
+
+- Decision: "Prepare final bill" first posts any room and nursing day still missing, in the same transaction: nights the midnight job has not posted (it may not have run yet), and for a stay that crossed no midnight, the one day the rule charges, at the rate of the room held at that moment. That day uses the same key as the first night, so a patient who stays on is never charged twice for it. A day whose room category has no rate stops the final bill with `ROOM_CHARGES_MISSING` rather than billing short. The draft takes every charge of the patient on no bill; billing issues it like any other bill. To confirm the same-day room with the hospital (D-16).
+- Reason: `docs/billing-rules.md` charges a same-day stay one day, which the midnight job alone can never post.
+
+## 2026-10-26: Only the treating doctor marks fit and writes the summary
+
+- Decision: marking fit and writing the summary need both the permission and being the admission's doctor (the doctor record linked to the login), as OPD notes do; anyone else gets 403 `NOT_TREATING_DOCTOR`. The MD signs off (`ipd.discharge-summary.sign`). Reading and printing the summary is for doctors, the MD and nurses (`ipd.discharge-summary.read`); billing and the desks see only whether it is signed. The patient leaves only once it is signed. To confirm with the hospital (D-17).
+- Reason: `docs/billing-rules.md` has the treating doctor draft and the MD sign before printing. Nurses hand the printed summary to the patient.
+
+## 2026-10-26: The collection report and the Tally day book
+
+- Decision: the collection report counts receipts by when they were taken and refunds by when they were paid, in IST calendar days, under the cashier whose shift took or paid them, by payment mode. Void receipts are left out of every figure and shown as a count. The day book is a CSV of bills issued, receipts, deposits, credit notes and refunds of the day, with ISO dates, the patient's UHID only (no names in an exported file), amounts in rupees with two decimals worked out in integers, and a void receipt kept at 0.00 so numbers stay gapless. Text cells that could start a spreadsheet formula are prefixed with an apostrophe. Exports go through a third rate limit, `export`, at `RATE_LIMIT_EXPORT_PER_HOUR` (10) per user per hour (section 9); PDFs will use the same decorator. To confirm the CSV layout with the accountant (D-18).
+- Reason: `docs/billing-rules.md` asks for a calendar-day report by cashier and mode and a daily CSV day book. Tally ledger names are not known yet, so the CSV stays a plain day book the accountant can map.

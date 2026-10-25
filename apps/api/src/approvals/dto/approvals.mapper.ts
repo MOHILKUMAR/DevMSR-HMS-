@@ -22,6 +22,7 @@ export function toApprovalRequest(row: RequestRow, names: Map<string, string>, l
     invoiceNumber: row.invoice?.number ?? null,
     receiptId: row.receiptId,
     receiptNumber: row.receipt?.number ?? null,
+    dischargeId: row.dischargeId,
     amountPaise: paise(row.amountPaise),
     reason: row.reason,
     details: approvalDetailsSchema.parse(row.details),

@@ -10,6 +10,7 @@ import type {
   PayRefund,
   Refund,
   RejectRequest,
+  RequestClearanceDues,
   RequestCreditNote,
   RequestDiscount,
   RequestReceiptVoid,
@@ -27,6 +28,7 @@ import { paged } from '../common/http/pagination.js';
 import type { Tx } from '../common/prisma/tx.js';
 import { TransactionRunner } from '../common/prisma/transaction-runner.js';
 import { Prisma } from '../generated/prisma/client.js';
+import { DischargeService } from '../discharge/discharge.service.js';
 import { NumberingService } from '../numbering/numbering.service.js';
 import { PaymentsRepository } from '../payments/payments.repository.js';
 import { ApprovalsRepository, type ReceiptStateRow, type RequestRow } from './approvals.repository.js';
@@ -58,6 +60,7 @@ export class ApprovalsService {
     private readonly billing: BillingRepository,
     private readonly payments: PaymentsRepository,
     private readonly numbering: NumberingService,
+    private readonly discharges: DischargeService,
     private readonly audit: AuditService,
     private readonly transactions: TransactionRunner,
   ) {}
@@ -74,12 +77,21 @@ export class ApprovalsService {
   private async create(
     auth: AuthContext,
     hospitalId: string,
-    data: { kind: ApprovalKind; patientId: string; invoiceId: string | null; receiptId: string | null; amountPaise: bigint; reason: string; details: ApprovalDetails },
+    data: {
+      kind: ApprovalKind;
+      patientId: string;
+      invoiceId: string | null;
+      receiptId: string | null;
+      dischargeId?: string;
+      amountPaise: bigint;
+      reason: string;
+      details: ApprovalDetails;
+    },
     meta: RequestMeta,
   ): Promise<ApprovalRequest> {
     try {
       const row = await this.transactions.run(async (tx) => {
-        const created = await this.approvals.createRequest(hospitalId, { ...data, requestedById: auth.userId }, tx);
+        const created = await this.approvals.createRequest(hospitalId, { ...data, dischargeId: data.dischargeId ?? null, requestedById: auth.userId }, tx);
         await this.audit.record(
           {
             action: 'approvals.request.created',
@@ -561,6 +573,42 @@ export class ApprovalsService {
     return decided;
   }
 
+  // Billing clearance with money still due.
+
+  /**
+   * Asks the MD to clear a discharge while the patient still owes money: everything else must be settled
+   * first (every charge billed, deposits used or refunded), and the amount asked for is what is due now.
+   */
+  async requestClearanceDues(auth: AuthContext, input: RequestClearanceDues, meta: RequestMeta): Promise<ApprovalRequest> {
+    const hospitalId = hospitalOf(auth);
+    const dues = await this.discharges.duesToClear(auth, input.dischargeId);
+    return this.create(
+      auth,
+      hospitalId,
+      {
+        kind: 'clearance_dues',
+        patientId: dues.patientId,
+        invoiceId: null,
+        receiptId: null,
+        dischargeId: dues.dischargeId,
+        amountPaise: dues.state.duePaise,
+        reason: input.reason,
+        details: { kind: 'clearance_dues', admissionId: dues.admissionId, admissionNumber: dues.admissionNumber },
+      },
+      meta,
+    );
+  }
+
+  /** The MD approves: billing clearance is given now, for what is due now (never more than approved). */
+  private async approveClearance(auth: AuthContext, hospitalId: string, id: string, input: ApproveRequest, meta: RequestMeta, now: Date, tx: Tx): Promise<RequestRow> {
+    const request = await this.pendingForDecision(auth, hospitalId, 'clearance_dues', id, tx);
+    if (request.dischargeId === null) throw new Error('A clearance request names its discharge');
+    const decided = await this.approvals.decide(request.id, { status: 'approved', decidedById: auth.userId, decidedAt: now, decisionNote: input.note ?? null }, tx);
+    await this.discharges.clearWithDues(hospitalId, auth.userId, { id: request.id, dischargeId: request.dischargeId, amountPaise: request.amountPaise }, meta, now, tx);
+    await this.recordDecision(auth, hospitalId, decided, 'approved', meta, tx);
+    return decided;
+  }
+
   // Decisions.
 
   private detailsOf<K extends ApprovalDetails['kind']>(request: RequestRow, kind: K): Extract<ApprovalDetails, { kind: K }> {
@@ -582,6 +630,8 @@ export class ApprovalsService {
           return this.approveRefund(auth, hospitalId, id, input, meta, now, tx);
         case 'receipt_void':
           return this.approveVoid(auth, hospitalId, id, input, meta, now, tx);
+        case 'clearance_dues':
+          return this.approveClearance(auth, hospitalId, id, input, meta, now, tx);
       }
     });
     return this.view(hospitalId, (await this.approvals.findRequest(hospitalId, row.id)) ?? row);

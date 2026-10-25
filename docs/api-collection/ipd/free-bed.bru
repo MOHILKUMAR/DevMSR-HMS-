@@ -1,0 +1,29 @@
+meta {
+  name: Set the old bed free
+  type: http
+  seq: 7
+}
+
+put {
+  url: {{baseUrl}}/beds/{{cleaningBedId}}/status
+  body: json
+  auth: none
+}
+
+headers {
+  X-CSRF-Token: {{csrfToken}}
+}
+
+body:json {
+  {
+    "status": "free"
+  }
+}
+
+docs {
+  free, cleaning, reserved or blocked. 422 BED_OCCUPIED for a bed with a patient in it.
+}
+
+assert {
+  res.status: eq 204
+}
