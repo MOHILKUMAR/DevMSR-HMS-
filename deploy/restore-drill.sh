@@ -37,10 +37,17 @@ run docker run --detach --rm --name "$drill-db" --network "$drill" \
   --env TZ=Asia/Kolkata --volume /var/lib/postgresql/data \
   postgres:17-alpine >/dev/null
 if ! dry_run; then
-  for _ in $(seq 1 30); do
-    docker exec "$drill-db" pg_isready -U hms -d hms_restore >/dev/null 2>&1 && break
+  # Over TCP: while the image initialises the database it runs a temporary server on the Unix
+  # socket only, which a socket check would wrongly take as ready.
+  db_ready=no
+  for _ in $(seq 1 60); do
+    if docker exec "$drill-db" pg_isready -h 127.0.0.1 -U hms -d hms_restore >/dev/null 2>&1; then
+      db_ready=yes
+      break
+    fi
     sleep 1
   done
+  [[ "$db_ready" == yes ]] || die "the throwaway database did not start"
 fi
 
 # 1. Download, verify, decrypt, restore and run deploy/sql/restore-checks.sql.
