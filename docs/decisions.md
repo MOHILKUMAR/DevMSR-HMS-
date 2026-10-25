@@ -178,5 +178,91 @@ Every non-obvious decision, oldest first. Each entry has the date, the decision 
 
 ## 2026-10-25: Build scripts allowed for Prisma only
 
-- Decision: `allowBuilds` runs the install scripts of `prisma` and `@prisma/engines` (Node.js version check and the migration engine download). argon2 and esbuild stay blocked because they ship prebuilt binaries.
+- Decision: `allowBuilds` runs the install scripts of `prisma` and `@prisma/engines` (Node.js version check and the migration engine download). argon2, esbuild, `@parcel/watcher` and `@swc/core` stay blocked because they ship prebuilt binaries.
 - Reason: install scripts are the usual supply chain attack path, so each one is allowed by name.
+
+## 2026-10-25: The session redirect lives in `src/proxy.ts`
+
+- Decision: the file `CLAUDE.md` calls `middleware.ts` is `apps/web/src/proxy.ts`. It does only what section 3 allows: redirect to `/login` (with `?next=<path>`) when no session cookie exists.
+- Reason: Next.js 16 deprecated the `middleware` file convention and renamed it `proxy`.
+
+## 2026-10-25: Content-Security-Policy without nonces
+
+- Decision: `next.config.ts` sends the section 9 headers (CSP, HSTS, `X-Frame-Options: DENY`, nosniff, `Referrer-Policy: no-referrer`, `Permissions-Policy`). The CSP allows `'unsafe-inline'` scripts, because Next.js inlines its bootstrap scripts. Everything else is restricted to this origin and the API.
+- Reason: a nonce-based CSP needs the proxy to create a nonce per request, which is more than the redirect `CLAUDE.md` limits the proxy to.
+- Revisit before go-live: tighten scripts with nonces (needs the developer's approval for the proxy change) or with Next.js's experimental SRI support.
+
+## 2026-10-25: Tailwind 4 tokens live in `globals.css`
+
+- Decision: design tokens are CSS variables in `apps/web/src/app/globals.css`, exposed to Tailwind with `@theme inline` (`bg-primary`, `text-text-muted`, `bg-success-soft`...). `packages/config` has no Tailwind preset. Dark mode is the `dark` class on `<html>`, set from the `hms_theme` cookie so the server renders it without a flash. Dark soft backgrounds are tinted surfaces, since section 16 lists light ones only.
+- Reason: Tailwind 4 replaced JavaScript presets with CSS. With one web app, a shared CSS file would only add a hop. Move the `@theme` block to `packages/config` if a second app appears.
+
+## 2026-10-25: Web app libraries
+
+- Decision: next-intl without locale routing (English, IST time zone, type-checked message keys). TanStack Query for mutations. React Hook Form with a 20-line Zod resolver in `src/lib/forms.ts`, which keeps only failing field paths so screens show messages from `en.json`. shadcn/ui components are written in place (`button`, `input`, `label`). The typed client is `openapi-fetch` over the generated `schema.d.ts`.
+- Reason: everything is from the agreed stack or the approved list. `@hookform/resolvers` would be one more dependency for a few lines.
+
+## 2026-10-25: Sign-in flow on the web
+
+- Decision: the login screen fetches a CSRF token on load, then posts with `X-CSRF-Token`. After sign-in it goes to `?next=`, which must be a path on this site (`safeRedirectPath`). The signed-in layout calls `GET /auth/me` from the server, forwarding only the session cookie. A missing or expired session redirects to `/login`. Sidebar items are hidden by permission code (`features/shell/nav-items.ts`). That is a convenience only: the API checks every request.
+- Reason: keeps the proxy to its single redirect, puts the real check in the API, and stops `?next=` being used to send staff to another site after they type their password.
+
+## 2026-10-25: Playwright
+
+- Decision: `pnpm test:e2e` runs `apps/web/e2e` against the seeded demo hospital. Locally it reuses running servers, and `PLAYWRIGHT_CHANNEL=chrome` (or `msedge`) uses the installed browser instead of downloading one. CI runs it in its own job: Postgres in IST, migrate, seed, production build, the standalone web server as in Docker, and Playwright's Chromium.
+- Reason: the smoke test exercises the real build and pipeline. The channel option avoids a browser download on developer machines.
+
+## 2026-10-25: Phase 1 order and the admin setup slice
+
+- Decision: phase 1 is built as one pull request per slice: admin setup, patient registration, billing and payments, OPD, IPD and the bed board, then discharge and reports. Pharmacy, lab and OT wait until phase 1 is done. Admin setup adds staff users, departments, doctors, room categories, wards and beds, service items with dated rates, and the hospital profile, with screens under `/settings`.
+- Reason: agreed with the developer. Every later slice needs these masters (a doctor for OPD, a bed for IPD, a rate for billing).
+
+## 2026-10-25: Who may read masters and rates
+
+- Decision: every hospital role gets `masters.data.read` (departments, doctors, wards, beds, hospital details). `tariffs.tariff.read` goes to the hospital admin, MD, accountant, billing clerk, cashier and receptionist. Changing masters needs `masters.data.manage` (hospital admin); changing rates needs `tariffs.tariff.manage` (accountant). The hospital admin sees rates but cannot change them.
+- Reason: front desk and ward staff need these lists to work, and none of them is sensitive. Rates are money, so they stay with finance, as in the role table of `CLAUDE.md`.
+
+## 2026-10-25: Rates are dated and never edited
+
+- Decision: a service item's rate lives in `tariff_rates` with `effective_from` and `effective_to` (IST calendar dates) and its own tax rate in basis points. A new rate must start today or later and after the current rate's start; the current rate is closed the day before. The service item row is locked (`SELECT ... FOR UPDATE`) while this happens, and a partial unique index allows one open rate per item. A trigger refuses DELETE and any UPDATE except closing an open rate.
+- Reason: `CLAUDE.md` asks for `effective_from` and `effective_to` on every price and a rate snapshot on every charge. Never editing a past rate means a bill can always be explained from the rate history.
+
+## 2026-10-25: Doctor logins are found by permission, not role name
+
+- Decision: a doctor record may link to one staff login that holds `opd.queue.read-own`, is active and belongs to the same hospital. `GET /users?permission=<code>` lists such logins for the screen.
+- Reason: section 8 says code checks permission codes, never role names, and the hospital admin may later make custom roles.
+
+## 2026-10-25: Admins cannot change their own access
+
+- Decision: `PATCH /users/:id` refuses a change to the caller's own roles or active flag, and `POST /users/:id/password` refuses the caller's own account (`SELF_CHANGE_NOT_ALLOWED`). Renaming yourself is allowed. Setting a password unlocks the account and ends every session of that user; deactivating a user ends their sessions too.
+- Reason: an admin cannot lock themself out or raise their own access by mistake, and a password handed over by an admin takes effect at once.
+
+## 2026-10-25: An occupied bed or ward is never retired
+
+- Decision: retiring a bed is a conditional UPDATE that skips beds with status `occupied`, so a patient placed at the same moment cannot slip past a separate check (`BED_OCCUPIED`, 422). Retiring a ward first locks all its beds (`SELECT ... FOR UPDATE`), then counts occupied ones, in the same transaction. Free, cleaning and blocked are set on the bed board (IPD slice), not in settings.
+- Reason: a retired bed with a patient in it would vanish from the bed board. The IPD slice must lock the bed row before filling it, then check `is_active` on the bed and the ward: an admission and a ward retirement then always run one after the other. An API test holds a bed lock mid-admission and checks that the retirement waits and is refused.
+
+## 2026-10-25: Settings screens
+
+- Decision: `/settings` has one tab per section (`features/settings/sections.ts`), shown by permission. A section opened without its view permission is a 404 page; without its manage permission it is read-only. Lists are plain tables with search, a "show inactive" switch and paging, not TanStack Table. Selects are the browser's own `<select>`, and dialogs use Radix Dialog from the existing `radix-ui` package. Edit forms send only the fields that changed, and wait for their select options before they render, because a select takes its value when it first renders. Rupees and tax percentages are typed as text and turned into paise and basis points on the digits, never through floating point (`src/lib/money.ts`).
+- Reason: master lists are short and need no column sorting yet; TanStack Table comes with the patient and billing lists. Native selects are light, keyboard friendly and need no new dependency. Sending only changed fields keeps the audit trail accurate.
+
+## 2026-10-25: A scheduled rate can be cancelled before it starts
+
+- Decision: `POST /service-items/:id/rates/:rateId/cancel` (finance, `tariffs.tariff.manage`) cancels the latest rate if it has not started (IST), with a reason of 3 to 200 characters. The row is kept with `cancelled_at`, `cancelled_by_id` and `cancel_reason`, and never applies; the rate it would have replaced is reopened in the same transaction. A rate that has started, one followed by a later rate, or one already cancelled is refused (`RATE_NOT_CANCELLABLE`); cancel the later rate first. The database trigger allows exactly three changes: closing an open rate, cancelling a rate that has not started, and reopening a rate whose end date has not passed and that no rate follows. A cancelled rate never changes again. No second approver is needed.
+- Reason: without it a mistyped future rate could only be replaced by an even later one, leaving the wrong amount in force for the days between. Nothing has been charged at a rate that has not started, so this is a correction of a plan, not a void of a financial record (voids, discounts and refunds still need maker-checker approval). The history screen shows every rate as In force, Scheduled, Ended or Cancelled, with the reason.
+
+## 2026-10-25: Form fields get their own border colour
+
+- Decision: text boxes and selects use a new token, `--input-border` (`#64748B` in both themes), instead of `--border`. Lines and dividers keep the section 16 `--border`.
+- Reason: section 16 asks for WCAG 2.1 AA, and a field's outline needs 3:1 against its background (WCAG 1.4.11). `--border` gives about 1.2:1 in both themes, so fields on cards and dialogs, like the sign-in form in dark theme, were close to invisible. `#64748B` gives 4.8:1 on white and 3.8:1 on the dark surface.
+
+## 2026-10-25: Dropdowns load every page
+
+- Decision: dropdowns of departments, room categories, doctors and doctor logins load every page of active records (`src/lib/api/all-pages.ts`), up to 20 pages of 100.
+- Reason: lists cap a page at 100, and a dropdown that shows only the first page silently hides the rest. Up to 2,000 choices is far beyond one hospital; a searchable picker can replace a dropdown if a list grows past a few hundred.
+
+## 2026-10-25: `pnpm api:spec` builds outside `dist`
+
+- Decision: `pnpm api:spec` compiles the API with `tsc` into `apps/api/.spec-build` (git-ignored, deleted afterwards) and runs the spec generator from there, instead of `nest build`.
+- Reason: `nest build` empties `apps/api/dist`, which the API in a running `pnpm dev` loads from, so regenerating the spec used to stop the dev API.

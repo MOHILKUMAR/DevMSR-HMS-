@@ -12,6 +12,41 @@ Every POST, PUT, PATCH and DELETE needs the `X-CSRF-Token` header matching the `
 | POST | `/auth/logout` | `auth.session.manage-own` | Ends the session and clears both cookies. 204. |
 | GET | `/auth/me` | `auth.session.manage-own` | The signed-in user, hospital, permission codes and session expiry. |
 
+## Admin setup
+
+Lists take `?page=1&pageSize=50&q=text&includeInactive=true` and return `{ data, page, pageSize, total }`. Records of another hospital are 404. Codes are stored in capitals.
+
+| Method | Path | Permission | Notes |
+| --- | --- | --- | --- |
+| GET | `/users` | `users.user.manage` | Staff users of the hospital with their roles, lock state and last sign-in. `?permission=opd.queue.read-own` lists only users holding that permission. Never lists platform users. |
+| POST | `/users` | `users.user.manage` | Body `{ username, displayName, password, roleCodes }`. 409 if the username is taken, 422 `ROLE_NOT_ASSIGNABLE` for a role outside the hospital. |
+| PATCH | `/users/:id` | `users.user.manage` | Any of `{ displayName, isActive, roleCodes }`. Deactivating ends the user's sessions. 422 `SELF_CHANGE_NOT_ALLOWED` for your own roles or status. |
+| POST | `/users/:id/password` | `users.user.manage` | Body `{ password }` (10 or more characters). Unlocks the account and ends its sessions. 204. Not for your own account. |
+| GET | `/roles` | `users.user.manage` | The hospital's roles with their permission codes. |
+| GET | `/hospital-profile` | `masters.data.read` | Name, code, address, PIN code, phone and email, as printed on bills. |
+| PATCH | `/hospital-profile` | `settings.hospital.manage` | Any of `{ name, addressLine, city, state, pincode, phone, email }`. Empty optional fields become null. |
+| GET | `/departments` | `masters.data.read` | |
+| POST | `/departments` | `masters.data.manage` | Body `{ code, name }`. 409 for a code in use. |
+| PATCH | `/departments/:id` | `masters.data.manage` | Any of `{ name, isActive }`. |
+| GET | `/doctors` | `masters.data.read` | With department name and linked username. `?departmentId=` filters. |
+| POST | `/doctors` | `masters.data.manage` | Body `{ fullName, departmentId, qualification?, registrationNumber?, userId?, isVisiting? }`. 422 `REFERENCE_INVALID` for an inactive or unknown department, `DOCTOR_LOGIN_INVALID` for a login that is not an active doctor login or is linked already. |
+| PATCH | `/doctors/:id` | `masters.data.manage` | Any of the create fields and `isActive`. `userId: null` unlinks the login. |
+| GET | `/room-categories` | `masters.data.read` | |
+| POST | `/room-categories` | `masters.data.manage` | Body `{ code, name }`. |
+| PATCH | `/room-categories/:id` | `masters.data.manage` | Any of `{ name, isActive }`. |
+| GET | `/wards` | `masters.data.read` | With room category name and bed count. |
+| POST | `/wards` | `masters.data.manage` | Body `{ code, name, roomCategoryId? }`. The ward joins the hospital's branch. |
+| PATCH | `/wards/:id` | `masters.data.manage` | Any of `{ name, roomCategoryId, isActive }`. 422 `BED_OCCUPIED` when retiring a ward with a patient in it. |
+| GET | `/wards/:id/beds` | `masters.data.read` | `{ data }` with every bed of the ward, active or not. |
+| POST | `/wards/:id/beds` | `masters.data.manage` | Body `{ code }`. New beds are free. 409 for a code already in this ward. |
+| PATCH | `/beds/:id` | `masters.data.manage` | Body `{ isActive }`: retire or restore. 422 `BED_OCCUPIED` for an occupied bed. |
+| GET | `/service-items` | `tariffs.tariff.read` | Everything the hospital charges for, with the rate that applies today (`currentRate`, or null). `?kind=` and `?doctorId=` filter. |
+| POST | `/service-items` | `tariffs.tariff.manage` | Body `{ code, name, kind, doctorId?, roomCategoryId? }`. Only a consultation has a doctor, only room rent and nursing have a room category. |
+| PATCH | `/service-items/:id` | `tariffs.tariff.manage` | Any of `{ name, isActive }`. |
+| GET | `/service-items/:id/rates` | `tariffs.tariff.read` | `{ data }`: the full rate history, newest first, cancelled rates included (`cancelledAt`, `cancelReason`). |
+| POST | `/service-items/:id/rates` | `tariffs.tariff.manage` | Body `{ ratePaise, taxRateBp, effectiveFrom }`. Starts today or later (IST) and after the current rate's start; the current rate ends the day before. 422 `RATE_DATE_INVALID` otherwise. |
+| POST | `/service-items/:id/rates/:rateId/cancel` | `tariffs.tariff.manage` | Body `{ reason }` (3 to 200 characters). Cancels the latest rate before it starts; the rate before it carries on. 200 with the cancelled rate. 422 `RATE_NOT_CANCELLABLE` for a rate that has started, is followed by a later rate, or is already cancelled. |
+
 ## Error codes
 
 | Code | Status | When |
@@ -28,4 +63,11 @@ Every POST, PUT, PATCH and DELETE needs the `X-CSRF-Token` header matching the `
 | `IDEMPOTENCY_KEY_REUSED` | 422 | The key was used for a different request. |
 | `IDEMPOTENCY_IN_PROGRESS` | 409 | The first request with this key is still running. |
 | `RATE_LIMITED` | 429 | Too many requests. `Retry-After` gives the wait in seconds. |
+| `SELF_CHANGE_NOT_ALLOWED` | 422 | An admin tried to change their own roles, status or password through user management. |
+| `ROLE_NOT_ASSIGNABLE` | 422 | A role code that is not a role of this hospital. |
+| `DOCTOR_LOGIN_INVALID` | 422 | The login to link to a doctor is not an active doctor login of this hospital, or is linked already. |
+| `REFERENCE_INVALID` | 422 | A chosen department, room category, doctor or service item is inactive or does not exist. |
+| `RATE_DATE_INVALID` | 422 | A new rate starts in the past, or not after the current rate's start. |
+| `BED_OCCUPIED` | 422 | Retiring a bed or ward that has a patient in it. |
+| `RATE_NOT_CANCELLABLE` | 422 | Cancelling a rate that has started, is followed by a later rate, or is already cancelled. |
 | `INTERNAL_ERROR` | 500 | Anything unexpected. Details are logged with the `X-Request-Id`, never returned. |

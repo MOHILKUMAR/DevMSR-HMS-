@@ -9,7 +9,13 @@ import { createPrismaClient } from '../apps/api/src/common/prisma/create-prisma-
 import {
   createRandom,
   DEMO_BRANCH,
+  DEMO_DEPARTMENTS,
+  DEMO_DOCTORS,
   DEMO_HOSPITAL,
+  DEMO_HOSPITAL_DETAILS,
+  DEMO_RATES_FROM,
+  DEMO_ROOM_CATEGORIES,
+  DEMO_SERVICE_ITEMS,
   DEMO_USERS,
   DEMO_WARDS,
   digits,
@@ -48,8 +54,8 @@ try {
 
       const hospital = await tx.hospital.upsert({
         where: { code: DEMO_HOSPITAL.code },
-        create: DEMO_HOSPITAL,
-        update: { name: DEMO_HOSPITAL.name },
+        create: { ...DEMO_HOSPITAL, ...DEMO_HOSPITAL_DETAILS },
+        update: { name: DEMO_HOSPITAL.name, ...DEMO_HOSPITAL_DETAILS },
         select: { id: true },
       });
       const branch = await tx.branch.upsert({
@@ -84,12 +90,55 @@ try {
         userIds.set(demo.username, user.id);
       }
 
+      const departmentIds = new Map<string, string>();
+      for (const department of DEMO_DEPARTMENTS) {
+        const { id } = await tx.department.upsert({
+          where: { hospitalId_code: { hospitalId: hospital.id, code: department.code } },
+          create: { hospitalId: hospital.id, ...department },
+          update: { name: department.name },
+          select: { id: true },
+        });
+        departmentIds.set(department.code, id);
+      }
+
+      // Doctors have no natural unique key, so the seed matches them by name within the hospital.
+      const doctorIds = new Map<string, string>();
+      for (const demo of DEMO_DOCTORS) {
+        const departmentId = departmentIds.get(demo.department);
+        if (departmentId === undefined) throw new Error(`Department ${demo.department} was not created`);
+        const doctor = {
+          departmentId,
+          qualification: demo.qualification,
+          registrationNumber: demo.registrationNumber,
+          userId: demo.username === undefined ? null : (userIds.get(demo.username) ?? null),
+          isVisiting: demo.isVisiting ?? false,
+          isActive: true,
+        };
+        const existing = await tx.doctor.findFirst({ where: { hospitalId: hospital.id, fullName: demo.fullName }, select: { id: true } });
+        const { id } = existing
+          ? await tx.doctor.update({ where: { id: existing.id }, data: doctor, select: { id: true } })
+          : await tx.doctor.create({ data: { hospitalId: hospital.id, fullName: demo.fullName, ...doctor }, select: { id: true } });
+        doctorIds.set(demo.fullName, id);
+      }
+
+      const roomCategoryIds = new Map<string, string>();
+      for (const category of DEMO_ROOM_CATEGORIES) {
+        const { id } = await tx.roomCategory.upsert({
+          where: { hospitalId_code: { hospitalId: hospital.id, code: category.code } },
+          create: { hospitalId: hospital.id, ...category },
+          update: { name: category.name },
+          select: { id: true },
+        });
+        roomCategoryIds.set(category.code, id);
+      }
+
       let bedCount = 0;
       for (const ward of DEMO_WARDS) {
+        const roomCategoryId = roomCategoryIds.get(ward.roomCategory) ?? null;
         const { id: wardId } = await tx.ward.upsert({
           where: { hospitalId_code: { hospitalId: hospital.id, code: ward.code } },
-          create: { hospitalId: hospital.id, branchId: branch.id, code: ward.code, name: ward.name },
-          update: { name: ward.name },
+          create: { hospitalId: hospital.id, branchId: branch.id, code: ward.code, name: ward.name, roomCategoryId },
+          update: { name: ward.name, roomCategoryId },
           select: { id: true },
         });
         for (let n = 1; n <= ward.beds; n += 1) {
@@ -101,6 +150,34 @@ try {
             update: {},
           });
           bedCount += 1;
+        }
+      }
+
+      // Fake demo rates. An item that already has a rate keeps its history untouched.
+      for (const demo of DEMO_SERVICE_ITEMS) {
+        const item = await tx.serviceItem.upsert({
+          where: { hospitalId_code: { hospitalId: hospital.id, code: demo.code } },
+          create: {
+            hospitalId: hospital.id,
+            code: demo.code,
+            name: demo.name,
+            kind: demo.kind,
+            doctorId: demo.doctor === undefined ? null : (doctorIds.get(demo.doctor) ?? null),
+            roomCategoryId: demo.roomCategory === undefined ? null : (roomCategoryIds.get(demo.roomCategory) ?? null),
+          },
+          update: { name: demo.name },
+          select: { id: true, _count: { select: { rates: true } } },
+        });
+        if (item._count.rates === 0) {
+          await tx.tariffRate.create({
+            data: {
+              hospitalId: hospital.id,
+              serviceItemId: item.id,
+              ratePaise: BigInt(demo.ratePaise),
+              taxRateBp: 0,
+              effectiveFrom: new Date(`${DEMO_RATES_FROM}T00:00:00.000Z`),
+            },
+          });
         }
       }
 
@@ -136,6 +213,9 @@ try {
         permissions: permissionIds.size,
         roles: platformRoles.size + hospitalRoles.size,
         users: userIds.size,
+        departments: departmentIds.size,
+        doctors: doctorIds.size,
+        serviceItems: DEMO_SERVICE_ITEMS.length,
         wards: DEMO_WARDS.length,
         beds: bedCount,
         patients: await tx.patient.count({ where: { hospitalId: hospital.id } }),

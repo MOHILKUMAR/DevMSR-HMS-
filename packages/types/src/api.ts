@@ -13,6 +13,14 @@ export const API_ERROR_CODES = [
   'IDEMPOTENCY_IN_PROGRESS',
   'RATE_LIMITED',
   'INTERNAL_ERROR',
+  // Business rules (422)
+  'SELF_CHANGE_NOT_ALLOWED',
+  'ROLE_NOT_ASSIGNABLE',
+  'DOCTOR_LOGIN_INVALID',
+  'REFERENCE_INVALID',
+  'RATE_DATE_INVALID',
+  'BED_OCCUPIED',
+  'RATE_NOT_CANCELLABLE',
 ] as const;
 
 export type ApiErrorCode = (typeof API_ERROR_CODES)[number];

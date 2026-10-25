@@ -10,16 +10,20 @@ Progress against `CLAUDE.md`, section 11. Later phases need the developer's appr
 - [x] Prisma schema v0, with the approved additions: sessions, login events, idempotency keys, minimal wards and beds
 - [x] Request pipeline: login with lockout, sessions, CSRF, rate limits, headers, permission matrix, guards, idempotency, exception filter, audit log
 - [x] `pnpm db:migrate`, `pnpm db:seed`, `pnpm api:spec`
-- [ ] `pnpm test:e2e`
+- [x] `pnpm test:e2e`: Playwright smoke test (redirect, keyboard sign-in, role menu, sign-out, errors)
 - [x] Seed: fake hospital, staff for every role, wards, beds, 50 fake patients
-- [ ] Design tokens, fonts, middleware, `(auth)/login` and the `(app)` shell
+- [x] Design tokens, fonts, session redirect (`proxy.ts`), `(auth)/login` and the `(app)` shell
 
 ## Phase 1
 
 - [ ] Auth and roles: TOTP for super admin, hospital admin and finance; password reset; see and end own sessions; break-glass access; failed-login alert
 - [ ] Separate database role for the API that cannot UPDATE, DELETE or TRUNCATE audit rows (before go-live)
 - [ ] Idempotency key cleanup job (pg-boss)
-- [ ] Settings and masters
+- [ ] Tighter web CSP with nonces or SRI (before go-live)
+- [ ] Patient search in the top bar (with patient registration)
+- [x] Settings and masters (admin setup slice): staff users and roles, hospital profile, departments, doctors, room categories, wards and beds, service items with dated rates, screens under `/settings`
+- [ ] Custom roles screen (`users.role.manage`)
+- [ ] Packages, discounts and other billing masters (waiting for answers in `docs/billing-rules.md`)
 - [ ] Patient registration
 - [ ] OPD
 - [ ] IPD and beds

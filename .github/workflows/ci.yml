@@ -61,6 +61,62 @@ jobs:
           node-version-file: .nvmrc
       - run: pnpm audit --audit-level high
 
+  e2e:
+    name: End to end (Playwright)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: hms
+          POSTGRES_PASSWORD: hms_ci_only
+          POSTGRES_DB: hms
+          TZ: Asia/Kolkata
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U hms -d hms"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://hms:hms_ci_only@localhost:5432/hms
+      DIRECT_URL: postgresql://hms:hms_ci_only@localhost:5432/hms
+      # Fake demo users from the seed, on a throwaway database.
+      SEED_USER_PASSWORD: ci-only-Passw0rd
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Generate secrets for this run
+        run: |
+          for name in SESSION_SECRET FIELD_ENCRYPTION_KEY; do
+            value=$(openssl rand -base64 32)
+            echo "::add-mask::$value"
+            echo "$name=$value" >> "$GITHUB_ENV"
+          done
+      - run: pnpm db:deploy
+      - run: pnpm db:seed
+      - run: pnpm build
+      - name: Put static files next to the standalone web server, as the Docker image does
+        run: |
+          cp -r apps/web/.next/static apps/web/.next/standalone/apps/web/.next/static
+          cp -r apps/web/public apps/web/.next/standalone/apps/web/public
+      - run: pnpm --filter @devmsr/web exec playwright install --with-deps chromium
+      - run: pnpm test:e2e
+      - name: Keep the Playwright report when a test fails
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report
+          retention-days: 7
+
   docker:
     name: Docker images
     runs-on: ubuntu-latest

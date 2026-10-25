@@ -13,13 +13,14 @@
     "lint": "pnpm db:generate && eslint prisma prisma.config.ts && pnpm -r lint",
     "typecheck": "pnpm db:generate && tsc -p tsconfig.json && pnpm -r typecheck",
     "test": "pnpm db:generate && pnpm -r test",
+    "test:e2e": "pnpm --filter @devmsr/web test:e2e",
     "check:text": "node scripts/check-text.mjs",
     "db:generate": "prisma generate --no-hints",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "db:reset": "prisma migrate reset",
-    "db:seed": "prisma db seed",
-    "api:spec": "pnpm db:generate && pnpm build:packages && pnpm --filter @devmsr/api build && node apps/api/dist/openapi/generate-spec.js docs/openapi.json && pnpm --filter @devmsr/web api:types"
+    "db:seed": "pnpm db:generate && prisma db seed",
+    "api:spec": "pnpm db:generate && pnpm build:packages && pnpm --filter @devmsr/api spec && pnpm --filter @devmsr/web api:types"
   },
   "devDependencies": {
     "@devmsr/config": "workspace:*",

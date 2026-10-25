@@ -40,6 +40,16 @@ export const Errors = {
   idempotencyInProgress: () =>
     new AppError(409, 'IDEMPOTENCY_IN_PROGRESS', 'This request is still being processed. Wait a moment and check before retrying.'),
   rateLimited: () => new AppError(429, 'RATE_LIMITED', 'Too many requests. Wait a minute and try again.'),
+  selfChangeNotAllowed: () =>
+    new AppError(422, 'SELF_CHANGE_NOT_ALLOWED', 'You cannot change your own roles, status or password here. Ask another admin.'),
+  roleNotAssignable: () =>
+    new AppError(422, 'ROLE_NOT_ASSIGNABLE', 'One of the chosen roles does not exist in this hospital.'),
+  doctorLoginInvalid: () =>
+    new AppError(422, 'DOCTOR_LOGIN_INVALID', 'The login must be an active staff user with the doctor role who is not linked to another doctor.'),
+  referenceInvalid: (what: string) => new AppError(422, 'REFERENCE_INVALID', `The chosen ${what} was not found or is inactive.`),
+  rateDateInvalid: (message: string) => new AppError(422, 'RATE_DATE_INVALID', message),
+  bedOccupied: () => new AppError(422, 'BED_OCCUPIED', 'A patient is in this bed or ward. Move or discharge the patient first.'),
+  rateNotCancellable: (message: string) => new AppError(422, 'RATE_NOT_CANCELLABLE', message),
   internal: () =>
     new AppError(500, 'INTERNAL_ERROR', 'Something went wrong on our side. Try again, and tell your admin if it keeps happening.'),
 };

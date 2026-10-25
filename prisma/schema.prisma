@@ -57,6 +57,8 @@ enum SessionEndReason {
   max_age
   replaced
   user_inactive
+  // An admin set a new password: every session of that user ends.
+  credentials_changed
 
   @@map("session_end_reason")
 }
@@ -68,22 +70,155 @@ enum IdempotencyStatus {
   @@map("idempotency_status")
 }
 
-model Hospital {
-  id        String   @id @default(uuid(7)) @db.Uuid
-  code      String   @unique
-  name      String
-  isActive  Boolean  @default(true) @map("is_active")
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+enum ServiceKind {
+  consultation
+  room
+  nursing
+  procedure
+  investigation
+  other
 
-  branches Branch[]
-  users    User[]
-  roles    Role[]
-  patients Patient[]
-  wards    Ward[]
-  beds     Bed[]
+  @@map("service_kind")
+}
+
+model Hospital {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  code        String   @unique
+  name        String
+  // Printed on bills, receipts and discharge summaries.
+  addressLine String?  @map("address_line")
+  city        String?
+  state       String?
+  pincode     String?  @db.Char(6)
+  phone       String?
+  email       String?
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  branches       Branch[]
+  users          User[]
+  roles          Role[]
+  patients       Patient[]
+  wards          Ward[]
+  beds           Bed[]
+  departments    Department[]
+  doctors        Doctor[]
+  roomCategories RoomCategory[]
+  serviceItems   ServiceItem[]
+  tariffRates    TariffRate[]
 
   @@map("hospitals")
+}
+
+model Department {
+  id         String   @id @default(uuid(7)) @db.Uuid
+  hospitalId String   @map("hospital_id") @db.Uuid
+  code       String
+  name       String
+  isActive   Boolean  @default(true) @map("is_active")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  hospital Hospital @relation(fields: [hospitalId], references: [id], onDelete: Restrict)
+  doctors  Doctor[]
+
+  @@unique([hospitalId, code])
+  @@unique([hospitalId, id])
+  @@map("departments")
+}
+
+model Doctor {
+  id                 String   @id @default(uuid(7)) @db.Uuid
+  hospitalId         String   @map("hospital_id") @db.Uuid
+  departmentId       String   @map("department_id") @db.Uuid
+  // The doctor's own login, so their queue and notes are theirs. Visiting doctors may have none.
+  userId             String?  @unique @map("user_id") @db.Uuid
+  fullName           String   @map("full_name")
+  qualification      String?
+  // Medical council registration, printed on prescriptions and summaries.
+  registrationNumber String?  @map("registration_number")
+  isVisiting         Boolean  @default(false) @map("is_visiting")
+  isActive           Boolean  @default(true) @map("is_active")
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  hospital     Hospital      @relation(fields: [hospitalId], references: [id], onDelete: Restrict)
+  department   Department    @relation(fields: [hospitalId, departmentId], references: [hospitalId, id], onDelete: Restrict)
+  user         User?         @relation(fields: [userId], references: [id], onDelete: Restrict)
+  serviceItems ServiceItem[]
+
+  @@unique([hospitalId, id])
+  @@index([hospitalId, departmentId])
+  @@map("doctors")
+}
+
+model RoomCategory {
+  id         String   @id @default(uuid(7)) @db.Uuid
+  hospitalId String   @map("hospital_id") @db.Uuid
+  code       String
+  name       String
+  isActive   Boolean  @default(true) @map("is_active")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  hospital     Hospital      @relation(fields: [hospitalId], references: [id], onDelete: Restrict)
+  wards        Ward[]
+  serviceItems ServiceItem[]
+
+  @@unique([hospitalId, code])
+  @@unique([hospitalId, id])
+  @@map("room_categories")
+}
+
+/// Anything the hospital charges for: consultations, room rent, nursing, procedures, tests.
+model ServiceItem {
+  id             String      @id @default(uuid(7)) @db.Uuid
+  hospitalId     String      @map("hospital_id") @db.Uuid
+  code           String
+  name           String
+  kind           ServiceKind
+  // A consultation fee belongs to one doctor; room rent and nursing to one room category.
+  doctorId       String?     @map("doctor_id") @db.Uuid
+  roomCategoryId String?     @map("room_category_id") @db.Uuid
+  isActive       Boolean     @default(true) @map("is_active")
+  createdAt      DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime    @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  hospital     Hospital      @relation(fields: [hospitalId], references: [id], onDelete: Restrict)
+  doctor       Doctor?       @relation(fields: [hospitalId, doctorId], references: [hospitalId, id], onDelete: Restrict)
+  roomCategory RoomCategory? @relation(fields: [hospitalId, roomCategoryId], references: [hospitalId, id], onDelete: Restrict)
+  rates        TariffRate[]
+
+  @@unique([hospitalId, code])
+  @@unique([hospitalId, id])
+  @@map("service_items")
+}
+
+/// The price of a service item from a date. History is never edited: a new rate closes the old one.
+model TariffRate {
+  id            String    @id @default(uuid(7)) @db.Uuid
+  hospitalId    String    @map("hospital_id") @db.Uuid
+  serviceItemId String    @map("service_item_id") @db.Uuid
+  ratePaise     BigInt    @map("rate_paise")
+  // Basis points: 1800 is 18%. Entered by the hospital; 0 when the service is not taxed.
+  taxRateBp     Int       @default(0) @map("tax_rate_bp")
+  effectiveFrom DateTime  @map("effective_from") @db.Date
+  effectiveTo   DateTime? @map("effective_to") @db.Date
+  createdById   String?   @map("created_by_id") @db.Uuid
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  // Set when a rate is cancelled before it starts. A cancelled rate never applies and is kept for the record.
+  cancelledAt   DateTime? @map("cancelled_at") @db.Timestamptz(3)
+  cancelledById String?   @map("cancelled_by_id") @db.Uuid
+  cancelReason  String?   @map("cancel_reason")
+
+  hospital    Hospital    @relation(fields: [hospitalId], references: [id], onDelete: Restrict)
+  serviceItem ServiceItem @relation(fields: [hospitalId, serviceItemId], references: [hospitalId, id], onDelete: Restrict)
+
+  // One open rate per service item. Never look a rate up by serviceItemId alone through this key.
+  @@unique([serviceItemId], map: "tariff_rates_one_open_rate", where: raw("effective_to IS NULL AND cancelled_at IS NULL"))
+  @@index([serviceItemId, effectiveFrom])
+  @@map("tariff_rates")
 }
 
 model Branch {
@@ -128,6 +263,7 @@ model User {
   sessions    Session[]
   loginEvents LoginEvent[]
   auditEvents AuditEvent[]
+  doctor      Doctor?
 
   @@index([hospitalId])
   @@map("users")
@@ -222,18 +358,21 @@ model Patient {
 }
 
 model Ward {
-  id         String   @id @default(uuid(7)) @db.Uuid
-  hospitalId String   @map("hospital_id") @db.Uuid
-  branchId   String   @map("branch_id") @db.Uuid
-  code       String
-  name       String
-  isActive   Boolean  @default(true) @map("is_active")
-  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  id             String   @id @default(uuid(7)) @db.Uuid
+  hospitalId     String   @map("hospital_id") @db.Uuid
+  branchId       String   @map("branch_id") @db.Uuid
+  // Decides the room rent and nursing charges of patients in this ward.
+  roomCategoryId String?  @map("room_category_id") @db.Uuid
+  code           String
+  name           String
+  isActive       Boolean  @default(true) @map("is_active")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  hospital Hospital @relation(fields: [hospitalId], references: [id], onDelete: Restrict)
-  branch   Branch   @relation(fields: [hospitalId, branchId], references: [hospitalId, id], onDelete: Restrict)
-  beds     Bed[]
+  hospital     Hospital      @relation(fields: [hospitalId], references: [id], onDelete: Restrict)
+  branch       Branch        @relation(fields: [hospitalId, branchId], references: [hospitalId, id], onDelete: Restrict)
+  roomCategory RoomCategory? @relation(fields: [hospitalId, roomCategoryId], references: [hospitalId, id], onDelete: Restrict)
+  beds         Bed[]
 
   @@unique([hospitalId, code])
   @@unique([hospitalId, id])

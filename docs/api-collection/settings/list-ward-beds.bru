@@ -1,0 +1,19 @@
+meta {
+  name: List beds of a ward
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/wards/{{wardId}}/beds
+  body: none
+  auth: none
+}
+
+docs {
+  Run "List wards" first: it keeps the first ward's id.
+}
+
+assert {
+  res.status: eq 200
+}

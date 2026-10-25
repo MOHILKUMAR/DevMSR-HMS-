@@ -42,7 +42,9 @@ pnpm db:seed
 pnpm dev
 ```
 
-The web app runs on http://localhost:3000 and the API on http://localhost:4000/api/v1 (try `/api/v1/health`). The seed creates a fake demo hospital with one user per role (`superadmin`, `admin`, `md`, `accounts`, `billing`, `cashier`, `reception`, `doctor`, `nurse`, `pharmacy`, `lab`, `ot`), all with `SEED_USER_PASSWORD` from `.env`.
+Open http://localhost:3000 and sign in. The seed creates a fake demo hospital with one user per role (`superadmin`, `admin`, `md`, `accounts`, `billing`, `cashier`, `reception`, `doctor`, `nurse`, `pharmacy`, `lab`, `ot`), all with `SEED_USER_PASSWORD` from `.env`. Each role sees only its own sections in the sidebar. The API is on http://localhost:4000/api/v1 (try `/api/v1/health`).
+
+Start with **Settings**. As `admin`, add staff users and their roles, departments, doctors (linked to their logins), room categories, wards and beds, and the hospital details printed on bills. As `accounts`, add service items and set their rates from a date. The demo rates are fake.
 
 ## Layout
 
@@ -70,8 +72,13 @@ The web app runs on http://localhost:3000 and the API on http://localhost:4000/a
 | `pnpm db:reset` | Drops the development database and reapplies every migration |
 | `pnpm db:deploy` | Applies pending migrations (staging and production) |
 | `pnpm api:spec` | Regenerates `docs/openapi.json` and the web app's API types |
+| `pnpm test:e2e` | Playwright tests against the seeded demo hospital, reusing a running `pnpm dev` |
 
-`pnpm test:e2e` arrives with the web shell.
+Playwright normally downloads its own Chromium (`pnpm --filter @devmsr/web exec playwright install chromium`). To use the browser already on your machine instead, set the channel:
+
+```bash
+PLAYWRIGHT_CHANNEL=chrome pnpm test:e2e
+```
 
 ## Docker images
 

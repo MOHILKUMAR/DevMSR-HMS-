@@ -84,6 +84,11 @@ export class SessionsService {
     await this.sessions.end({ id: sessionId }, reason, now, tx);
   }
 
+  /** Ends every open session of a user, for example when an admin deactivates them or sets a new password. */
+  async endAllForUser(userId: string, reason: SessionEndReason, now: Date, tx?: Tx): Promise<void> {
+    await this.sessions.end({ userId }, reason, now, tx);
+  }
+
   /** Ends the session behind a cookie token, if any. Used at login so each login gets a new session ID. */
   async endByToken(token: string, reason: SessionEndReason, now: Date, tx?: Tx): Promise<void> {
     await this.sessions.end({ tokenHash: sha256Hex(token) }, reason, now, tx);

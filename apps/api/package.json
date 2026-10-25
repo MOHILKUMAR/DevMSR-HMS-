@@ -10,6 +10,7 @@
     "build": "nest build",
     "dev": "nest start --watch --preserveWatchOutput",
     "start": "node dist/main.js",
+    "spec": "tsc -p tsconfig.build.json --outDir .spec-build && node .spec-build/openapi/generate-spec.js ../../docs/openapi.json && node -e \"fs.rmSync('.spec-build', { recursive: true, force: true })\"",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"

@@ -1,0 +1,31 @@
+meta {
+  name: Add department
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/departments
+  body: json
+  auth: none
+}
+
+headers {
+  X-CSRF-Token: {{csrfToken}}
+}
+
+body:json {
+  {
+    "code": "{{departmentCode}}",
+    "name": "Dermatology"
+  }
+}
+
+script:pre-request {
+  // A fresh code each run, since codes are unique per hospital.
+  bru.setVar("departmentCode", "DERM-" + Math.random().toString(36).slice(2, 7).toUpperCase());
+}
+
+assert {
+  res.status: eq 201
+}

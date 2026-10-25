@@ -72,6 +72,93 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/beds/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Retire or restore a bed */
+        patch: operations["bedsUpdate"];
+        trace?: never;
+    };
+    "/api/v1/departments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List departments */
+        get: operations["departmentsList"];
+        put?: never;
+        /** Add a department */
+        post: operations["departmentsCreate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/departments/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Rename, retire or restore a department */
+        patch: operations["departmentsUpdate"];
+        trace?: never;
+    };
+    "/api/v1/doctors": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List doctors, optionally of one department */
+        get: operations["doctorsList"];
+        put?: never;
+        /** Add a doctor, optionally linked to their login */
+        post: operations["doctorsCreate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/doctors/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Change a doctor */
+        patch: operations["doctorsUpdate"];
+        trace?: never;
+    };
     "/api/v1/health": {
         parameters: {
             query?: never;
@@ -83,6 +170,251 @@ export interface paths {
         get: operations["healthCheck"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/hospital-profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Hospital name, address and contacts, as printed on bills */
+        get: operations["hospitalProfileGet"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Change hospital name, address and contacts */
+        patch: operations["hospitalProfileUpdate"];
+        trace?: never;
+    };
+    "/api/v1/roles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Roles of the hospital with their permission codes */
+        get: operations["rolesList"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/room-categories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List room categories */
+        get: operations["roomCategoriesList"];
+        put?: never;
+        /** Add a room category */
+        post: operations["roomCategoriesCreate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/room-categories/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Rename, retire or restore a room category */
+        patch: operations["roomCategoriesUpdate"];
+        trace?: never;
+    };
+    "/api/v1/service-items": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List service items with the rate that applies today */
+        get: operations["tariffsList"];
+        put?: never;
+        /** Add a service item (a fee, room rent, procedure...) */
+        post: operations["tariffsCreate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/service-items/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Rename, retire or restore a service item */
+        patch: operations["tariffsUpdate"];
+        trace?: never;
+    };
+    "/api/v1/service-items/{id}/rates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Rate history of a service item, newest first */
+        get: operations["tariffsListRates"];
+        put?: never;
+        /** Set a new rate from a date; the current rate ends the day before */
+        post: operations["tariffsCreateRate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/service-items/{id}/rates/{rateId}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel the latest rate before it starts; the rate before it carries on */
+        post: operations["tariffsCancelRate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List staff users of the hospital */
+        get: operations["usersList"];
+        put?: never;
+        /** Create a staff user with roles and a first password */
+        post: operations["usersCreate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Change a staff user: name, roles, active or not */
+        patch: operations["usersUpdate"];
+        trace?: never;
+    };
+    "/api/v1/users/{id}/password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Set a new password, unlock the account and end its sessions */
+        post: operations["usersSetPassword"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/wards": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List wards with their room category and bed count */
+        get: operations["wardsList"];
+        put?: never;
+        /** Add a ward */
+        post: operations["wardsCreate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/wards/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Change a ward */
+        patch: operations["wardsUpdate"];
+        trace?: never;
+    };
+    "/api/v1/wards/{id}/beds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Beds of a ward */
+        get: operations["wardsListBeds"];
+        put?: never;
+        /** Add a bed to a ward */
+        post: operations["wardsCreateBed"];
         delete?: never;
         options?: never;
         head?: never;
@@ -152,9 +484,457 @@ export interface components {
                 idleTimeoutSeconds: number;
             };
         };
+        BedsUpdateRequest: {
+            isActive: boolean;
+        };
+        BedsUpdateResponse: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            wardId: string;
+            code: string;
+            /** @enum {string} */
+            status: "free" | "occupied" | "cleaning" | "reserved" | "blocked";
+            isActive: boolean;
+        };
+        DepartmentsListResponse: {
+            data: {
+                /** Format: uuid */
+                id: string;
+                code: string;
+                name: string;
+                isActive: boolean;
+            }[];
+            page: number;
+            pageSize: number;
+            total: number;
+        };
+        DepartmentsCreateRequest: {
+            code: string;
+            name: string;
+        };
+        DepartmentsCreateResponse: {
+            /** Format: uuid */
+            id: string;
+            code: string;
+            name: string;
+            isActive: boolean;
+        };
+        DepartmentsUpdateRequest: {
+            name?: string;
+            isActive?: boolean;
+        };
+        DepartmentsUpdateResponse: {
+            /** Format: uuid */
+            id: string;
+            code: string;
+            name: string;
+            isActive: boolean;
+        };
+        DoctorsListResponse: {
+            data: {
+                /** Format: uuid */
+                id: string;
+                fullName: string;
+                qualification: string | null;
+                registrationNumber: string | null;
+                /** Format: uuid */
+                departmentId: string;
+                departmentName: string;
+                userId: string | null;
+                username: string | null;
+                isVisiting: boolean;
+                isActive: boolean;
+            }[];
+            page: number;
+            pageSize: number;
+            total: number;
+        };
+        DoctorsCreateRequest: {
+            fullName: string;
+            /** Format: uuid */
+            departmentId: string;
+            qualification?: string | null;
+            registrationNumber?: string | null;
+            userId?: string | null;
+            isVisiting?: boolean;
+        };
+        DoctorsCreateResponse: {
+            /** Format: uuid */
+            id: string;
+            fullName: string;
+            qualification: string | null;
+            registrationNumber: string | null;
+            /** Format: uuid */
+            departmentId: string;
+            departmentName: string;
+            userId: string | null;
+            username: string | null;
+            isVisiting: boolean;
+            isActive: boolean;
+        };
+        DoctorsUpdateRequest: {
+            fullName?: string;
+            /** Format: uuid */
+            departmentId?: string;
+            qualification?: string | null;
+            registrationNumber?: string | null;
+            userId?: string | null;
+            isVisiting?: boolean;
+            isActive?: boolean;
+        };
+        DoctorsUpdateResponse: {
+            /** Format: uuid */
+            id: string;
+            fullName: string;
+            qualification: string | null;
+            registrationNumber: string | null;
+            /** Format: uuid */
+            departmentId: string;
+            departmentName: string;
+            userId: string | null;
+            username: string | null;
+            isVisiting: boolean;
+            isActive: boolean;
+        };
         HealthCheckResponse: {
             /** @constant */
             status: "ok";
+        };
+        HospitalProfileGetResponse: {
+            /** Format: uuid */
+            id: string;
+            code: string;
+            name: string;
+            addressLine: string | null;
+            city: string | null;
+            state: string | null;
+            pincode: string | null;
+            phone: string | null;
+            email: string | null;
+        };
+        HospitalProfileUpdateRequest: {
+            name?: string;
+            addressLine?: string | null;
+            city?: string | null;
+            state?: string | null;
+            pincode?: string | null;
+            phone?: string | null;
+            email?: string | null;
+        };
+        HospitalProfileUpdateResponse: {
+            /** Format: uuid */
+            id: string;
+            code: string;
+            name: string;
+            addressLine: string | null;
+            city: string | null;
+            state: string | null;
+            pincode: string | null;
+            phone: string | null;
+            email: string | null;
+        };
+        RolesListResponse: {
+            data: {
+                /** Format: uuid */
+                id: string;
+                code: string;
+                name: string;
+                isSystem: boolean;
+                permissions: string[];
+            }[];
+        };
+        RoomCategoriesListResponse: {
+            data: {
+                /** Format: uuid */
+                id: string;
+                code: string;
+                name: string;
+                isActive: boolean;
+            }[];
+            page: number;
+            pageSize: number;
+            total: number;
+        };
+        RoomCategoriesCreateRequest: {
+            code: string;
+            name: string;
+        };
+        RoomCategoriesCreateResponse: {
+            /** Format: uuid */
+            id: string;
+            code: string;
+            name: string;
+            isActive: boolean;
+        };
+        RoomCategoriesUpdateRequest: {
+            name?: string;
+            isActive?: boolean;
+        };
+        RoomCategoriesUpdateResponse: {
+            /** Format: uuid */
+            id: string;
+            code: string;
+            name: string;
+            isActive: boolean;
+        };
+        TariffsListResponse: {
+            data: {
+                /** Format: uuid */
+                id: string;
+                code: string;
+                name: string;
+                /** @enum {string} */
+                kind: "consultation" | "room" | "nursing" | "procedure" | "investigation" | "other";
+                doctorId: string | null;
+                doctorName: string | null;
+                roomCategoryId: string | null;
+                roomCategoryName: string | null;
+                isActive: boolean;
+                currentRate: {
+                    ratePaise: number;
+                    taxRateBp: number;
+                    /** Format: date */
+                    effectiveFrom: string;
+                } | null;
+            }[];
+            page: number;
+            pageSize: number;
+            total: number;
+        };
+        TariffsCreateRequest: {
+            code: string;
+            name: string;
+            /** @enum {string} */
+            kind: "consultation" | "room" | "nursing" | "procedure" | "investigation" | "other";
+            doctorId?: string | null;
+            roomCategoryId?: string | null;
+        };
+        TariffsCreateResponse: {
+            /** Format: uuid */
+            id: string;
+            code: string;
+            name: string;
+            /** @enum {string} */
+            kind: "consultation" | "room" | "nursing" | "procedure" | "investigation" | "other";
+            doctorId: string | null;
+            doctorName: string | null;
+            roomCategoryId: string | null;
+            roomCategoryName: string | null;
+            isActive: boolean;
+            currentRate: {
+                ratePaise: number;
+                taxRateBp: number;
+                /** Format: date */
+                effectiveFrom: string;
+            } | null;
+        };
+        TariffsUpdateRequest: {
+            name?: string;
+            isActive?: boolean;
+        };
+        TariffsUpdateResponse: {
+            /** Format: uuid */
+            id: string;
+            code: string;
+            name: string;
+            /** @enum {string} */
+            kind: "consultation" | "room" | "nursing" | "procedure" | "investigation" | "other";
+            doctorId: string | null;
+            doctorName: string | null;
+            roomCategoryId: string | null;
+            roomCategoryName: string | null;
+            isActive: boolean;
+            currentRate: {
+                ratePaise: number;
+                taxRateBp: number;
+                /** Format: date */
+                effectiveFrom: string;
+            } | null;
+        };
+        TariffsListRatesResponse: {
+            data: {
+                /** Format: uuid */
+                id: string;
+                ratePaise: number;
+                taxRateBp: number;
+                /** Format: date */
+                effectiveFrom: string;
+                effectiveTo: string | null;
+                /** Format: date-time */
+                createdAt: string;
+                cancelledAt: string | null;
+                cancelReason: string | null;
+            }[];
+        };
+        TariffsCreateRateRequest: {
+            ratePaise: number;
+            taxRateBp: number;
+            /** Format: date */
+            effectiveFrom: string;
+        };
+        TariffsCreateRateResponse: {
+            /** Format: uuid */
+            id: string;
+            ratePaise: number;
+            taxRateBp: number;
+            /** Format: date */
+            effectiveFrom: string;
+            effectiveTo: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            cancelledAt: string | null;
+            cancelReason: string | null;
+        };
+        TariffsCancelRateRequest: {
+            reason: string;
+        };
+        TariffsCancelRateResponse: {
+            /** Format: uuid */
+            id: string;
+            ratePaise: number;
+            taxRateBp: number;
+            /** Format: date */
+            effectiveFrom: string;
+            effectiveTo: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            cancelledAt: string | null;
+            cancelReason: string | null;
+        };
+        UsersListResponse: {
+            data: {
+                /** Format: uuid */
+                id: string;
+                username: string;
+                displayName: string;
+                isActive: boolean;
+                locked: boolean;
+                roles: {
+                    code: string;
+                    name: string;
+                }[];
+                lastLoginAt: string | null;
+                /** Format: date-time */
+                createdAt: string;
+            }[];
+            page: number;
+            pageSize: number;
+            total: number;
+        };
+        UsersCreateRequest: {
+            username: string;
+            displayName: string;
+            password: string;
+            roleCodes: string[];
+        };
+        UsersCreateResponse: {
+            /** Format: uuid */
+            id: string;
+            username: string;
+            displayName: string;
+            isActive: boolean;
+            locked: boolean;
+            roles: {
+                code: string;
+                name: string;
+            }[];
+            lastLoginAt: string | null;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        UsersUpdateRequest: {
+            displayName?: string;
+            isActive?: boolean;
+            roleCodes?: string[];
+        };
+        UsersUpdateResponse: {
+            /** Format: uuid */
+            id: string;
+            username: string;
+            displayName: string;
+            isActive: boolean;
+            locked: boolean;
+            roles: {
+                code: string;
+                name: string;
+            }[];
+            lastLoginAt: string | null;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        UsersSetPasswordRequest: {
+            password: string;
+        };
+        WardsListResponse: {
+            data: {
+                /** Format: uuid */
+                id: string;
+                code: string;
+                name: string;
+                roomCategoryId: string | null;
+                roomCategoryName: string | null;
+                isActive: boolean;
+                bedCount: number;
+            }[];
+            page: number;
+            pageSize: number;
+            total: number;
+        };
+        WardsCreateRequest: {
+            code: string;
+            name: string;
+            roomCategoryId?: string | null;
+        };
+        WardsCreateResponse: {
+            /** Format: uuid */
+            id: string;
+            code: string;
+            name: string;
+            roomCategoryId: string | null;
+            roomCategoryName: string | null;
+            isActive: boolean;
+            bedCount: number;
+        };
+        WardsUpdateRequest: {
+            name?: string;
+            roomCategoryId?: string | null;
+            isActive?: boolean;
+        };
+        WardsUpdateResponse: {
+            /** Format: uuid */
+            id: string;
+            code: string;
+            name: string;
+            roomCategoryId: string | null;
+            roomCategoryName: string | null;
+            isActive: boolean;
+            bedCount: number;
+        };
+        WardsListBedsResponse: {
+            data: {
+                /** Format: uuid */
+                id: string;
+                /** Format: uuid */
+                wardId: string;
+                code: string;
+                /** @enum {string} */
+                status: "free" | "occupied" | "cleaning" | "reserved" | "blocked";
+                isActive: boolean;
+            }[];
+        };
+        WardsCreateBedRequest: {
+            code: string;
+        };
+        WardsCreateBedResponse: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            wardId: string;
+            code: string;
+            /** @enum {string} */
+            status: "free" | "occupied" | "cleaning" | "reserved" | "blocked";
+            isActive: boolean;
         };
     };
     responses: never;
@@ -289,6 +1069,263 @@ export interface operations {
             };
         };
     };
+    bedsUpdate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Value of the CSRF cookie */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BedsUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BedsUpdateResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    departmentsList: {
+        parameters: {
+            query?: {
+                page?: number;
+                pageSize?: number;
+                sort?: string;
+                q?: string;
+                includeInactive?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DepartmentsListResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    departmentsCreate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Value of the CSRF cookie */
+                "X-CSRF-Token": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DepartmentsCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DepartmentsCreateResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    departmentsUpdate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Value of the CSRF cookie */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DepartmentsUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DepartmentsUpdateResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    doctorsList: {
+        parameters: {
+            query?: {
+                page?: number;
+                pageSize?: number;
+                sort?: string;
+                q?: string;
+                includeInactive?: string;
+                departmentId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DoctorsListResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    doctorsCreate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Value of the CSRF cookie */
+                "X-CSRF-Token": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DoctorsCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DoctorsCreateResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    doctorsUpdate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Value of the CSRF cookie */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DoctorsUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DoctorsUpdateResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
     healthCheck: {
         parameters: {
             query?: never;
@@ -305,6 +1342,752 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HealthCheckResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    hospitalProfileGet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HospitalProfileGetResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    hospitalProfileUpdate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Value of the CSRF cookie */
+                "X-CSRF-Token": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HospitalProfileUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HospitalProfileUpdateResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    rolesList: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RolesListResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    roomCategoriesList: {
+        parameters: {
+            query?: {
+                page?: number;
+                pageSize?: number;
+                sort?: string;
+                q?: string;
+                includeInactive?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomCategoriesListResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    roomCategoriesCreate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Value of the CSRF cookie */
+                "X-CSRF-Token": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoomCategoriesCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomCategoriesCreateResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    roomCategoriesUpdate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Value of the CSRF cookie */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoomCategoriesUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomCategoriesUpdateResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    tariffsList: {
+        parameters: {
+            query?: {
+                page?: number;
+                pageSize?: number;
+                sort?: string;
+                q?: string;
+                includeInactive?: string;
+                kind?: "consultation" | "room" | "nursing" | "procedure" | "investigation" | "other";
+                doctorId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TariffsListResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    tariffsCreate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Value of the CSRF cookie */
+                "X-CSRF-Token": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TariffsCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TariffsCreateResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    tariffsUpdate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Value of the CSRF cookie */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TariffsUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TariffsUpdateResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    tariffsListRates: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TariffsListRatesResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    tariffsCreateRate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Value of the CSRF cookie */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TariffsCreateRateRequest"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TariffsCreateRateResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    tariffsCancelRate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Value of the CSRF cookie */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+                rateId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TariffsCancelRateRequest"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TariffsCancelRateResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    usersList: {
+        parameters: {
+            query?: {
+                page?: number;
+                pageSize?: number;
+                sort?: string;
+                q?: string;
+                includeInactive?: string;
+                permission?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UsersListResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    usersCreate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Value of the CSRF cookie */
+                "X-CSRF-Token": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UsersCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UsersCreateResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    usersUpdate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Value of the CSRF cookie */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UsersUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UsersUpdateResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    usersSetPassword: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Value of the CSRF cookie */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UsersSetPasswordRequest"];
+            };
+        };
+        responses: {
+            /** @description No content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    wardsList: {
+        parameters: {
+            query?: {
+                page?: number;
+                pageSize?: number;
+                sort?: string;
+                q?: string;
+                includeInactive?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WardsListResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    wardsCreate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Value of the CSRF cookie */
+                "X-CSRF-Token": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WardsCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WardsCreateResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    wardsUpdate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Value of the CSRF cookie */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WardsUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WardsUpdateResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    wardsListBeds: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WardsListBedsResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    wardsCreateBed: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Value of the CSRF cookie */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WardsCreateBedRequest"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WardsCreateBedResponse"];
                 };
             };
             /** @description Error */
