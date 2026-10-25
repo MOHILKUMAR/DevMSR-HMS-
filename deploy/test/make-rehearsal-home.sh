@@ -33,6 +33,19 @@ sed -e "s#^DATABASE_URL=.*#DATABASE_URL=$api_database_url#" \
   "$repo/deploy/env/api.env.example" >"$home/env/api.env"
 cp "$repo/deploy/env/web.env.example" "$home/env/web.env"
 sed -e "s#^DIRECT_URL=.*#DIRECT_URL=$database_url#" "$repo/deploy/env/migrate.env.example" >"$home/env/migrate.env"
+# Backups go to a local folder store, encrypted to a throwaway key. Without age-keygen (dry runs only)
+# the recipient is a placeholder that nothing ever encrypts to.
+recipient=age1placeholder-dry-run-only
+if command -v age-keygen >/dev/null 2>&1; then
+  age-keygen -o "$home/client/backup-key.txt" 2>/dev/null
+  recipient="$(age-keygen -y "$home/client/backup-key.txt")"
+fi
+sed -e "s#^BACKUP_LABEL=.*#BACKUP_LABEL=rehearsal#" \
+  -e "s#^BACKUP_DATABASE_URL=.*#BACKUP_DATABASE_URL=$database_url#" \
+  -e "s#^AGE_RECIPIENTS=.*#AGE_RECIPIENTS=$recipient#" \
+  -e 's#^BACKUP_STORE=.*#BACKUP_STORE=/store/backups#' \
+  -e 's#^LOG_STORE=.*#LOG_STORE=/store/logs#' \
+  "$repo/deploy/env/backup.env.example" >"$home/env/backup.env"
 chmod 600 "$home"/env/*.env
 
 cd "$home/certs"

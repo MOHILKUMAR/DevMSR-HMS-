@@ -16,7 +16,7 @@ Everything lives under `/opt/hms` (`HMS_HOME`), owned by the `hmsadmin` user:
 | `releases/<tag>/` | The compose file, Caddyfile and Caddy snippets of each kept release | Copied from the tag |
 | `state/` | `current`, `previous`, `history.log`, the deploy lock | No |
 
-Images are named `hms-api:<tag>`, `hms-web:<tag>` and `hms-migrate:<tag>`. The newest 3 releases (`KEEP_RELEASES`) keep their images and folders, so rollback needs no rebuild.
+Images are named `hms-api:<tag>`, `hms-web:<tag>`, `hms-migrate:<tag>` and `hms-backup:<tag>`. The newest 3 releases (`KEEP_RELEASES`) keep their images and folders, so rollback needs no rebuild.
 
 ## First-time setup
 
@@ -60,8 +60,8 @@ Images are named `hms-api:<tag>`, `hms-web:<tag>` and `hms-migrate:<tag>`. The n
 
 1. fetches the tag and refuses it unless it is on `origin/main`;
 2. exports the tagged tree to a temporary folder (never a checkout, so local edits on the server never reach an image);
-3. builds the three images, passing the `NEXT_PUBLIC_` values from `deploy.env` as build arguments;
-4. applies migrations with the migrate image while the current release keeps serving, then creates the API's restricted database login from `DATABASE_URL` (or resets its password) and runs `sync-roles --apply` so the seeded roles match the new release's permission matrix (production refuses to start while they differ);
+3. builds the four images (api, web, migrate, backup), passing the `NEXT_PUBLIC_` values from `deploy.env` as build arguments;
+4. takes an encrypted backup ([backup-and-restore.md](backup-and-restore.md)) and stops if it fails, then applies migrations with the migrate image while the current release keeps serving, then creates the API's restricted database login from `DATABASE_URL` (or resets its password) and runs `sync-roles --apply` so the seeded roles match the new release's permission matrix (production refuses to start while they differ);
 5. starts the new containers, waits for their health checks, then checks `https://api.../api/v1/health` and `https://app.../login` through Cloudflare;
 6. if the new release is unhealthy, starts the previous one again and stops with an error;
 7. records the tag in `state/` and removes images and folders older than the newest 3 releases.
@@ -102,7 +102,7 @@ After editing an env file or replacing a certificate: `deploy/restart.sh api` (o
    ```
 
 3. Read the logs: `journalctl -t hms-api-1 --since "30 min ago"` (also `hms-web-1`, `hms-caddy-1`).
-4. If the database itself is damaged, follow the restore runbook and tell the hospital to switch to the paper downtime procedure.
+4. If the database itself is damaged, follow [backup-and-restore.md](backup-and-restore.md) and tell the hospital to switch to the paper downtime procedure.
 
 ## Rehearsal in CI
 

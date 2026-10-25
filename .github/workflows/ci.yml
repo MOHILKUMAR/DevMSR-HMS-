@@ -48,6 +48,12 @@ jobs:
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm test
+      # Contract: pnpm test already fails if docs/openapi.json is stale against the routes. This
+      # fails if the web app's generated client types are stale against docs/openapi.json.
+      - name: Web API types match docs/openapi.json
+        run: |
+          pnpm --filter @devmsr/web api:types
+          git diff --exit-code -- apps/web/src/lib/api/generated || { echo "Run pnpm api:spec and commit the result."; exit 1; }
 
   audit:
     name: Dependency audit

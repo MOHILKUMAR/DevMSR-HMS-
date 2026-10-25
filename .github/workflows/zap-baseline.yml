@@ -1,0 +1,122 @@
+name: OWASP ZAP baseline
+
+# Passive OWASP ZAP baseline scan (CLAUDE.md section 18). By hand against staging: give the web and
+# API URLs. On pull requests that change the scan itself, it scans the production builds started on
+# the runner instead, so the job is proven before staging exists. Rules: .zap/rules.tsv.
+# Add a schedule once staging is up.
+on:
+  workflow_dispatch:
+    inputs:
+      web_url:
+        description: Staging web app URL, for example https://app.staging.example.in
+        required: true
+      api_url:
+        description: Staging API health URL, for example https://api.staging.example.in/api/v1/health
+        required: true
+  pull_request:
+    paths:
+      - '.zap/**'
+      - '.github/workflows/zap-baseline.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: zap-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # ZAP 2.16.1, pinned by digest.
+  ZAP_IMAGE: ghcr.io/zaproxy/zaproxy:2.16.1@sha256:7840969c7c9fead565bf9734b12f49f6886db90b1d35b1f74d79710bbd081dab
+
+jobs:
+  scan:
+    name: ZAP baseline
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: hms
+          POSTGRES_PASSWORD: hms_ci_only
+          POSTGRES_DB: hms
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U hms -d hms"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      LOCAL: ${{ github.event_name == 'pull_request' }}
+      DATABASE_URL: postgresql://hms_app:hms_app_ci_only_pw@localhost:5432/hms
+      DIRECT_URL: postgresql://hms:hms_ci_only@localhost:5432/hms
+      # Background jobs run as a login that owns only the pgboss schema, also made by db:api-user.
+      JOBS_DATABASE_URL: postgresql://hms_jobs:hms_jobs_ci_only_pw@localhost:5432/hms
+      SEED_USER_PASSWORD: ci-only-Passw0rd
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        if: env.LOCAL == 'true'
+      - uses: actions/setup-node@v7
+        if: env.LOCAL == 'true'
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - name: Start the production builds on the runner
+        if: env.LOCAL == 'true'
+        run: |
+          for name in SESSION_SECRET FIELD_ENCRYPTION_KEY; do
+            value=$(openssl rand -base64 32)
+            echo "::add-mask::$value"
+            export "$name=$value"
+          done
+          pnpm install --frozen-lockfile
+          pnpm db:deploy
+          pnpm db:api-user
+          pnpm db:seed
+          pnpm build
+          cp -r apps/web/.next/static apps/web/.next/standalone/apps/web/.next/static
+          cp -r apps/web/public apps/web/.next/standalone/apps/web/public
+          NODE_ENV=production APP_ENV=staging PORT=4000 nohup node apps/api/dist/main.js > "$RUNNER_TEMP/api.log" 2>&1 &
+          HOSTNAME=0.0.0.0 PORT=3000 nohup node apps/web/.next/standalone/apps/web/server.js > "$RUNNER_TEMP/web.log" 2>&1 &
+          for _ in $(seq 1 60); do
+            curl -fsS http://localhost:4000/api/v1/health >/dev/null 2>&1 && curl -fsS http://localhost:3000/login >/dev/null 2>&1 && break
+            sleep 1
+          done
+          echo "WEB_URL=http://localhost:3000" >> "$GITHUB_ENV"
+          echo "API_URL=http://localhost:4000/api/v1/health" >> "$GITHUB_ENV"
+      - name: Use the staging URLs
+        if: env.LOCAL != 'true'
+        env:
+          INPUT_WEB_URL: ${{ inputs.web_url }}
+          INPUT_API_URL: ${{ inputs.api_url }}
+        run: |
+          echo "WEB_URL=$INPUT_WEB_URL" >> "$GITHUB_ENV"
+          echo "API_URL=$INPUT_API_URL" >> "$GITHUB_ENV"
+      - name: Scan the web app and the API
+        run: |
+          mkdir -p "$RUNNER_TEMP/zap" && chmod 777 "$RUNNER_TEMP/zap"
+          cp .zap/rules.tsv "$RUNNER_TEMP/zap/rules.tsv"
+          status=0
+          for target in web api; do
+            url="$WEB_URL"; [ "$target" = api ] && url="$API_URL"
+            echo "::group::ZAP baseline: $url"
+            # -I: only rules set to FAIL in rules.tsv fail the job; warnings are reported.
+            docker run --rm --network host --volume "$RUNNER_TEMP/zap:/zap/wrk:rw" "$ZAP_IMAGE" \
+              zap-baseline.py -t "$url" -c rules.tsv -I -m 3 \
+              -r "zap-$target.html" -J "zap-$target.json" || status=1
+            echo "::endgroup::"
+          done
+          exit "$status"
+      - name: Keep the reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: zap-reports
+          path: ${{ runner.temp }}/zap/zap-*
+          retention-days: 30
+      - name: App logs
+        if: failure() && env.LOCAL == 'true'
+        run: tail -n 100 "$RUNNER_TEMP/api.log" "$RUNNER_TEMP/web.log"

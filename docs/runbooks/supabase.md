@@ -68,7 +68,7 @@ Never work around it with `sslmode=no-verify` or `NODE_TLS_REJECT_UNAUTHORIZED=0
 
 ## 7. Backups on the Supabase side
 
-Supabase's daily backups are the first layer. The encrypted `pg_dump` to a separate account is the second, and the restore drill proves both (backup runbook).
+Supabase's daily backups are the first layer. The encrypted `pg_dump` to a separate account is the second, and the restore drill proves both ([backup-and-restore.md](backup-and-restore.md)).
 
 ## Checklist
 
