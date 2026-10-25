@@ -1,0 +1,112 @@
+@import 'tailwindcss';
+
+/* Dark theme for night shifts: the `dark` class on <html>, set from the hms_theme cookie. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+ * Design tokens from CLAUDE.md section 16. Components use them through Tailwind
+ * (bg-primary, text-text-muted, border-border, bg-success-soft...), never as hex values.
+ */
+:root {
+  --primary: #0f766e;
+  --primary-hover: #115e59;
+  --primary-soft: #f0fdfa;
+  --on-primary: #ffffff;
+  --background: #f8fafc;
+  --surface: #ffffff;
+  --border: #e2e8f0;
+  --text: #0f172a;
+  --text-muted: #475569;
+  --success: #15803d;
+  --warning: #b45309;
+  --danger: #b91c1c;
+  --info: #1d4ed8;
+  --accent: #6d28d9;
+  --success-soft: #f0fdf4;
+  --warning-soft: #fffbeb;
+  --danger-soft: #fef2f2;
+  --info-soft: #eff6ff;
+  --accent-soft: #f5f3ff;
+  --neutral-soft: #f1f5f9;
+  --radius: 6px;
+}
+
+.dark {
+  --primary: #2dd4bf;
+  --primary-hover: #5eead4;
+  --primary-soft: #042f2e;
+  /* Dark text on the light teal keeps button labels above 4.5:1. */
+  --on-primary: #042f2e;
+  --background: #020617;
+  --surface: #0f172a;
+  --border: #1e293b;
+  --text: #f1f5f9;
+  --text-muted: #94a3b8;
+  --success: #4ade80;
+  --warning: #fbbf24;
+  --danger: #f87171;
+  --info: #60a5fa;
+  --accent: #a78bfa;
+  /* Section 16 gives soft backgrounds for the light theme only; dark ones are tinted surfaces. */
+  --success-soft: color-mix(in srgb, var(--success) 14%, var(--surface));
+  --warning-soft: color-mix(in srgb, var(--warning) 14%, var(--surface));
+  --danger-soft: color-mix(in srgb, var(--danger) 14%, var(--surface));
+  --info-soft: color-mix(in srgb, var(--info) 14%, var(--surface));
+  --accent-soft: color-mix(in srgb, var(--accent) 14%, var(--surface));
+  --neutral-soft: #1e293b;
+}
+
+@theme inline {
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-soft: var(--primary-soft);
+  --color-on-primary: var(--on-primary);
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-border: var(--border);
+  --color-text: var(--text);
+  --color-text-muted: var(--text-muted);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-info: var(--info);
+  --color-accent: var(--accent);
+  --color-success-soft: var(--success-soft);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger-soft: var(--danger-soft);
+  --color-info-soft: var(--info-soft);
+  --color-accent-soft: var(--accent-soft);
+  --color-neutral-soft: var(--neutral-soft);
+  --radius-md: var(--radius);
+  /* Inter, then Noto Sans Devanagari for Hindi text. Codes such as UHID use font-mono. */
+  --font-sans: var(--font-inter), var(--font-devanagari), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  /* Tailwind's text-xs to text-3xl already match the 12 to 30 px scale; body line height is 1.5. */
+}
+
+@layer base {
+  html {
+    color-scheme: light;
+  }
+
+  html.dark {
+    color-scheme: dark;
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--text);
+  }
+
+  h1,
+  h2,
+  h3 {
+    line-height: 1.25;
+  }
+
+  /* 2px focus ring in primary with a 2px offset, on every focusable element. */
+  :focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+  }
+}

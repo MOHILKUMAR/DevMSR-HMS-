@@ -178,5 +178,36 @@ Every non-obvious decision, oldest first. Each entry has the date, the decision 
 
 ## 2026-10-25: Build scripts allowed for Prisma only
 
-- Decision: `allowBuilds` runs the install scripts of `prisma` and `@prisma/engines` (Node.js version check and the migration engine download). argon2 and esbuild stay blocked because they ship prebuilt binaries.
+- Decision: `allowBuilds` runs the install scripts of `prisma` and `@prisma/engines` (Node.js version check and the migration engine download). argon2, esbuild, `@parcel/watcher` and `@swc/core` stay blocked because they ship prebuilt binaries.
 - Reason: install scripts are the usual supply chain attack path, so each one is allowed by name.
+
+## 2026-10-25: The session redirect lives in `src/proxy.ts`
+
+- Decision: the file `CLAUDE.md` calls `middleware.ts` is `apps/web/src/proxy.ts`. It does only what section 3 allows: redirect to `/login` (with `?next=<path>`) when no session cookie exists.
+- Reason: Next.js 16 deprecated the `middleware` file convention and renamed it `proxy`.
+
+## 2026-10-25: Content-Security-Policy without nonces
+
+- Decision: `next.config.ts` sends the section 9 headers (CSP, HSTS, `X-Frame-Options: DENY`, nosniff, `Referrer-Policy: no-referrer`, `Permissions-Policy`). The CSP allows `'unsafe-inline'` scripts, because Next.js inlines its bootstrap scripts. Everything else is restricted to this origin and the API.
+- Reason: a nonce-based CSP needs the proxy to create a nonce per request, which is more than the redirect `CLAUDE.md` limits the proxy to.
+- Revisit before go-live: tighten scripts with nonces (needs the developer's approval for the proxy change) or with Next.js's experimental SRI support.
+
+## 2026-10-25: Tailwind 4 tokens live in `globals.css`
+
+- Decision: design tokens are CSS variables in `apps/web/src/app/globals.css`, exposed to Tailwind with `@theme inline` (`bg-primary`, `text-text-muted`, `bg-success-soft`...). `packages/config` has no Tailwind preset. Dark mode is the `dark` class on `<html>`, set from the `hms_theme` cookie so the server renders it without a flash. Dark soft backgrounds are tinted surfaces, since section 16 lists light ones only.
+- Reason: Tailwind 4 replaced JavaScript presets with CSS. With one web app, a shared CSS file would only add a hop. Move the `@theme` block to `packages/config` if a second app appears.
+
+## 2026-10-25: Web app libraries
+
+- Decision: next-intl without locale routing (English, IST time zone, type-checked message keys). TanStack Query for mutations. React Hook Form with a 20-line Zod resolver in `src/lib/forms.ts`, which keeps only failing field paths so screens show messages from `en.json`. shadcn/ui components are written in place (`button`, `input`, `label`). The typed client is `openapi-fetch` over the generated `schema.d.ts`.
+- Reason: everything is from the agreed stack or the approved list. `@hookform/resolvers` would be one more dependency for a few lines.
+
+## 2026-10-25: Sign-in flow on the web
+
+- Decision: the login screen fetches a CSRF token on load, then posts with `X-CSRF-Token`. After sign-in it goes to `?next=`, which must be a path on this site (`safeRedirectPath`). The signed-in layout calls `GET /auth/me` from the server, forwarding only the session cookie. A missing or expired session redirects to `/login`. Sidebar items are hidden by permission code (`features/shell/nav-items.ts`). That is a convenience only: the API checks every request.
+- Reason: keeps the proxy to its single redirect, puts the real check in the API, and stops `?next=` being used to send staff to another site after they type their password.
+
+## 2026-10-25: Playwright
+
+- Decision: `pnpm test:e2e` runs `apps/web/e2e` against the seeded demo hospital. Locally it reuses running servers, and `PLAYWRIGHT_CHANNEL=chrome` (or `msedge`) uses the installed browser instead of downloading one. CI runs it in its own job: Postgres in IST, migrate, seed, production build, the standalone web server as in Docker, and Playwright's Chromium.
+- Reason: the smoke test exercises the real build and pipeline. The channel option avoids a browser download on developer machines.

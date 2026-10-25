@@ -1,0 +1,58 @@
+{
+  "app": {
+    "name": "DevMSR HMS",
+    "skipToContent": "Skip to main content"
+  },
+  "login": {
+    "title": "Sign in",
+    "subtitle": "Use the username and password your hospital admin gave you.",
+    "username": "Username",
+    "password": "Password",
+    "submit": "Sign in",
+    "submitting": "Signing in",
+    "usernameRequired": "Enter your username.",
+    "passwordRequired": "Enter your password."
+  },
+  "errors": {
+    "LOGIN_FAILED": "Wrong username or password. After 5 failed tries the account is locked for 15 minutes.",
+    "RATE_LIMITED": "Too many attempts. Wait a minute and try again.",
+    "CSRF_FAILED": "This page has expired. Reload it and try again.",
+    "SESSION_EXPIRED": "Your session has ended. Sign in again to continue.",
+    "network": "Could not reach the server. Check the connection and try again.",
+    "unknown": "Something went wrong. Try again, and tell your admin if it keeps happening."
+  },
+  "shell": {
+    "navigation": "Main",
+    "searchLabel": "Search patients",
+    "searchPlaceholder": "Search patients by name, phone or UHID",
+    "searchSoon": "Patient search arrives with registration.",
+    "signOut": "Sign out",
+    "themeDark": "Switch to dark theme",
+    "themeLight": "Switch to light theme",
+    "platform": "DevMSR platform"
+  },
+  "nav": {
+    "home": "Home",
+    "patients": "Patients",
+    "opd": "OPD",
+    "ipd": "IPD",
+    "beds": "Beds",
+    "billing": "Billing",
+    "payments": "Payments",
+    "discharge": "Discharge",
+    "reports": "Reports",
+    "settings": "Settings"
+  },
+  "home": {
+    "welcome": "Welcome, {name}",
+    "sessionEnds": "You stay signed in until {time} at the latest, or until 15 minutes without activity."
+  },
+  "comingSoon": {
+    "body": "This screen arrives with its phase 1 slice."
+  },
+  "loadError": {
+    "title": "This screen could not load",
+    "body": "Check the connection and try again. If it keeps happening, tell your admin.",
+    "retry": "Try again"
+  }
+}

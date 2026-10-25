@@ -10,15 +10,17 @@ Progress against `CLAUDE.md`, section 11. Later phases need the developer's appr
 - [x] Prisma schema v0, with the approved additions: sessions, login events, idempotency keys, minimal wards and beds
 - [x] Request pipeline: login with lockout, sessions, CSRF, rate limits, headers, permission matrix, guards, idempotency, exception filter, audit log
 - [x] `pnpm db:migrate`, `pnpm db:seed`, `pnpm api:spec`
-- [ ] `pnpm test:e2e`
+- [x] `pnpm test:e2e`: Playwright smoke test (redirect, keyboard sign-in, role menu, sign-out, errors)
 - [x] Seed: fake hospital, staff for every role, wards, beds, 50 fake patients
-- [ ] Design tokens, fonts, middleware, `(auth)/login` and the `(app)` shell
+- [x] Design tokens, fonts, session redirect (`proxy.ts`), `(auth)/login` and the `(app)` shell
 
 ## Phase 1
 
 - [ ] Auth and roles: TOTP for super admin, hospital admin and finance; password reset; see and end own sessions; break-glass access; failed-login alert
 - [ ] Separate database role for the API that cannot UPDATE, DELETE or TRUNCATE audit rows (before go-live)
 - [ ] Idempotency key cleanup job (pg-boss)
+- [ ] Tighter web CSP with nonces or SRI (before go-live)
+- [ ] Patient search in the top bar (with patient registration)
 - [ ] Settings and masters
 - [ ] Patient registration
 - [ ] OPD
