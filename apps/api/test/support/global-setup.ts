@@ -20,14 +20,26 @@ export default function setup(): void {
   if (!databaseName.endsWith('_test')) {
     fail(`TEST_DATABASE_URL must name a database ending in _test (got "${databaseName}"). Tests wipe it.`);
   }
-  try {
-    execSync('pnpm exec prisma migrate reset --force', {
+  const prisma = (args: string, input?: string) =>
+    execSync(`pnpm exec prisma ${args}`, {
       cwd: repoRoot,
       env: { ...process.env, DATABASE_URL: url, DIRECT_URL: url },
       stdio: 'pipe',
+      ...(input === undefined ? {} : { input }),
     });
+  try {
+    prisma('migrate reset --force');
+    // Indian servers often run in IST. With IST as the database default, any connection that skips
+    // the app's UTC session setting stores shifted timestamps and fails timestamps.api.spec.ts.
+    prisma('db execute --stdin', IST_DATABASE_DEFAULT);
   } catch (error) {
     const output = error instanceof Error && 'stderr' in error ? String(error.stderr) : String(error);
     fail(`could not reset the test database. Is PostgreSQL running?\n${output}`);
   }
 }
+
+const IST_DATABASE_DEFAULT = `DO $$
+BEGIN
+  EXECUTE format('ALTER DATABASE %I SET timezone TO %L', current_database(), 'Asia/Kolkata');
+END
+$$;`;

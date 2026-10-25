@@ -24,6 +24,8 @@ jobs:
           POSTGRES_USER: hms
           POSTGRES_PASSWORD: hms_ci_only
           POSTGRES_DB: hms_test
+          # Like many Indian servers. The app must store UTC whatever the server's time zone.
+          TZ: Asia/Kolkata
         ports:
           - 5432:5432
         options: >-

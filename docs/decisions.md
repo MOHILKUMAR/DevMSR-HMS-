@@ -170,6 +170,12 @@ Every non-obvious decision, oldest first. Each entry has the date, the decision 
 - Decision: phone numbers start with `+910` and Aadhaar and ABHA numbers start with `0`, none of which are ever issued. The seed uses a fixed random seed and refuses to run in production. Demo users share `SEED_USER_PASSWORD` from `.env`.
 - Reason: section 7 forbids real patient data, and random valid-looking numbers could belong to real people.
 
+## 2026-10-25: Database sessions run in UTC
+
+- Decision: every API and seed connection opens with `options: '-c TimeZone=UTC'` (`prismaAdapter()` in `apps/api/src/common/prisma/create-prisma-client.ts`). The test database defaults to `Asia/Kolkata`, and CI's PostgreSQL runs with `TZ=Asia/Kolkata`, so `timestamps.api.spec.ts` fails if a connection is not pinned.
+- Reason: `@prisma/adapter-pg` sends dates as UTC clock time without an offset, and PostgreSQL reads them in the session time zone. A server set to IST (as a local install picks up from Windows) stored every timestamp 5.5 hours early. The app's reads hid it, but SQL `now()`, reports and retention would be wrong.
+- Watch out: some connection poolers reject the `options` startup parameter. If the production `DATABASE_URL` goes through one, the API fails to connect at startup rather than storing wrong times. Then use a session-mode connection, or rely on the database default (`ALTER DATABASE ... SET timezone = 'UTC'`, which Supabase already uses).
+
 ## 2026-10-25: Build scripts allowed for Prisma only
 
 - Decision: `allowBuilds` runs the install scripts of `prisma` and `@prisma/engines` (Node.js version check and the migration engine download). argon2 and esbuild stay blocked because they ship prebuilt binaries.
