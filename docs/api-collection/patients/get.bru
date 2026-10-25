@@ -1,0 +1,19 @@
+meta {
+  name: Open a patient
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/patients/{{patientId}}
+  body: none
+  auth: none
+}
+
+docs {
+  Every view writes an audit event. Run "Search patients" or "Register a patient" first.
+}
+
+assert {
+  res.status: eq 200
+}

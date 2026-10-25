@@ -9,7 +9,7 @@ import tseslint from 'typescript-eslint';
 export function baseConfig(tsconfigRootDir) {
   return defineConfig(
     {
-      ignores: ['**/dist/**', '**/.next/**', '**/coverage/**', '**/generated/**', '**/next-env.d.ts'],
+      ignores: ['**/dist/**', '**/.spec-build/**', '**/.next/**', '**/coverage/**', '**/generated/**', '**/next-env.d.ts'],
     },
     js.configs.recommended,
     tseslint.configs.strictTypeChecked,
@@ -20,6 +20,8 @@ export function baseConfig(tsconfigRootDir) {
       rules: {
         '@typescript-eslint/no-explicit-any': 'error',
         '@typescript-eslint/restrict-template-expressions': ['error', { allowNumber: true }],
+        // `const { secret, ...rest } = row` is the plain way to drop a field.
+        '@typescript-eslint/no-unused-vars': ['error', { ignoreRestSiblings: true, argsIgnorePattern: '^_' }],
         // Logs must go through pino so patient fields are redacted.
         'no-console': 'error',
       },

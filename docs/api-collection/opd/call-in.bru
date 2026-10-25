@@ -1,0 +1,19 @@
+meta {
+  name: Call the patient in
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/opd-visits/{{visitId}}/call
+  body: none
+  auth: none
+}
+
+headers {
+  X-CSRF-Token: {{csrfToken}}
+}
+
+assert {
+  res.status: eq 200
+}

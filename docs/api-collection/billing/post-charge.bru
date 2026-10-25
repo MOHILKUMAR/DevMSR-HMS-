@@ -1,0 +1,40 @@
+meta {
+  name: Post a charge
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/patients/{{patientId}}/charges
+  body: json
+  auth: none
+}
+
+headers {
+  X-CSRF-Token: {{csrfToken}}
+  Idempotency-Key: {{idempotencyKey}}
+}
+
+body:json {
+  {
+    "serviceItemId": "{{serviceItemId}}",
+    "quantity": 1
+  }
+}
+
+docs {
+  Needs patientId (patients folder) and serviceItemId (settings folder, "List service items"). Charged at today's rate.
+}
+
+script:pre-request {
+  // A new key each run. Send the request again without this script to see the stored response.
+  bru.setVar("idempotencyKey", require("crypto").randomUUID());
+}
+
+script:post-response {
+  bru.setVar("chargeId", res.body.id);
+}
+
+assert {
+  res.status: eq 201
+}

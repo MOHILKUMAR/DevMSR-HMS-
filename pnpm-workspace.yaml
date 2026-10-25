@@ -19,9 +19,21 @@ overrides:
   multer: 2.5.0
 
 # Dependency build scripts are blocked unless approved here.
-# unrs-resolver ships prebuilt binaries, so its script is not needed.
+# Prisma's scripts check the Node.js version and download the migration engine.
+# The others ship prebuilt binaries, so their scripts are not needed.
 allowBuilds:
+  '@parcel/watcher': false
+  '@prisma/engines': true
+  '@swc/core': false
+  argon2: false
+  esbuild: false
+  prisma: true
   unrs-resolver: false
+
+# openapi-typescript 7 declares TypeScript 5 but generates the web types correctly with TypeScript 6.
+peerDependencyRules:
+  allowedVersions:
+    openapi-typescript>typescript: '6'
 
 # Supply chain: skip versions published in the last 24 hours, so a hijacked
 # release has time to be caught before it reaches this repo.

@@ -1,0 +1,37 @@
+meta {
+  name: Approve the discount
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/discount-requests/{{requestId}}/approve
+  body: json
+  auth: none
+}
+
+headers {
+  X-CSRF-Token: {{csrfToken}}
+  Idempotency-Key: {{idempotencyKey}}
+}
+
+body:json {
+  {}
+}
+
+docs {
+  As finance. The draft is replaced by a new draft carrying the discount, in resultInvoiceId.
+}
+
+script:pre-request {
+  // A new key each run. Send the request again without this script to see the stored response.
+  bru.setVar("idempotencyKey", require("crypto").randomUUID());
+}
+
+script:post-response {
+  bru.setVar("invoiceId", res.body.resultInvoiceId);
+}
+
+assert {
+  res.status: eq 200
+}

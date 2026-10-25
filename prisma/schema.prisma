@@ -1,0 +1,1195 @@
+// Schema v0. Rules for every table are in CLAUDE.md section 7:
+// UUID keys, snake_case names, timestamptz, hospital_id on every business table.
+
+generator client {
+  provider            = "prisma-client"
+  output              = "../apps/api/src/generated/prisma"
+  moduleFormat        = "esm"
+  importFileExtension = "js"
+  previewFeatures     = ["partialIndexes"]
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserKind {
+  // Works inside one hospital.
+  staff
+  // DevMSR platform staff. No hospital, no daily hospital work.
+  platform
+
+  @@map("user_kind")
+}
+
+enum Sex {
+  male
+  female
+  other
+  unknown
+
+  @@map("sex")
+}
+
+// S/o, D/o, W/o, H/o, C/o on registration slips and bills.
+enum GuardianRelation {
+  son_of
+  daughter_of
+  wife_of
+  husband_of
+  care_of
+
+  @@map("guardian_relation")
+}
+
+// Gapless number series. Invoice, receipt and other formats join when the hospital decides them.
+enum NumberKind {
+  uhid
+  invoice
+  receipt
+  credit_note
+  refund
+  // Per day (IST), for the whole hospital (docs/billing-rules.md).
+  opd_token
+  // DEMO/IP/2026-27/000001, per financial year like bills (docs/billing-rules.md).
+  admission
+
+  @@map("number_kind")
+}
+
+// A charge is pending until a bill takes it, and billed once that bill is issued.
+enum ChargeStatus {
+  pending
+  billed
+
+  @@map("charge_status")
+}
+
+// A draft has no number and can be discarded. An issued bill is locked for good (docs/billing-rules.md).
+enum InvoiceStatus {
+  draft
+  issued
+  discarded
+
+  @@map("invoice_status")
+}
+
+enum PaymentMode {
+  cash
+  upi
+  card
+  bank_transfer
+  cheque
+
+  @@map("payment_mode")
+}
+
+// What a second person must approve (CLAUDE.md section 7, docs/billing-rules.md).
+enum ApprovalKind {
+  discount
+  credit_note
+  refund
+  receipt_void
+  // Billing clearance for discharge while money is still due (docs/billing-rules.md).
+  clearance_dues
+
+  @@map("approval_kind")
+}
+
+// A request is decided once: approved or rejected, never changed afterwards.
+enum ApprovalStatus {
+  pending
+  approved
+  rejected
+
+  @@map("approval_status")
+}
+
+// Deposits are not revenue: they are held for the patient and set against bills later.
+enum ReceiptPurpose {
+  bill_payment
+  deposit
+
+  @@map("receipt_purpose")
+}
+
+// A walk-in OPD visit: the token waits for the consultation fee, then the doctor's queue.
+enum OpdVisitStatus {
+  awaiting_payment
+  waiting
+  with_doctor
+  completed
+  cancelled
+
+  @@map("opd_visit_status")
+}
+
+// An admission stays admitted until discharge (slice 6).
+enum AdmissionStatus {
+  admitted
+  discharged
+
+  @@map("admission_status")
+}
+
+// Who pays. Insurance and TPA arrive in phase 3.
+enum PayerType {
+  self_pay
+
+  @@map("payer_type")
+}
+
+enum BedEndReason {
+  transfer
+  discharge
+
+  @@map("bed_end_reason")
+}
+
+// What the midnight job posts for each night in a bed.
+enum DailyChargeKind {
+  room
+  nursing
+
+  @@map("daily_charge_kind")
+}
+
+enum BedStatus {
+  free
+  occupied
+  cleaning
+  reserved
+  blocked
+
+  @@map("bed_status")
+}
+
+enum LoginOutcome {
+  succeeded
+  wrong_password
+  unknown_user
+  locked
+  inactive
+
+  @@map("login_outcome")
+}
+
+enum SessionEndReason {
+  logout
+  idle_timeout
+  max_age
+  replaced
+  user_inactive
+  // An admin set a new password: every session of that user ends.
+  credentials_changed
+
+  @@map("session_end_reason")
+}
+
+enum IdempotencyStatus {
+  in_progress
+  completed
+
+  @@map("idempotency_status")
+}
+
+enum ServiceKind {
+  consultation
+  room
+  nursing
+  procedure
+  investigation
+  other
+
+  @@map("service_kind")
+}
+
+model Hospital {
+  id                         String   @id @default(uuid(7)) @db.Uuid
+  code                       String   @unique
+  name                       String
+  // Printed on bills, receipts and discharge summaries.
+  addressLine                String?  @map("address_line")
+  city                       String?
+  state                      String?
+  pincode                    String?  @db.Char(6)
+  phone                      String?
+  email                      String?
+  // Printed on bills. Checked against the GSTIN format; null until the hospital enters it.
+  gstin                      String?  @db.Char(15)
+  // Finance approves a bill's discount up to this amount; above it only the MD (docs/billing-rules.md).
+  discountApprovalLimitPaise BigInt   @default(100000) @map("discount_approval_limit_paise")
+  isActive                   Boolean  @default(true) @map("is_active")
+  createdAt                  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt                  DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  branches       Branch[]
+  users          User[]
+  roles          Role[]
+  patients       Patient[]
+  numberCounters NumberCounter[]
+  cashShifts     CashShift[]
+  wards          Ward[]
+  beds           Bed[]
+  departments    Department[]
+  doctors        Doctor[]
+  roomCategories RoomCategory[]
+  serviceItems   ServiceItem[]
+  tariffRates    TariffRate[]
+
+  @@map("hospitals")
+}
+
+model Department {
+  id         String   @id @default(uuid(7)) @db.Uuid
+  hospitalId String   @map("hospital_id") @db.Uuid
+  code       String
+  name       String
+  isActive   Boolean  @default(true) @map("is_active")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  hospital Hospital @relation(fields: [hospitalId], references: [id], onDelete: Restrict)
+  doctors  Doctor[]
+
+  @@unique([hospitalId, code])
+  @@unique([hospitalId, id])
+  @@map("departments")
+}
+
+model Doctor {
+  id                 String   @id @default(uuid(7)) @db.Uuid
+  hospitalId         String   @map("hospital_id") @db.Uuid
+  departmentId       String   @map("department_id") @db.Uuid
+  // The doctor's own login, so their queue and notes are theirs. Visiting doctors may have none.
+  userId             String?  @unique @map("user_id") @db.Uuid
+  fullName           String   @map("full_name")
+  qualification      String?
+  // Medical council registration, printed on prescriptions and summaries.
+  registrationNumber String?  @map("registration_number")
+  isVisiting         Boolean  @default(false) @map("is_visiting")
+  isActive           Boolean  @default(true) @map("is_active")
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  hospital     Hospital      @relation(fields: [hospitalId], references: [id], onDelete: Restrict)
+  department   Department    @relation(fields: [hospitalId, departmentId], references: [hospitalId, id], onDelete: Restrict)
+  user         User?         @relation(fields: [userId], references: [id], onDelete: Restrict)
+  serviceItems ServiceItem[]
+  opdVisits    OpdVisit[]
+  admissions   Admission[]
+
+  @@unique([hospitalId, id])
+  @@index([hospitalId, departmentId])
+  @@map("doctors")
+}
+
+model RoomCategory {
+  id                  String   @id @default(uuid(7)) @db.Uuid
+  hospitalId          String   @map("hospital_id") @db.Uuid
+  code                String
+  name                String
+  // The advance expected at admission. Less gives a warning only (docs/billing-rules.md).
+  minimumAdvancePaise BigInt   @default(0) @map("minimum_advance_paise")
+  isActive            Boolean  @default(true) @map("is_active")
+  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt           DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  hospital     Hospital      @relation(fields: [hospitalId], references: [id], onDelete: Restrict)
+  wards        Ward[]
+  serviceItems ServiceItem[]
+  dailyCharges DailyCharge[]
+
+  @@unique([hospitalId, code])
+  @@unique([hospitalId, id])
+  @@map("room_categories")
+}
+
+/// Anything the hospital charges for: consultations, room rent, nursing, procedures, tests.
+model ServiceItem {
+  id             String      @id @default(uuid(7)) @db.Uuid
+  hospitalId     String      @map("hospital_id") @db.Uuid
+  code           String
+  name           String
+  kind           ServiceKind
+  // A consultation fee belongs to one doctor; room rent and nursing to one room category.
+  doctorId       String?     @map("doctor_id") @db.Uuid
+  roomCategoryId String?     @map("room_category_id") @db.Uuid
+  isActive       Boolean     @default(true) @map("is_active")
+  createdAt      DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime    @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  hospital     Hospital      @relation(fields: [hospitalId], references: [id], onDelete: Restrict)
+  doctor       Doctor?       @relation(fields: [hospitalId, doctorId], references: [hospitalId, id], onDelete: Restrict)
+  roomCategory RoomCategory? @relation(fields: [hospitalId, roomCategoryId], references: [hospitalId, id], onDelete: Restrict)
+  rates        TariffRate[]
+  charges      Charge[]
+  opdVisits    OpdVisit[]
+
+  @@unique([hospitalId, code])
+  @@unique([hospitalId, id])
+  @@map("service_items")
+}
+
+/// The price of a service item from a date. History is never edited: a new rate closes the old one.
+model TariffRate {
+  id            String    @id @default(uuid(7)) @db.Uuid
+  hospitalId    String    @map("hospital_id") @db.Uuid
+  serviceItemId String    @map("service_item_id") @db.Uuid
+  ratePaise     BigInt    @map("rate_paise")
+  // Basis points: 1800 is 18%. Entered by the hospital; 0 when the service is not taxed.
+  taxRateBp     Int       @default(0) @map("tax_rate_bp")
+  effectiveFrom DateTime  @map("effective_from") @db.Date
+  effectiveTo   DateTime? @map("effective_to") @db.Date
+  createdById   String?   @map("created_by_id") @db.Uuid
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  // Set when a rate is cancelled before it starts. A cancelled rate never applies and is kept for the record.
+  cancelledAt   DateTime? @map("cancelled_at") @db.Timestamptz(3)
+  cancelledById String?   @map("cancelled_by_id") @db.Uuid
+  cancelReason  String?   @map("cancel_reason")
+
+  hospital    Hospital    @relation(fields: [hospitalId], references: [id], onDelete: Restrict)
+  serviceItem ServiceItem @relation(fields: [hospitalId, serviceItemId], references: [hospitalId, id], onDelete: Restrict)
+  charges     Charge[]
+
+  // One open rate per service item. Never look a rate up by serviceItemId alone through this key.
+  @@unique([serviceItemId], map: "tariff_rates_one_open_rate", where: raw("effective_to IS NULL AND cancelled_at IS NULL"))
+  @@index([serviceItemId, effectiveFrom])
+  @@map("tariff_rates")
+}
+
+model Branch {
+  id         String   @id @default(uuid(7)) @db.Uuid
+  hospitalId String   @map("hospital_id") @db.Uuid
+  code       String
+  name       String
+  isActive   Boolean  @default(true) @map("is_active")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  hospital Hospital @relation(fields: [hospitalId], references: [id], onDelete: Restrict)
+  wards    Ward[]
+
+  @@unique([hospitalId, code])
+  // Target of composite foreign keys, so a child row cannot point at another hospital's branch.
+  @@unique([hospitalId, id])
+  @@map("branches")
+}
+
+model User {
+  id                  String    @id @default(uuid(7)) @db.Uuid
+  // Null only for platform users (enforced by a check constraint).
+  hospitalId          String?   @map("hospital_id") @db.Uuid
+  kind                UserKind  @default(staff)
+  // Stored lowercase. Unique across the platform so login needs no hospital picker.
+  username            String    @unique
+  displayName         String    @map("display_name")
+  passwordHash        String    @map("password_hash")
+  failedLoginCount    Int       @default(0) @map("failed_login_count")
+  lockedUntil         DateTime? @map("locked_until") @db.Timestamptz(3)
+  totpSecretEncrypted String?   @map("totp_secret_encrypted")
+  totpEnabledAt       DateTime? @map("totp_enabled_at") @db.Timestamptz(3)
+  passwordChangedAt   DateTime  @default(now()) @map("password_changed_at") @db.Timestamptz(3)
+  lastLoginAt         DateTime? @map("last_login_at") @db.Timestamptz(3)
+  isActive            Boolean   @default(true) @map("is_active")
+  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt           DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  hospital    Hospital?    @relation(fields: [hospitalId], references: [id], onDelete: Restrict)
+  userRoles   UserRole[]
+  sessions    Session[]
+  loginEvents LoginEvent[]
+  auditEvents AuditEvent[]
+  doctor      Doctor?
+
+  @@index([hospitalId])
+  @@map("users")
+}
+
+model Role {
+  id         String   @id @default(uuid(7)) @db.Uuid
+  // Null only for platform roles such as super admin.
+  hospitalId String?  @map("hospital_id") @db.Uuid
+  code       String
+  name       String
+  // Seeded from the permission matrix. Custom roles have false.
+  isSystem   Boolean  @default(false) @map("is_system")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  hospital        Hospital?        @relation(fields: [hospitalId], references: [id], onDelete: Restrict)
+  rolePermissions RolePermission[]
+  userRoles       UserRole[]
+
+  @@unique([hospitalId, code])
+  // Platform role codes are unique. Prisma exposes this partial index as `where: { code }`, but it
+  // only covers platform roles: never look up a role by code alone, always with hospitalId.
+  @@unique([code], map: "roles_platform_code_key", where: raw("hospital_id IS NULL"))
+  @@map("roles")
+}
+
+model Permission {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  code        String   @unique
+  description String
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  rolePermissions RolePermission[]
+
+  @@map("permissions")
+}
+
+model RolePermission {
+  roleId       String   @map("role_id") @db.Uuid
+  permissionId String   @map("permission_id") @db.Uuid
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Restrict)
+
+  @@id([roleId, permissionId])
+  @@index([permissionId])
+  @@map("role_permissions")
+}
+
+model UserRole {
+  userId     String   @map("user_id") @db.Uuid
+  roleId     String   @map("role_id") @db.Uuid
+  assignedAt DateTime @default(now()) @map("assigned_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Restrict)
+
+  @@id([userId, roleId])
+  @@index([roleId])
+  @@map("user_roles")
+}
+
+model Patient {
+  id                    String            @id @default(uuid(7)) @db.Uuid
+  hospitalId            String            @map("hospital_id") @db.Uuid
+  // <HOSPITAL CODE>-<YEAR>-<number>, from the uhid counter (docs/billing-rules.md). Never changes.
+  uhid                  String
+  fullName              String            @map("full_name")
+  sex                   Sex
+  dateOfBirth           DateTime?         @map("date_of_birth") @db.Date
+  // True when only an age was given and the date of birth was worked out from it.
+  dateOfBirthEstimated  Boolean           @default(false) @map("date_of_birth_estimated")
+  // E.164, for example +919876543210.
+  phone                 String?
+  addressLine           String?           @map("address_line")
+  city                  String?
+  state                 String?
+  pincode               String?           @db.Char(6)
+  guardianName          String?           @map("guardian_name")
+  guardianRelation      GuardianRelation? @map("guardian_relation")
+  emergencyContactName  String?           @map("emergency_contact_name")
+  emergencyContactPhone String?           @map("emergency_contact_phone")
+  // Aadhaar and ABHA: AES-256-GCM ciphertext, last 4 digits for masked display,
+  // and an HMAC blind index for duplicate checks without decrypting.
+  aadhaarEncrypted      String?           @map("aadhaar_encrypted")
+  aadhaarLast4          String?           @map("aadhaar_last4") @db.Char(4)
+  aadhaarBlindIndex     String?           @map("aadhaar_blind_index")
+  abhaNumberEncrypted   String?           @map("abha_number_encrypted")
+  abhaNumberLast4       String?           @map("abha_number_last4") @db.Char(4)
+  abhaNumberBlindIndex  String?           @map("abha_number_blind_index")
+  createdById           String?           @map("created_by_id") @db.Uuid
+  updatedById           String?           @map("updated_by_id") @db.Uuid
+  createdAt             DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt             DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  hospital         Hospital          @relation(fields: [hospitalId], references: [id], onDelete: Restrict)
+  charges          Charge[]
+  invoices         Invoice[]
+  receipts         Receipt[]
+  approvalRequests ApprovalRequest[]
+  creditNotes      CreditNote[]
+  refunds          Refund[]
+  opdVisits        OpdVisit[]
+  admissions       Admission[]
+
+  @@unique([hospitalId, uhid])
+  @@unique([hospitalId, id])
+  // One patient per Aadhaar or ABHA number in a hospital, even when two registrations race.
+  @@unique([hospitalId, aadhaarBlindIndex])
+  @@unique([hospitalId, abhaNumberBlindIndex])
+  @@index([hospitalId, createdAt])
+  @@index([hospitalId, phone])
+  @@map("patients")
+}
+
+// One row per hospital, kind and period (the calendar year for UHIDs). The row is locked while a
+// number is taken, inside the same transaction as the record that uses it, so numbers are gapless.
+model NumberCounter {
+  hospitalId String     @map("hospital_id") @db.Uuid
+  kind       NumberKind
+  period     String
+  lastValue  Int        @map("last_value")
+  updatedAt  DateTime   @default(now()) @map("updated_at") @db.Timestamptz(3)
+
+  hospital Hospital @relation(fields: [hospitalId], references: [id], onDelete: Restrict)
+
+  @@id([hospitalId, kind, period])
+  @@map("number_counters")
+}
+
+model Ward {
+  id             String   @id @default(uuid(7)) @db.Uuid
+  hospitalId     String   @map("hospital_id") @db.Uuid
+  branchId       String   @map("branch_id") @db.Uuid
+  // Decides the room rent and nursing charges of patients in this ward.
+  roomCategoryId String?  @map("room_category_id") @db.Uuid
+  code           String
+  name           String
+  isActive       Boolean  @default(true) @map("is_active")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  hospital     Hospital      @relation(fields: [hospitalId], references: [id], onDelete: Restrict)
+  branch       Branch        @relation(fields: [hospitalId, branchId], references: [hospitalId, id], onDelete: Restrict)
+  roomCategory RoomCategory? @relation(fields: [hospitalId, roomCategoryId], references: [hospitalId, id], onDelete: Restrict)
+  beds         Bed[]
+
+  @@unique([hospitalId, code])
+  @@unique([hospitalId, id])
+  @@map("wards")
+}
+
+model Bed {
+  id         String    @id @default(uuid(7)) @db.Uuid
+  hospitalId String    @map("hospital_id") @db.Uuid
+  wardId     String    @map("ward_id") @db.Uuid
+  code       String
+  status     BedStatus @default(free)
+  isActive   Boolean   @default(true) @map("is_active")
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt  DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  hospital     Hospital        @relation(fields: [hospitalId], references: [id], onDelete: Restrict)
+  ward         Ward            @relation(fields: [hospitalId, wardId], references: [hospitalId, id], onDelete: Restrict)
+  assignments  BedAssignment[]
+  dailyCharges DailyCharge[]
+
+  @@unique([wardId, code])
+  @@unique([hospitalId, id])
+  @@index([hospitalId, status])
+  @@map("beds")
+}
+
+model Session {
+  id         String            @id @default(uuid(7)) @db.Uuid
+  // SHA-256 of the cookie token, so a database leak does not leak live sessions.
+  tokenHash  String            @unique @map("token_hash")
+  userId     String            @map("user_id") @db.Uuid
+  hospitalId String?           @map("hospital_id") @db.Uuid
+  ipAddress  String?           @map("ip_address")
+  userAgent  String?           @map("user_agent")
+  createdAt  DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  lastSeenAt DateTime          @default(now()) @map("last_seen_at") @db.Timestamptz(3)
+  expiresAt  DateTime          @map("expires_at") @db.Timestamptz(3)
+  endedAt    DateTime?         @map("ended_at") @db.Timestamptz(3)
+  endReason  SessionEndReason? @map("end_reason")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([userId, endedAt])
+  @@map("sessions")
+}
+
+model LoginEvent {
+  id         String       @id @default(uuid(7)) @db.Uuid
+  hospitalId String?      @map("hospital_id") @db.Uuid
+  userId     String?      @map("user_id") @db.Uuid
+  // The username as typed, so failed attempts on unknown names are recorded too.
+  username   String
+  outcome    LoginOutcome
+  ipAddress  String?      @map("ip_address")
+  userAgent  String?      @map("user_agent")
+  createdAt  DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user User? @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([createdAt])
+  @@index([userId, createdAt])
+  @@map("login_events")
+}
+
+model IdempotencyKey {
+  id             String            @id @default(uuid(7)) @db.Uuid
+  hospitalId     String?           @map("hospital_id") @db.Uuid
+  userId         String            @map("user_id") @db.Uuid
+  key            String
+  method         String
+  path           String
+  // SHA-256 of method, path and body: the same key with a different request is rejected.
+  requestHash    String            @map("request_hash")
+  status         IdempotencyStatus
+  responseStatus Int?              @map("response_status")
+  responseBody   Json?             @map("response_body")
+  createdAt      DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  completedAt    DateTime?         @map("completed_at") @db.Timestamptz(3)
+  expiresAt      DateTime          @map("expires_at") @db.Timestamptz(3)
+
+  @@unique([userId, key])
+  @@index([expiresAt])
+  @@map("idempotency_keys")
+}
+
+model AuditEvent {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  hospitalId  String?  @map("hospital_id") @db.Uuid
+  actorUserId String?  @map("actor_user_id") @db.Uuid
+  // module.resource.verb, for example auth.session.created or patients.patient.viewed.
+  action      String
+  entityType  String?  @map("entity_type")
+  entityId    String?  @map("entity_id") @db.Uuid
+  requestId   String?  @map("request_id")
+  ipAddress   String?  @map("ip_address")
+  // IDs and codes only. Never patient names, phone numbers, Aadhaar or ABHA numbers.
+  metadata    Json     @default("{}")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  actor User? @relation(fields: [actorUserId], references: [id], onDelete: Restrict)
+
+  @@index([hospitalId, createdAt])
+  @@index([entityType, entityId])
+  @@map("audit_events")
+}
+
+// Something the hospital charges a patient for, at the rate in force on the service date. The rate,
+// tax and rate version are copied onto the charge, so a later rate change never alters it.
+model Charge {
+  id            String       @id @default(uuid(7)) @db.Uuid
+  hospitalId    String       @map("hospital_id") @db.Uuid
+  patientId     String       @map("patient_id") @db.Uuid
+  serviceItemId String       @map("service_item_id") @db.Uuid
+  tariffRateId  String       @map("tariff_rate_id") @db.Uuid
+  description   String
+  serviceDate   DateTime     @map("service_date") @db.Date
+  quantity      Int
+  unitRatePaise BigInt       @map("unit_rate_paise")
+  taxRateBp     Int          @map("tax_rate_bp")
+  amountPaise   BigInt       @map("amount_paise")
+  status        ChargeStatus @default(pending)
+  // The bill holding this charge: a draft while pending, the issued bill once billed.
+  invoiceId     String?      @map("invoice_id") @db.Uuid
+  // Null for room and nursing charges posted by the midnight job.
+  postedById    String?      @map("posted_by_id") @db.Uuid
+  createdAt     DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  patient     Patient      @relation(fields: [hospitalId, patientId], references: [hospitalId, id], onDelete: Restrict)
+  serviceItem ServiceItem  @relation(fields: [hospitalId, serviceItemId], references: [hospitalId, id], onDelete: Restrict)
+  tariffRate  TariffRate   @relation(fields: [tariffRateId], references: [id], onDelete: Restrict)
+  invoice     Invoice?     @relation(fields: [hospitalId, invoiceId], references: [hospitalId, id], onDelete: Restrict)
+  opdOrder    OpdOrder?
+  dailyCharge DailyCharge?
+
+  @@unique([hospitalId, id])
+  @@index([hospitalId, patientId, status])
+  @@index([invoiceId])
+  @@map("charges")
+}
+
+// A bill. Totals are worked out from the lines when the draft is made; issuing gives it the next
+// number and locks it, with the hospital's and patient's details as printed.
+model Invoice {
+  id              String        @id @default(uuid(7)) @db.Uuid
+  hospitalId      String        @map("hospital_id") @db.Uuid
+  patientId       String        @map("patient_id") @db.Uuid
+  status          InvoiceStatus @default(draft)
+  number          String?
+  financialYear   String?       @map("financial_year")
+  subtotalPaise   BigInt        @map("subtotal_paise")
+  discountPaise   BigInt        @default(0) @map("discount_paise")
+  taxablePaise    BigInt        @map("taxable_paise")
+  cgstPaise       BigInt        @map("cgst_paise")
+  sgstPaise       BigInt        @map("sgst_paise")
+  // Up to 50 paise either way, to reach a whole-rupee total.
+  roundOffPaise   BigInt        @map("round_off_paise")
+  totalPaise      BigInt        @map("total_paise")
+  issuerSnapshot  Json?         @map("issuer_snapshot")
+  patientSnapshot Json?         @map("patient_snapshot")
+  createdById     String        @map("created_by_id") @db.Uuid
+  issuedById      String?       @map("issued_by_id") @db.Uuid
+  issuedAt        DateTime?     @map("issued_at") @db.Timestamptz(3)
+  discardedById   String?       @map("discarded_by_id") @db.Uuid
+  discardedAt     DateTime?     @map("discarded_at") @db.Timestamptz(3)
+  createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  patient          Patient             @relation(fields: [hospitalId, patientId], references: [hospitalId, id], onDelete: Restrict)
+  lines            InvoiceLine[]
+  charges          Charge[]
+  allocations      ReceiptAllocation[]
+  opdVisits        OpdVisit[]
+  approvalRequests ApprovalRequest[]
+  creditNotes      CreditNote[]
+  creditNoteLines  CreditNoteLine[]
+  refunds          Refund[]
+
+  @@unique([hospitalId, id])
+  @@unique([hospitalId, number])
+  @@index([hospitalId, patientId])
+  @@index([hospitalId, status, createdAt])
+  @@map("invoices")
+}
+
+// A line of a bill, copied from a charge when the draft is made. Never changed afterwards.
+model InvoiceLine {
+  id            String   @id @default(uuid(7)) @db.Uuid
+  hospitalId    String   @map("hospital_id") @db.Uuid
+  invoiceId     String   @map("invoice_id") @db.Uuid
+  chargeId      String   @map("charge_id") @db.Uuid
+  lineNo        Int      @map("line_no")
+  description   String
+  serviceDate   DateTime @map("service_date") @db.Date
+  quantity      Int
+  unitRatePaise BigInt   @map("unit_rate_paise")
+  amountPaise   BigInt   @map("amount_paise")
+  discountPaise BigInt   @default(0) @map("discount_paise")
+  taxablePaise  BigInt   @map("taxable_paise")
+  taxRateBp     Int      @map("tax_rate_bp")
+  cgstPaise     BigInt   @map("cgst_paise")
+  sgstPaise     BigInt   @map("sgst_paise")
+  totalPaise    BigInt   @map("total_paise")
+
+  invoice Invoice @relation(fields: [hospitalId, invoiceId], references: [hospitalId, id], onDelete: Restrict)
+
+  @@unique([invoiceId, lineNo])
+  @@index([chargeId])
+  @@map("invoice_lines")
+}
+
+// One cashier's shift at the counter. Every receipt belongs to the open shift of the cashier who
+// takes it. Closing records the counted cash, what the system expected, and any difference.
+model CashShift {
+  id                String    @id @default(uuid(7)) @db.Uuid
+  hospitalId        String    @map("hospital_id") @db.Uuid
+  cashierId         String    @map("cashier_id") @db.Uuid
+  openedAt          DateTime  @default(now()) @map("opened_at") @db.Timestamptz(3)
+  openingCashPaise  BigInt    @map("opening_cash_paise")
+  closedAt          DateTime? @map("closed_at") @db.Timestamptz(3)
+  countedCashPaise  BigInt?   @map("counted_cash_paise")
+  expectedCashPaise BigInt?   @map("expected_cash_paise")
+  differencePaise   BigInt?   @map("difference_paise")
+  differenceReason  String?   @map("difference_reason")
+
+  hospital Hospital  @relation(fields: [hospitalId], references: [id], onDelete: Restrict)
+  receipts Receipt[]
+  refunds  Refund[]
+
+  @@unique([hospitalId, id])
+  // A cashier has at most one open shift.
+  @@unique([cashierId], map: "cash_shifts_one_open_per_cashier", where: raw("closed_at IS NULL"))
+  @@index([hospitalId, openedAt])
+  @@map("cash_shifts")
+}
+
+// Money received: a bill payment or a deposit. Numbered when taken, and never changed.
+model Receipt {
+  id            String         @id @default(uuid(7)) @db.Uuid
+  hospitalId    String         @map("hospital_id") @db.Uuid
+  patientId     String         @map("patient_id") @db.Uuid
+  number        String
+  financialYear String         @map("financial_year")
+  shiftId       String         @map("shift_id") @db.Uuid
+  purpose       ReceiptPurpose
+  mode          PaymentMode
+  amountPaise   BigInt         @map("amount_paise")
+  // UPI UTR, card approval code, bank transfer reference or cheque number.
+  reference     String?
+  cardLast4     String?        @map("card_last4") @db.Char(4)
+  bankName      String?        @map("bank_name")
+  receivedById  String         @map("received_by_id") @db.Uuid
+  createdAt     DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  patient          Patient             @relation(fields: [hospitalId, patientId], references: [hospitalId, id], onDelete: Restrict)
+  shift            CashShift           @relation(fields: [hospitalId, shiftId], references: [hospitalId, id], onDelete: Restrict)
+  allocations      ReceiptAllocation[]
+  voidRecord       ReceiptVoid?
+  refunds          Refund[]
+  approvalRequests ApprovalRequest[]
+
+  @@unique([hospitalId, id])
+  @@unique([hospitalId, number])
+  @@index([hospitalId, patientId])
+  @@index([shiftId])
+  @@map("receipts")
+}
+
+// Part of a receipt set against an issued bill. A deposit is set against bills this way later.
+model ReceiptAllocation {
+  id            String   @id @default(uuid(7)) @db.Uuid
+  hospitalId    String   @map("hospital_id") @db.Uuid
+  receiptId     String   @map("receipt_id") @db.Uuid
+  invoiceId     String   @map("invoice_id") @db.Uuid
+  amountPaise   BigInt   @map("amount_paise")
+  allocatedById String   @map("allocated_by_id") @db.Uuid
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  receipt Receipt @relation(fields: [hospitalId, receiptId], references: [hospitalId, id], onDelete: Restrict)
+  invoice Invoice @relation(fields: [hospitalId, invoiceId], references: [hospitalId, id], onDelete: Restrict)
+
+  @@index([invoiceId])
+  @@index([receiptId])
+  @@map("receipt_allocations")
+}
+
+// A discount, credit note, refund or receipt void asked for by one user and decided by another
+// (maker-checker). `details` holds what was asked for, worked out when the request was made.
+model ApprovalRequest {
+  id              String         @id @default(uuid(7)) @db.Uuid
+  hospitalId      String         @map("hospital_id") @db.Uuid
+  kind            ApprovalKind
+  status          ApprovalStatus @default(pending)
+  patientId       String         @map("patient_id") @db.Uuid
+  // The bill a discount or credit note is for, or a refund of an overpaid bill.
+  invoiceId       String?        @map("invoice_id") @db.Uuid
+  // The receipt to void, or the deposit a refund comes from.
+  receiptId       String?        @map("receipt_id") @db.Uuid
+  amountPaise     BigInt         @map("amount_paise")
+  reason          String
+  details         Json
+  requestedById   String         @map("requested_by_id") @db.Uuid
+  requestedAt     DateTime       @default(now()) @map("requested_at") @db.Timestamptz(3)
+  decidedById     String?        @map("decided_by_id") @db.Uuid
+  decidedAt       DateTime?      @map("decided_at") @db.Timestamptz(3)
+  decisionNote    String?        @map("decision_note")
+  // For an approved discount: the new draft that carries it.
+  resultInvoiceId String?        @map("result_invoice_id") @db.Uuid
+  // The discharge a clearance with dues is for.
+  dischargeId     String?        @map("discharge_id") @db.Uuid
+
+  patient    Patient             @relation(fields: [hospitalId, patientId], references: [hospitalId, id], onDelete: Restrict)
+  invoice    Invoice?            @relation(fields: [hospitalId, invoiceId], references: [hospitalId, id], onDelete: Restrict)
+  receipt    Receipt?            @relation(fields: [hospitalId, receiptId], references: [hospitalId, id], onDelete: Restrict)
+  discharge  Discharge?          @relation(fields: [hospitalId, dischargeId], references: [hospitalId, id], onDelete: Restrict)
+  creditNote CreditNote?
+  refund     Refund?
+  voidRecord ReceiptVoid?
+  clearance  DischargeClearance?
+
+  @@unique([hospitalId, id])
+  // One open request of a kind per bill and per receipt, so two cannot race each other.
+  @@unique([kind, invoiceId], map: "approval_requests_one_pending_per_bill", where: raw("status = 'pending' AND invoice_id IS NOT NULL"))
+  @@unique([kind, receiptId], map: "approval_requests_one_pending_per_receipt", where: raw("status = 'pending' AND receipt_id IS NOT NULL"))
+  @@unique([kind, dischargeId], map: "approval_requests_one_pending_per_discharge", where: raw("status = 'pending' AND discharge_id IS NOT NULL"))
+  @@index([hospitalId, status, requestedAt])
+  @@index([hospitalId, patientId])
+  @@map("approval_requests")
+}
+
+// Corrects an issued bill, which itself never changes (CLAUDE.md section 7). Numbered CN when approved.
+model CreditNote {
+  id                String   @id @default(uuid(7)) @db.Uuid
+  hospitalId        String   @map("hospital_id") @db.Uuid
+  invoiceId         String   @map("invoice_id") @db.Uuid
+  patientId         String   @map("patient_id") @db.Uuid
+  approvalRequestId String   @map("approval_request_id") @db.Uuid
+  number            String
+  financialYear     String   @map("financial_year")
+  wholeBill         Boolean  @map("whole_bill")
+  taxablePaise      BigInt   @map("taxable_paise")
+  cgstPaise         BigInt   @map("cgst_paise")
+  sgstPaise         BigInt   @map("sgst_paise")
+  roundOffPaise     BigInt   @map("round_off_paise")
+  totalPaise        BigInt   @map("total_paise")
+  approvedById      String   @map("approved_by_id") @db.Uuid
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  invoice         Invoice          @relation(fields: [hospitalId, invoiceId], references: [hospitalId, id], onDelete: Restrict)
+  patient         Patient          @relation(fields: [hospitalId, patientId], references: [hospitalId, id], onDelete: Restrict)
+  approvalRequest ApprovalRequest  @relation(fields: [hospitalId, approvalRequestId], references: [hospitalId, id], onDelete: Restrict)
+  lines           CreditNoteLine[]
+
+  @@unique([hospitalId, id])
+  @@unique([hospitalId, number])
+  @@unique([hospitalId, approvalRequestId])
+  @@index([invoiceId])
+  @@map("credit_notes")
+}
+
+// What a credit note gives back on one bill line. Tax is reversed at the line's own rate.
+model CreditNoteLine {
+  id           String @id @default(uuid(7)) @db.Uuid
+  hospitalId   String @map("hospital_id") @db.Uuid
+  creditNoteId String @map("credit_note_id") @db.Uuid
+  invoiceId    String @map("invoice_id") @db.Uuid
+  lineNo       Int    @map("line_no")
+  description  String
+  // Set when staff credited a number of units rather than an amount.
+  quantity     Int?
+  taxablePaise BigInt @map("taxable_paise")
+  cgstPaise    BigInt @map("cgst_paise")
+  sgstPaise    BigInt @map("sgst_paise")
+  totalPaise   BigInt @map("total_paise")
+
+  creditNote CreditNote @relation(fields: [hospitalId, creditNoteId], references: [hospitalId, id], onDelete: Restrict)
+  invoice    Invoice    @relation(fields: [hospitalId, invoiceId], references: [hospitalId, id], onDelete: Restrict)
+
+  @@unique([creditNoteId, lineNo])
+  @@index([invoiceId, lineNo])
+  @@map("credit_note_lines")
+}
+
+// Money paid back to a patient after the MD approved it: excess deposit, or a bill paid beyond what
+// it now comes to. Numbered RF, paid by a cashier from their open shift.
+model Refund {
+  id                String      @id @default(uuid(7)) @db.Uuid
+  hospitalId        String      @map("hospital_id") @db.Uuid
+  patientId         String      @map("patient_id") @db.Uuid
+  approvalRequestId String      @map("approval_request_id") @db.Uuid
+  number            String
+  financialYear     String      @map("financial_year")
+  shiftId           String      @map("shift_id") @db.Uuid
+  // Exactly one source: the deposit receipt, or the overpaid bill.
+  receiptId         String?     @map("receipt_id") @db.Uuid
+  invoiceId         String?     @map("invoice_id") @db.Uuid
+  mode              PaymentMode
+  amountPaise       BigInt      @map("amount_paise")
+  reference         String?
+  bankName          String?     @map("bank_name")
+  paidById          String      @map("paid_by_id") @db.Uuid
+  createdAt         DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  patient         Patient         @relation(fields: [hospitalId, patientId], references: [hospitalId, id], onDelete: Restrict)
+  approvalRequest ApprovalRequest @relation(fields: [hospitalId, approvalRequestId], references: [hospitalId, id], onDelete: Restrict)
+  shift           CashShift       @relation(fields: [hospitalId, shiftId], references: [hospitalId, id], onDelete: Restrict)
+  receipt         Receipt?        @relation(fields: [hospitalId, receiptId], references: [hospitalId, id], onDelete: Restrict)
+  invoice         Invoice?        @relation(fields: [hospitalId, invoiceId], references: [hospitalId, id], onDelete: Restrict)
+
+  @@unique([hospitalId, id])
+  @@unique([hospitalId, number])
+  @@unique([hospitalId, approvalRequestId])
+  @@index([hospitalId, patientId])
+  @@index([shiftId])
+  @@index([receiptId])
+  @@index([invoiceId])
+  @@map("refunds")
+}
+
+// Marks a receipt entered by mistake as void. The receipt keeps its number; its money stops counting.
+model ReceiptVoid {
+  id                String   @id @default(uuid(7)) @db.Uuid
+  hospitalId        String   @map("hospital_id") @db.Uuid
+  receiptId         String   @map("receipt_id") @db.Uuid
+  approvalRequestId String   @map("approval_request_id") @db.Uuid
+  voidedById        String   @map("voided_by_id") @db.Uuid
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  receipt         Receipt         @relation(fields: [hospitalId, receiptId], references: [hospitalId, id], onDelete: Restrict)
+  approvalRequest ApprovalRequest @relation(fields: [hospitalId, approvalRequestId], references: [hospitalId, id], onDelete: Restrict)
+
+  @@unique([hospitalId, receiptId])
+  @@unique([hospitalId, approvalRequestId])
+  @@map("receipt_voids")
+}
+
+// One OPD visit: a token for the day, the consultation fee's bill once paid, and the doctor's notes.
+// Notes can change only while the patient is with the doctor; a finished visit never changes.
+model OpdVisit {
+  id               String         @id @default(uuid(7)) @db.Uuid
+  hospitalId       String         @map("hospital_id") @db.Uuid
+  patientId        String         @map("patient_id") @db.Uuid
+  doctorId         String         @map("doctor_id") @db.Uuid
+  // The doctor's consultation service item, priced when the fee is paid.
+  serviceItemId    String         @map("service_item_id") @db.Uuid
+  visitDate        DateTime       @map("visit_date") @db.Date
+  tokenNumber      Int            @map("token_number")
+  status           OpdVisitStatus @default(awaiting_payment)
+  // The fee shown when the token was issued. The bill uses the rate in force when it is paid.
+  quotedFeePaise   BigInt         @map("quoted_fee_paise")
+  feeInvoiceId     String?        @map("fee_invoice_id") @db.Uuid
+  createdById      String         @map("created_by_id") @db.Uuid
+  createdAt        DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  paidAt           DateTime?      @map("paid_at") @db.Timestamptz(3)
+  calledAt         DateTime?      @map("called_at") @db.Timestamptz(3)
+  completedAt      DateTime?      @map("completed_at") @db.Timestamptz(3)
+  cancelledAt      DateTime?      @map("cancelled_at") @db.Timestamptz(3)
+  cancelledById    String?        @map("cancelled_by_id") @db.Uuid
+  cancelReason     String?        @map("cancel_reason")
+  complaints       String?
+  findings         String?
+  diagnosis        String?
+  advice           String?
+  followUpDate     DateTime?      @map("follow_up_date") @db.Date
+  admissionAdvised Boolean        @default(false) @map("admission_advised")
+  notesUpdatedAt   DateTime?      @map("notes_updated_at") @db.Timestamptz(3)
+
+  patient     Patient     @relation(fields: [hospitalId, patientId], references: [hospitalId, id], onDelete: Restrict)
+  doctor      Doctor      @relation(fields: [hospitalId, doctorId], references: [hospitalId, id], onDelete: Restrict)
+  serviceItem ServiceItem @relation(fields: [hospitalId, serviceItemId], references: [hospitalId, id], onDelete: Restrict)
+  feeInvoice  Invoice?    @relation(fields: [hospitalId, feeInvoiceId], references: [hospitalId, id], onDelete: Restrict)
+  orders      OpdOrder[]
+  admissions  Admission[]
+
+  @@unique([hospitalId, id])
+  @@unique([hospitalId, visitDate, tokenNumber])
+  @@index([hospitalId, visitDate, status])
+  @@index([hospitalId, doctorId, visitDate])
+  @@index([hospitalId, patientId])
+  @@map("opd_visits")
+}
+
+// A test or procedure the doctor ordered in a visit. Its charge is posted at once, for billing.
+model OpdOrder {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  hospitalId  String   @map("hospital_id") @db.Uuid
+  visitId     String   @map("visit_id") @db.Uuid
+  chargeId    String   @map("charge_id") @db.Uuid
+  orderedById String   @map("ordered_by_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  visit  OpdVisit @relation(fields: [hospitalId, visitId], references: [hospitalId, id], onDelete: Restrict)
+  charge Charge   @relation(fields: [hospitalId, chargeId], references: [hospitalId, id], onDelete: Restrict)
+
+  @@unique([hospitalId, chargeId])
+  @@index([visitId])
+  @@map("opd_orders")
+}
+
+// An IPD admission. The patient holds one bed at a time through bed assignments; room and nursing
+// charges are posted for every midnight they are in a bed.
+model Admission {
+  id                  String          @id @default(uuid(7)) @db.Uuid
+  hospitalId          String          @map("hospital_id") @db.Uuid
+  patientId           String          @map("patient_id") @db.Uuid
+  number              String
+  financialYear       String          @map("financial_year")
+  status              AdmissionStatus @default(admitted)
+  payerType           PayerType       @default(self_pay) @map("payer_type")
+  doctorId            String          @map("doctor_id") @db.Uuid
+  // When the doctor advised admission in an OPD visit.
+  opdVisitId          String?         @map("opd_visit_id") @db.Uuid
+  reason              String?
+  admittedAt          DateTime        @default(now()) @map("admitted_at") @db.Timestamptz(3)
+  admittedById        String          @map("admitted_by_id") @db.Uuid
+  // The room category's minimum advance and the deposit held, as they were at admission.
+  minimumAdvancePaise BigInt          @map("minimum_advance_paise")
+  depositHeldPaise    BigInt          @map("deposit_held_paise")
+  dischargedAt        DateTime?       @map("discharged_at") @db.Timestamptz(3)
+
+  patient      Patient         @relation(fields: [hospitalId, patientId], references: [hospitalId, id], onDelete: Restrict)
+  doctor       Doctor          @relation(fields: [hospitalId, doctorId], references: [hospitalId, id], onDelete: Restrict)
+  opdVisit     OpdVisit?       @relation(fields: [hospitalId, opdVisitId], references: [hospitalId, id], onDelete: Restrict)
+  assignments  BedAssignment[]
+  dailyCharges DailyCharge[]
+  discharge    Discharge?
+
+  @@unique([hospitalId, id])
+  @@unique([hospitalId, number])
+  // A patient has at most one admission open at a time.
+  @@unique([patientId], map: "admissions_one_open_per_patient", where: raw("status = 'admitted'"))
+  @@index([hospitalId, status, admittedAt])
+  @@map("admissions")
+}
+
+// A patient in a bed, from a time until a transfer or discharge. Never edited except to end it.
+model BedAssignment {
+  id          String        @id @default(uuid(7)) @db.Uuid
+  hospitalId  String        @map("hospital_id") @db.Uuid
+  admissionId String        @map("admission_id") @db.Uuid
+  bedId       String        @map("bed_id") @db.Uuid
+  startedAt   DateTime      @default(now()) @map("started_at") @db.Timestamptz(3)
+  endedAt     DateTime?     @map("ended_at") @db.Timestamptz(3)
+  endReason   BedEndReason? @map("end_reason")
+  createdById String        @map("created_by_id") @db.Uuid
+  endedById   String?       @map("ended_by_id") @db.Uuid
+
+  admission Admission @relation(fields: [hospitalId, admissionId], references: [hospitalId, id], onDelete: Restrict)
+  bed       Bed       @relation(fields: [hospitalId, bedId], references: [hospitalId, id], onDelete: Restrict)
+
+  // One patient per bed, and one bed per admission, at a time (CLAUDE.md section 7).
+  @@unique([bedId], map: "bed_assignments_one_active_per_bed", where: raw("ended_at IS NULL"))
+  @@unique([admissionId], map: "bed_assignments_one_active_per_admission", where: raw("ended_at IS NULL"))
+  @@index([admissionId, startedAt])
+  @@map("bed_assignments")
+}
+
+// A room or nursing charge the midnight job posted for one night of an admission. The unique key
+// makes the job safe to run again: a night is never charged twice.
+model DailyCharge {
+  id             String          @id @default(uuid(7)) @db.Uuid
+  hospitalId     String          @map("hospital_id") @db.Uuid
+  admissionId    String          @map("admission_id") @db.Uuid
+  chargeDate     DateTime        @map("charge_date") @db.Date
+  kind           DailyChargeKind
+  chargeId       String          @map("charge_id") @db.Uuid
+  bedId          String          @map("bed_id") @db.Uuid
+  roomCategoryId String          @map("room_category_id") @db.Uuid
+  createdAt      DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  admission    Admission    @relation(fields: [hospitalId, admissionId], references: [hospitalId, id], onDelete: Restrict)
+  charge       Charge       @relation(fields: [hospitalId, chargeId], references: [hospitalId, id], onDelete: Restrict)
+  bed          Bed          @relation(fields: [hospitalId, bedId], references: [hospitalId, id], onDelete: Restrict)
+  roomCategory RoomCategory @relation(fields: [hospitalId, roomCategoryId], references: [hospitalId, id], onDelete: Restrict)
+
+  @@unique([admissionId, chargeDate, kind])
+  @@unique([hospitalId, chargeId])
+  @@map("daily_charges")
+}
+
+// The discharge of one admission, from the doctor marking the patient fit to the bed going to
+// cleaning. Each step is written once (docs/billing-rules.md, discharge).
+model Discharge {
+  id            String    @id @default(uuid(7)) @db.Uuid
+  hospitalId    String    @map("hospital_id") @db.Uuid
+  admissionId   String    @map("admission_id") @db.Uuid
+  fitAt         DateTime  @map("fit_at") @db.Timestamptz(3)
+  fitById       String    @map("fit_by_id") @db.Uuid
+  fitNote       String?   @map("fit_note")
+  completedAt   DateTime? @map("completed_at") @db.Timestamptz(3)
+  completedById String?   @map("completed_by_id") @db.Uuid
+
+  admission        Admission            @relation(fields: [hospitalId, admissionId], references: [hospitalId, id], onDelete: Restrict)
+  clearances       DischargeClearance[]
+  summary          DischargeSummary?
+  approvalRequests ApprovalRequest[]
+
+  @@unique([hospitalId, id])
+  @@unique([hospitalId, admissionId])
+  @@index([hospitalId, completedAt])
+  @@map("discharges")
+}
+
+// Billing clearance for a discharge. Given again when the account changes after an earlier one, so
+// the latest one counts. Money still due needs the MD's approval (an approval request).
+model DischargeClearance {
+  id                String   @id @default(uuid(7)) @db.Uuid
+  hospitalId        String   @map("hospital_id") @db.Uuid
+  dischargeId       String   @map("discharge_id") @db.Uuid
+  clearedAt         DateTime @default(now()) @map("cleared_at") @db.Timestamptz(3)
+  clearedById       String   @map("cleared_by_id") @db.Uuid
+  // What the patient still owed when cleared: zero, or the amount the MD approved.
+  duePaise          BigInt   @map("due_paise")
+  approvalRequestId String?  @map("approval_request_id") @db.Uuid
+
+  discharge       Discharge        @relation(fields: [hospitalId, dischargeId], references: [hospitalId, id], onDelete: Restrict)
+  approvalRequest ApprovalRequest? @relation(fields: [hospitalId, approvalRequestId], references: [hospitalId, id], onDelete: Restrict)
+
+  @@unique([hospitalId, approvalRequestId])
+  @@index([dischargeId, clearedAt])
+  @@map("discharge_clearances")
+}
+
+// Drafted by the treating doctor, signed off by the MD, then never changed.
+model DischargeSummary {
+  id                   String    @id @default(uuid(7)) @db.Uuid
+  hospitalId           String    @map("hospital_id") @db.Uuid
+  dischargeId          String    @map("discharge_id") @db.Uuid
+  diagnosis            String
+  courseInHospital     String    @map("course_in_hospital")
+  conditionAtDischarge String    @map("condition_at_discharge")
+  medications          String?
+  advice               String?
+  followUpDate         DateTime? @map("follow_up_date") @db.Date
+  draftedById          String    @map("drafted_by_id") @db.Uuid
+  draftedAt            DateTime  @default(now()) @map("drafted_at") @db.Timestamptz(3)
+  signedById           String?   @map("signed_by_id") @db.Uuid
+  signedAt             DateTime? @map("signed_at") @db.Timestamptz(3)
+
+  discharge Discharge @relation(fields: [hospitalId, dischargeId], references: [hospitalId, id], onDelete: Restrict)
+
+  @@unique([hospitalId, id])
+  @@unique([hospitalId, dischargeId])
+  @@map("discharge_summaries")
+}

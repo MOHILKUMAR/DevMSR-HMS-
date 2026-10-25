@@ -1,0 +1,15 @@
+meta {
+  name: Patients admitted now
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/admissions?status=admitted&page=1&pageSize=50
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+}

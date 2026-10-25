@@ -2,28 +2,41 @@
 
 Progress against `CLAUDE.md`, section 11. Later phases need the developer's approval before they start.
 
+Everything else needed before real patients (hosting, backups, audits, paperwork, cutover) is in `docs/go-live-checklist.md`, with the order to do it in.
+
 ## Foundation (first task)
 
 - [x] pnpm monorepo: `apps/web`, `apps/api`, `packages/validation`, `packages/types`, `packages/config`
 - [x] Docker Compose with PostgreSQL, Dockerfiles for `web` and `api`
 - [x] `scripts/check-text.mjs`, pnpm scripts, CI (lint, typecheck, test, check:text, audit, Docker build), Dependabot
-- [ ] Prisma schema v0, with the approved additions: sessions, login events, idempotency keys, minimal wards and beds
-- [ ] Request pipeline: login with lockout, sessions, CSRF, rate limits, headers, permission matrix, guards, idempotency, exception filter, audit log
-- [ ] `pnpm db:migrate`, `pnpm db:seed`, `pnpm api:spec`, `pnpm test:e2e`
-- [ ] Seed: fake hospital, staff for every role, wards, beds, 50 fake patients
-- [ ] Design tokens, fonts, middleware, `(auth)/login` and the `(app)` shell
+- [x] Prisma schema v0, with the approved additions: sessions, login events, idempotency keys, minimal wards and beds
+- [x] Request pipeline: login with lockout, sessions, CSRF, rate limits, headers, permission matrix, guards, idempotency, exception filter, audit log
+- [x] `pnpm db:migrate`, `pnpm db:seed`, `pnpm api:spec`
+- [x] `pnpm test:e2e`: Playwright smoke test (redirect, keyboard sign-in, role menu, sign-out, errors)
+- [x] Seed: fake hospital, staff for every role, wards, beds, 50 fake patients
+- [x] Design tokens, fonts, session redirect (`proxy.ts`), `(auth)/login` and the `(app)` shell
 
 ## Phase 1
 
-- [ ] Auth and roles (including TOTP, password reset, session list, break-glass)
-- [ ] Settings and masters
-- [ ] Patient registration
-- [ ] OPD
-- [ ] IPD and beds
-- [ ] Billing
-- [ ] Payments and cash shifts
-- [ ] Discharge
-- [ ] Basic reports
+- [ ] Auth and roles: TOTP for super admin, hospital admin and finance; password reset; see and end own sessions; break-glass access; failed-login alert
+- [ ] Separate database role for the API that cannot UPDATE, DELETE or TRUNCATE audit rows (before go-live)
+- [ ] Idempotency key cleanup job (pg-boss)
+- [ ] Tighter web CSP with nonces or SRI (before go-live)
+- [x] Patient search in the top bar (with patient registration)
+- [x] Settings and masters (admin setup slice): staff users and roles, hospital profile, departments, doctors, room categories, wards and beds, service items with dated rates, screens under `/settings`
+- [ ] Custom roles screen (`users.role.manage`)
+- [ ] Packages, discounts and other billing masters (waiting for answers in `docs/billing-rules.md`)
+- [x] Patient registration: UHIDs from a gapless yearly counter, duplicate checks (Aadhaar and ABHA block, mobile and name warn), search by UHID, mobile, name, Aadhaar or ABHA, audited record views, edits
+- [ ] Merging duplicate patient records, patient photo, printed UHID card
+- [x] Registration fee: none, confirmed in `docs/billing-rules.md`
+- [x] OPD (slice 4): walk-in tokens numbered daily for the whole hospital, the consultation fee billed and receipted at the cash counter, the doctor's own queue, notes locked once the visit is done, orders that post charges, an 80 mm token slip
+- [x] IPD and beds (slice 5): admission numbers per financial year, a free-bed check enforced by the database, the minimum advance warning, admissions advised in OPD, transfers, a live bed board with bed states set by nurses, room and nursing charges posted per night by the midnight job (pg-boss), an A4 interim bill
+- [x] Billing (slice 3a): charges at the dated rate, draft bills, issue with gapless `INV` numbers per financial year, locked issued bills, discard, A4 and 80 mm print
+- [x] Payments and cash shifts (slice 3a): one open shift per cashier, payments by cash, UPI, card, bank transfer or cheque, deposits, deposits set against bills, gapless `RCT` numbers, shift close with counted cash and a reason for any difference, shift list for finance
+- [x] Discounts, refunds, credit notes and voids with maker-checker approvals (slice 3b): requests on bills and receipts, an approvals inbox, the MD-only finance limit for discounts, CN and RF numbers, refunds paid from the cashier's shift, A4 and 80 mm credit notes and refunds
+- [x] Day-end collection report and Tally export (slice 6): by cashier and mode for a calendar day in IST, voids left out and refunds taken off; a daily CSV day book, 10 exports an hour per user
+- [x] Discharge (slice 6): fit by the treating doctor, a final bill that posts any days not charged, billing clearance at a settled account or on the MD approval with money due, a summary drafted by the doctor and signed off by the MD (A4 print), completion that sends the bed to cleaning
+- [x] Basic reports (slice 6): OPD, admissions, discharges and bed occupancy for a day
 - [ ] Emailed bills
 
 ## Phase 2 (needs approval)

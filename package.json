@@ -7,12 +7,29 @@
     "node": ">=22.18.0"
   },
   "scripts": {
-    "build": "pnpm -r build",
+    "build": "pnpm db:generate && pnpm -r build",
     "build:packages": "pnpm --filter \"./packages/*\" build",
-    "dev": "pnpm build:packages && pnpm -r --parallel dev",
-    "lint": "pnpm -r lint",
-    "typecheck": "pnpm -r typecheck",
-    "test": "pnpm -r test",
-    "check:text": "node scripts/check-text.mjs"
+    "dev": "pnpm db:generate && pnpm build:packages && pnpm -r --parallel dev",
+    "lint": "pnpm db:generate && eslint prisma prisma.config.ts && pnpm -r lint",
+    "typecheck": "pnpm db:generate && tsc -p tsconfig.json && pnpm -r typecheck",
+    "test": "pnpm db:generate && pnpm -r test",
+    "test:e2e": "pnpm --filter @devmsr/web test:e2e",
+    "check:text": "node scripts/check-text.mjs",
+    "db:generate": "prisma generate --no-hints",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "db:reset": "prisma migrate reset",
+    "db:seed": "pnpm db:generate && prisma db seed",
+    "db:sync-roles": "pnpm db:generate && tsx apps/api/src/cli/sync-roles.ts",
+    "db:api-user": "pnpm db:generate && tsx apps/api/src/cli/create-api-db-user.ts",
+    "api:spec": "pnpm db:generate && pnpm build:packages && pnpm --filter @devmsr/api spec && pnpm --filter @devmsr/web api:types"
+  },
+  "devDependencies": {
+    "@devmsr/config": "workspace:*",
+    "@types/node": "catalog:",
+    "eslint": "catalog:",
+    "prisma": "7.10.1",
+    "tsx": "4.23.15",
+    "typescript": "catalog:"
   }
 }

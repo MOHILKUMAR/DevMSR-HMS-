@@ -24,15 +24,49 @@ cp .env.example .env
 cp apps/web/.env.example apps/web/.env.local
 ```
 
+Fill in `SESSION_SECRET` and `FIELD_ENCRYPTION_KEY` in `.env` (the file says how to generate them).
+
 ```bash
 docker compose up -d
+```
+
+```bash
+pnpm db:migrate
+```
+
+Create the API's own database login (the user in `DATABASE_URL`) and the background jobs login (`JOBS_DATABASE_URL`). The API login belongs to the restricted `hms_api` role, which cannot change the schema or audit rows; the jobs login owns only the `pgboss` schema, where the job queue lives. Migrations keep using the owner in `DIRECT_URL`.
+
+```bash
+pnpm db:api-user
+```
+
+```bash
+pnpm db:seed
 ```
 
 ```bash
 pnpm dev
 ```
 
-The web app runs on http://localhost:3000 and the API on http://localhost:4000/api/v1 (try `/api/v1/health`).
+Open http://localhost:3000 and sign in. The seed creates a fake demo hospital with one user per role (`superadmin`, `admin`, `md`, `accounts`, `billing`, `cashier`, `reception`, `doctor`, `nurse`, `pharmacy`, `lab`, `ot`), all with `SEED_USER_PASSWORD` from `.env`. Each role sees only its own sections in the sidebar. The API is on http://localhost:4000/api/v1 (try `/api/v1/health`).
+
+Start with **Settings**. As `admin`, add staff users and their roles, departments, doctors (linked to their logins), room categories, wards and beds, and the hospital details printed on bills. As `accounts`, add service items and set their rates from a date. The demo rates are fake.
+
+At the front desk, sign in as `reception`: search patients from the top bar (press `/`) by UHID, mobile or name, and register new ones under **Patients**. Each new patient gets the next UHID, such as `DEMO-2026-000051`.
+
+To bill, sign in as `billing`: under **Billing**, find the patient, add charges, prepare a bill and issue it (it gets a number such as `DEMO/INV/2026-27/000001` and is locked). Then sign in as `cashier`: under **Payments**, open your shift with the cash in the drawer, find the patient, take a deposit or a payment, print the receipt on A4 or an 80 mm slip, and close the shift with a cash count. `accounts` sees every cashier's shifts.
+
+Discounts, credit notes, refunds and receipt voids need a second person. The billing clerk asks for a discount on a draft bill or a credit note on an issued one; the cashier asks for a refund or a receipt void. `accounts` approves discounts up to Rs 1,000, credit notes and voids under **Approvals**; `md` approves larger discounts and every refund. The cashier then pays the refund out from their shift.
+
+For OPD, `reception` issues a token under **OPD** (find the patient, choose the doctor, print the slip). The `cashier` takes the consultation fee from **OPD fees waiting** on the cash counter, and only then does the patient appear in `doctor`'s queue under **OPD**, where the doctor calls them in, writes notes, orders tests and completes the visit.
+
+For IPD, `accounts` first sets each room category's minimum advance under **Settings**, **Minimum advances**. `reception` admits a patient under **IPD** (find the patient, choose the doctor and a free bed); the admission gets a number such as `DEMO/IP/2026-27/000001`, and a warning shows when the deposit held is below the minimum advance. Patients a doctor advised admitting in OPD are listed there too. `nurse` sees every bed under **Beds**, sets empty beds free, cleaning, reserved or blocked, and transfers a patient from the admission page. Every night at 00:05 IST (and when the API starts) a background job posts the room and nursing charges for each night crossed in a bed; `billing` sees the interim bill on the admission page and prints it.
+
+To discharge, `doctor` opens the admission and marks the patient fit, then writes the discharge summary on the discharge page (under **Discharge**). `billing` prepares the final bill there (it posts any room and nursing days not charged yet, or the one day of a same-day stay) and issues it; `cashier` collects what is due or sets the deposit against it, and any excess deposit is refunded through **Approvals**. `billing` then gives billing clearance, or asks `md` to clear with money still due. `md` signs the summary off, and `nurse` or `reception` completes the discharge: the bed goes to cleaning and the signed summary prints on A4.
+
+Under **Reports**, `accounts` and `md` see the day-end collection by cashier and mode and download the day book CSV for Tally (10 downloads an hour per user); `md` also sees the day's OPD, admissions, discharges and beds.
+
+After pulling changes that add permissions, run `pnpm db:sync-roles --apply`: it brings every hospital's seeded roles in line with `apps/api/src/auth/permission-matrix.ts` and keeps your data (`pnpm db:seed` does the same for the demo hospital). The API logs a warning at start-up while they differ.
 
 ## Layout
 
@@ -43,7 +77,7 @@ The web app runs on http://localhost:3000 and the API on http://localhost:4000/a
 | `packages/validation` | Zod schemas shared by web and api. |
 | `packages/types` | Shared TypeScript types. |
 | `packages/config` | Shared ESLint and tsconfig. |
-| `docs/` | Billing rules, decisions, API list, feature checklist, Bruno collection. |
+| `docs/` | Billing rules, decisions, API list, feature checklist, go-live checklist, Bruno collection. |
 
 ## Commands
 
@@ -53,10 +87,22 @@ The web app runs on http://localhost:3000 and the API on http://localhost:4000/a
 | `pnpm build` | Production builds of every package |
 | `pnpm lint` | ESLint |
 | `pnpm typecheck` | TypeScript |
-| `pnpm test` | Unit and API tests |
+| `pnpm test` | Unit tests, and API tests against `TEST_DATABASE_URL` (wiped on every run) |
 | `pnpm check:text` | Fails if any tracked file contains an em dash or en dash |
+| `pnpm db:migrate` | Creates and applies a migration in development |
+| `pnpm db:seed` | Loads the fake demo hospital |
+| `pnpm db:reset` | Drops the development database and reapplies every migration |
+| `pnpm db:deploy` | Applies pending migrations (staging and production) |
+| `pnpm db:api-user` | Creates the API's database login from `DATABASE_URL` and the jobs login from `JOBS_DATABASE_URL`, or resets their passwords (once per environment) |
+| `pnpm db:sync-roles` | Shows how seeded roles differ from the permission matrix; `--apply` fixes them in every hospital, with audit events (every deploy) |
+| `pnpm api:spec` | Regenerates `docs/openapi.json` and the web app's API types |
+| `pnpm test:e2e` | Playwright tests against the seeded demo hospital, reusing a running `pnpm dev` |
 
-`pnpm db:migrate`, `pnpm db:seed`, `pnpm test:e2e` and `pnpm api:spec` arrive with the request pipeline and web shell.
+Playwright normally downloads its own Chromium (`pnpm --filter @devmsr/web exec playwright install chromium`). To use the browser already on your machine instead, set the channel:
+
+```bash
+PLAYWRIGHT_CHANNEL=chrome pnpm test:e2e
+```
 
 ## Docker images
 

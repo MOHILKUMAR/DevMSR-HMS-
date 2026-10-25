@@ -1,0 +1,19 @@
+meta {
+  name: Day book CSV for Tally
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/reports/day-book
+  body: none
+  auth: none
+}
+
+docs {
+  text/csv. 10 an hour per user, then 429 with Retry-After.
+}
+
+assert {
+  res.status: eq 200
+}

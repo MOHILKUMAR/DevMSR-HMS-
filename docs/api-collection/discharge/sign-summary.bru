@@ -1,0 +1,23 @@
+meta {
+  name: Sign the summary off
+  type: http
+  seq: 11
+}
+
+post {
+  url: {{baseUrl}}/discharges/{{dischargeId}}/summary/sign
+  body: none
+  auth: none
+}
+
+headers {
+  X-CSRF-Token: {{csrfToken}}
+}
+
+docs {
+  As the MD. Never by whoever wrote it.
+}
+
+assert {
+  res.status: eq 200
+}

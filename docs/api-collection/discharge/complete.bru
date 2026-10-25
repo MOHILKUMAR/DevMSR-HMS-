@@ -1,0 +1,23 @@
+meta {
+  name: Complete the discharge
+  type: http
+  seq: 13
+}
+
+post {
+  url: {{baseUrl}}/discharges/{{dischargeId}}/complete
+  body: none
+  auth: none
+}
+
+headers {
+  X-CSRF-Token: {{csrfToken}}
+}
+
+docs {
+  Needs clearance and the signed summary. The bed goes to cleaning.
+}
+
+assert {
+  res.status: eq 200
+}

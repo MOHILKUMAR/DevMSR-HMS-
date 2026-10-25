@@ -1,0 +1,34 @@
+meta {
+  name: Transfer to another bed
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/admissions/{{admissionId}}/transfers
+  body: json
+  auth: none
+}
+
+headers {
+  X-CSRF-Token: {{csrfToken}}
+}
+
+body:json {
+  {
+    "bedId": "{{transferBedId}}"
+  }
+}
+
+docs {
+  The old bed goes to cleaning. The response lists every bed the admission has held.
+}
+
+script:post-response {
+  const ended = res.body.beds.find((bed) => bed.endedAt !== null);
+  if (ended) bru.setVar("cleaningBedId", ended.id);
+}
+
+assert {
+  res.status: eq 201
+}

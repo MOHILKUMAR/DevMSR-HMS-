@@ -1,0 +1,19 @@
+meta {
+  name: List service items with current rates
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{baseUrl}}/service-items?kind=consultation
+  body: none
+  auth: none
+}
+
+script:post-response {
+  bru.setVar("serviceItemId", res.body.data[0].id);
+}
+
+assert {
+  res.status: eq 200
+}
