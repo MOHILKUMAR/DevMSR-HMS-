@@ -1,0 +1,19 @@
+meta {
+  name: Complete the visit
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{baseUrl}}/opd-visits/{{visitId}}/complete
+  body: none
+  auth: none
+}
+
+headers {
+  X-CSRF-Token: {{csrfToken}}
+}
+
+assert {
+  res.status: eq 200
+}

@@ -17,6 +17,11 @@ export function fromDateOnly(value: string): Date {
   return new Date(`${value}T00:00:00.000Z`);
 }
 
+/** The instant a `YYYY-MM-DD` day starts in IST (00:00 at +05:30). */
+export function istMidnight(value: string): Date {
+  return new Date(`${value}T00:00:00.000+05:30`);
+}
+
 export function addDays(value: string, days: number): string {
   const date = fromDateOnly(value);
   date.setUTCDate(date.getUTCDate() + days);

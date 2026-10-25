@@ -10,6 +10,7 @@ import { ErrorAlert, TextField } from '@/components/form-fields';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableHead, TableMessage, Td, Th } from '@/components/ui/table';
 import { useCloseShift, useCurrentShift, useOpenShift } from '@/features/billing/queries';
+import { OpdFees } from '@/features/opd/opd-fees';
 import { PatientPicker } from '@/features/patients/patient-picker';
 import { formatDateTime, formatPaise } from '@/lib/format';
 import { zodResolver } from '@/lib/forms';
@@ -172,7 +173,7 @@ function CloseShiftForm({ shift }: { shift: Shift }) {
 }
 
 /** The cash counter: the cashier's shift, and the way to a patient's bills and deposits. */
-export function CashierDesk({ canSeeShifts }: { canSeeShifts: boolean }) {
+export function CashierDesk({ canSeeShifts, canSeeOpdFees }: { canSeeShifts: boolean; canSeeOpdFees: boolean }) {
   const t = useTranslations('payments.desk');
   const current = useCurrentShift();
   const shift = current.data?.shift ?? null;
@@ -196,6 +197,7 @@ export function CashierDesk({ canSeeShifts }: { canSeeShifts: boolean }) {
       {shift !== null && (
         <>
           <PatientPicker id="payments-patient" label={t('findPatient')} hrefFor={(id) => `/payments/patients/${id}`} />
+          {canSeeOpdFees && <OpdFees />}
           <ShiftSummary shift={shift} />
           <CloseShiftForm key={shift.id} shift={shift} />
         </>

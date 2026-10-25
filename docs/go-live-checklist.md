@@ -38,26 +38,28 @@ Stages 2 and 8 depend on other people and take the most calendar time, so start 
 
 Each one blocks a feature, and none can be guessed (`CLAUDE.md` section 2). Answers go into `docs/billing-rules.md`. All **Hospital**.
 
-- [ ] Packages: contents, exclusions, length of stay, and how extras are billed. Needed for slice 3b.
-- [ ] OPD token and IPD admission number formats. Needed for slices 4 and 5.
-- [ ] Registration fee: whether there is one, and how much. Needed for slice 4.
-- [ ] Room and nursing charges posted at midnight: what is charged for the admission day and the discharge day. Needed for slice 5.
-- [ ] Minimum advance for each room category. Needed for slice 5.
-- [ ] The title printed on bills under GST ("Bill", "Tax invoice" or "Bill of supply") and which services are exempt. Needed before the first real bill.
-- [ ] Hospital logo, GSTIN and the details printed on bills and receipts.
-- [ ] Recovery targets: how much data the hospital can afford to lose, and how long it can run on paper. These set the backup schedule.
-- [ ] How long medical and financial records must be kept.
-- [ ] Whether existing patients (UHIDs, open balances, deposits) move over from the current system.
-- [ ] Confirmation that the database, files, backups and logs must all stay in India.
+The questions to send are in [`docs/hospital-questions.md`](hospital-questions.md), grouped by who answers, with the question number after each item below. Its section D also asks the hospital to confirm the rules the developer has recorded so far.
+
+- [ ] Packages: contents, exclusions, length of stay, and how extras are billed. Needed for slice 3b. Questions MD-1 and AC-6.
+- [ ] OPD token and IPD admission number formats. Needed for slices 4 and 5. Questions AD-1 and AC-5.
+- [ ] Registration fee: whether there is one, and how much. Needed for slice 4. Question MD-2.
+- [ ] Room and nursing charges posted at midnight: what is charged for the admission day and the discharge day. Needed for slice 5. Question AC-3.
+- [ ] Minimum advance for each room category. Needed for slice 5. Question AC-4.
+- [ ] The title printed on bills under GST ("Bill", "Tax invoice" or "Bill of supply") and which services are exempt. Needed before the first real bill. Question AC-1.
+- [ ] Hospital logo, GSTIN and the details printed on bills and receipts. Question AC-2.
+- [ ] Recovery targets: how much data the hospital can afford to lose, and how long it can run on paper. These set the backup schedule. Questions MD-3 and MD-4.
+- [ ] How long medical and financial records must be kept. Question MD-5.
+- [ ] Whether existing patients (UHIDs, open balances, deposits) move over from the current system. Question MD-6.
+- [ ] Confirmation that the database, files, backups and logs must all stay in India. Question MD-7.
 
 ## Stage 3: Finish phase 1 features
 
 Each slice comes with its migration, API, screens, tests, seed data and docs. Details are in `docs/feature-checklist.md`.
 
-- [ ] Slice 3b: discounts, refunds, credit notes and voids, each approved by a second user. **Dev**
-- [ ] Slice 4, OPD: tokens, doctor queue, consultation fee, orders that post charges, follow-up dates. **Dev**
-- [ ] Slice 5, IPD and beds: admission with deposit, bed board, transfers, interim bills, room and nursing charges posted at midnight IST. The midnight job needs pg-boss, a new dependency to approve. **Dev**
-- [ ] Slice 6, discharge and reports: fit for discharge, final bill, refund of excess deposit, billing clearance, discharge summary, day-end collection report, Tally export. **Dev**
+- [x] Slice 3b: discounts, refunds, credit notes and voids, each approved by a second user. **Dev**
+- [x] Slice 4, OPD: tokens, doctor queue, consultation fee, orders that post charges, follow-up dates. **Dev**
+- [x] Slice 5, IPD and beds: admission with deposit, bed board, transfers, interim bills, room and nursing charges posted at midnight IST by a pg-boss job. **Dev**
+- [x] Slice 6, discharge and reports: fit for discharge, final bill, refund of excess deposit, billing clearance, discharge summary, day-end collection report, Tally export. **Dev**
 - [ ] PDF bills and receipts (PDFKit), and emailed bills: a password-protected PDF, the Resend adapter behind `MessageSender`, the pg-boss outbox, message templates in a table, and the dev inbox for mock mode (`CLAUDE.md` section 14). **Dev**
 - [ ] Hospital logo upload to R2 (PDF, JPG or PNG, 10 MB at most, type checked, private bucket, links that expire after 5 minutes), shown on printed bills and receipts. **Dev**
 - [ ] The full Playwright journey: register, OPD visit with receipt, admit, transfer, final bill, discharge (`CLAUDE.md` section 18). **Dev**
@@ -73,12 +75,12 @@ From `CLAUDE.md` section 9.
 - [x] Staff can see and end their own sessions (My account), and change their own password. **Dev**
 - [x] Break-glass access: written reason, 1 hour expiry, audit event, hospital admin notified (in the app; email waits for the outbox). Read only. **Dev**
 - [x] Alert when there are more than 20 failed logins in 10 minutes: an error log line with `alert: "auth.failed-logins"`, an audit event and notifications, per hospital and for the platform. Routing the log line to a person (Sentry or log monitoring) is part of stage 6. **Dev**
-- [x] A separate database role for the API, with no UPDATE, DELETE or TRUNCATE on audit rows and no schema changes; migrations run as another role. The API logs in as a member of `hms_api` (`pnpm db:api-user`) and refuses to start in production as anything stronger. **Dev**
+- [x] A separate database role for the API, with no UPDATE, DELETE or TRUNCATE on audit rows and no schema changes; migrations run as another role. The API logs in as a member of `hms_api` (`pnpm db:api-user`) and refuses to start in production as anything stronger. Background jobs log in separately (`JOBS_DATABASE_URL`, owner of the `pgboss` schema only), also made by `pnpm db:api-user`; production refuses to start without it. **Dev**
 - [x] A tighter Content-Security-Policy for the web app, using nonces. **Dev**
 - [x] Production start-up guard: the API refuses to start with a mock adapter, a missing Sentry DSN or a demo secret (`APP_ENV=production`). **Dev**
 - [x] A safe way to apply permission matrix changes to a live hospital: `pnpm db:sync-roles --apply` in every deploy, and production refuses to start while roles differ from the matrix. **Dev**
 - [ ] Clean-up job for old idempotency keys (pg-boss). **Dev**
-- [ ] Rate limits on exports and PDFs (10 per hour per user) once those routes exist. **Dev**
+- [x] Rate limits on exports and PDFs (10 per hour per user): the day book export has it (`@ExportRateLimit()`); PDFs take the same decorator when they arrive. **Dev**
 - [ ] Rate limit counts live in memory, which is right for one API container. If production runs more than one, move them to PostgreSQL. **Dev**
 
 ## Stage 5: Staging environment
@@ -123,13 +125,13 @@ A copy of production with fake data, used for UAT, printer checks and the VAPT.
 
 ## Stage 8: Compliance and paperwork
 
-Start now: these need the hospital and its adviser.
+Start now: these need the hospital and its adviser. Each item has a draft for review in `docs/drafts/`. An item is ticked only once the hospital, and where marked its legal adviser, has approved the final version.
 
-- [ ] Digital Personal Data Protection Act 2023 and its rules: a privacy notice for patients, consent wording at registration, how patients ask to see or correct their data, and duties when there is a breach. **Legal + Hospital**
-- [ ] A data processing agreement between DevMSR and the hospital: who controls the data, who processes it, and what happens to it when the contract ends. **Legal**
-- [ ] Incident response plan: who does what, and reporting cyber incidents to CERT-In within 6 hours. **Dev + Hospital**
-- [ ] Access policy: who gets which role, same-day removal of staff who leave, and a monthly review of the user list. **Hospital**
-- [ ] Downtime procedure: paper registration slips, bills and receipts for when the internet or the server is down, and how they are entered afterwards without breaking the number series. **Hospital + Dev**
+- [ ] Digital Personal Data Protection Act 2023 and its rules: a privacy notice for patients, consent wording at registration, how patients ask to see or correct their data, and duties when there is a breach. **Legal + Hospital** Draft: [`docs/drafts/privacy-notice-and-consent.md`](drafts/privacy-notice-and-consent.md).
+- [ ] A data processing agreement between DevMSR and the hospital: who controls the data, who processes it, and what happens to it when the contract ends. **Legal** Draft outline: [`docs/drafts/data-processing-agreement-outline.md`](drafts/data-processing-agreement-outline.md).
+- [ ] Incident response plan: who does what, and reporting cyber incidents to CERT-In within 6 hours. **Dev + Hospital** Draft: [`docs/drafts/incident-response-plan.md`](drafts/incident-response-plan.md).
+- [ ] Access policy: who gets which role, same-day removal of staff who leave, and a monthly review of the user list. **Hospital** Draft: [`docs/drafts/access-policy.md`](drafts/access-policy.md).
+- [ ] Downtime procedure: paper registration slips, bills and receipts for when the internet or the server is down, and how they are entered afterwards without breaking the number series. **Hospital + Dev** Draft: [`docs/drafts/downtime-procedure.md`](drafts/downtime-procedure.md).
 
 ## Stage 9: Cutover
 

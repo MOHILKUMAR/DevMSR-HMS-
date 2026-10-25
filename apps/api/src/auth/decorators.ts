@@ -8,6 +8,7 @@ export const IS_PUBLIC = 'auth:public';
 export const REQUIRED_PERMISSION = 'auth:permission';
 export const LOGIN_RATE_LIMIT = 'auth:loginRateLimit';
 export const PASSWORD_RATE_LIMIT = 'auth:passwordRateLimit';
+export const EXPORT_RATE_LIMIT = 'auth:exportRateLimit';
 
 /**
  * Opens a route to anyone. Every use must be reviewed: routes are denied by default, and a route
@@ -23,6 +24,8 @@ export const LoginRateLimit = () => SetMetadata(LOGIN_RATE_LIMIT, true);
 
 /** Applies the password limit (per account) to routes that set or change a password. */
 export const PasswordRateLimit = () => SetMetadata(PASSWORD_RATE_LIMIT, true);
+/** Applies the export and PDF limit (per user, per hour) on top of the general limit. */
+export const ExportRateLimit = () => SetMetadata(EXPORT_RATE_LIMIT, true);
 
 /** `@CurrentAuth() auth: AuthContext` on routes that require a permission. */
 export const CurrentAuth = createParamDecorator((_data: unknown, ctx: ExecutionContext): AuthContext => {

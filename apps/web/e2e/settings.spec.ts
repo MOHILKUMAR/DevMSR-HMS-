@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { expect, test, type Page } from '@playwright/test';
-import { seedTotpSecret, totpCode } from './totp';
+import { freshTotpCode, seedTotpSecret } from './totp';
 
 // Admin setup screens against the seeded demo hospital. Each run adds records with unique codes,
 // so it can run again on the same database. Sign-ins are spread over users because of the login
@@ -25,7 +25,7 @@ async function signIn(page: Page, username: string, password: string, displayNam
   await page.getByRole('button', { name: 'Sign in' }).click();
   if (twoFactor) {
     const step = page.getByRole('form', { name: 'Two-factor sign-in' });
-    await step.getByLabel('Code from the app').fill(totpCode(seedTotpSecret()));
+    await step.getByLabel('Code from the app').fill(await freshTotpCode(seedTotpSecret()));
     await step.getByRole('button', { name: 'Sign in' }).click();
   }
   await expect(page.getByRole('heading', { name: `Welcome, ${displayName}` })).toBeVisible();

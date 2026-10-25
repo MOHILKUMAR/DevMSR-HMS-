@@ -2,6 +2,7 @@ import type { LucideIcon } from 'lucide-react';
 import {
   BedDouble,
   ChartColumn,
+  ClipboardCheck,
   DoorOpen,
   Hospital,
   House,
@@ -21,6 +22,7 @@ export type NavKey =
   | 'beds'
   | 'billing'
   | 'payments'
+  | 'approvals'
   | 'discharge'
   | 'reports'
   | 'settings'
@@ -40,7 +42,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { key: 'home', href: '/', icon: House, anyOf: [] },
   { key: 'patients', href: '/patients', icon: Users, anyOf: ['patients.patient.read'] },
   { key: 'opd', href: '/opd', icon: Stethoscope, anyOf: ['opd.appointment.manage', 'opd.queue.read-own'] },
-  { key: 'ipd', href: '/ipd', icon: Hospital, anyOf: ['ipd.admission.create', 'ipd.discharge.mark-fit'] },
+  { key: 'ipd', href: '/ipd', icon: Hospital, anyOf: ['ipd.admission.create', 'ipd.admission.read', 'ipd.discharge.mark-fit'] },
   { key: 'beds', href: '/beds', icon: BedDouble, anyOf: ['beds.bed.read'] },
   {
     key: 'billing',
@@ -69,7 +71,30 @@ export const NAV_ITEMS: readonly NavItem[] = [
       'reports.collection.read',
     ],
   },
-  { key: 'discharge', href: '/discharge', icon: DoorOpen, anyOf: ['ipd.discharge.mark-fit', 'billing.invoice.issue'] },
+  {
+    key: 'approvals',
+    href: '/approvals',
+    icon: ClipboardCheck,
+    // Approvers decide here; those who ask follow their requests.
+    anyOf: [
+      'billing.discount.approve',
+      'billing.credit-note.approve',
+      'billing.refund.approve',
+      'billing.void.approve',
+      'billing.clearance.approve-dues',
+      'billing.discount.request',
+      'billing.credit-note.request',
+      'billing.refund.request',
+      'payments.receipt.void-request',
+      'billing.clearance.grant',
+    ],
+  },
+  {
+    key: 'discharge',
+    href: '/discharge',
+    icon: DoorOpen,
+    anyOf: ['ipd.discharge.mark-fit', 'billing.clearance.grant', 'ipd.discharge.complete', 'ipd.discharge-summary.sign', 'billing.clearance.approve-dues'],
+  },
   {
     key: 'reports',
     href: '/reports',

@@ -1,0 +1,35 @@
+meta {
+  name: Ask for a 10% discount on a draft
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/discount-requests
+  body: json
+  auth: none
+}
+
+headers {
+  X-CSRF-Token: {{csrfToken}}
+}
+
+body:json {
+  {
+    "invoiceId": "{{invoiceId}}",
+    "reason": "Senior citizen",
+    "discount": { "scope": "bill_percent", "percentBp": 1000 }
+  }
+}
+
+docs {
+  As the billing clerk, on a draft bill (billing folder, Prepare a draft bill, before issuing it).
+}
+
+script:post-response {
+  bru.setVar("requestId", res.body.id);
+}
+
+assert {
+  res.status: eq 201
+}

@@ -29,3 +29,20 @@ export function seedTotpSecret(): string {
   if (secret === undefined || secret === '') throw new Error('SEED_TOTP_SECRET is not set, so admin and accounts cannot sign in');
   return secret;
 }
+
+// Test files share one worker, so this remembers the last 30 second window used across all of them.
+let lastWindow = -1;
+
+/**
+ * A code the API will take: it refuses a code already used, so when the last sign-in used this
+ * window's code, wait for the next window first.
+ */
+export async function freshTotpCode(secret: string): Promise<string> {
+  let window = Math.floor(Date.now() / 30_000);
+  if (window <= lastWindow) {
+    await new Promise((resolve) => setTimeout(resolve, (lastWindow + 1) * 30_000 - Date.now() + 250));
+    window = Math.floor(Date.now() / 30_000);
+  }
+  lastWindow = window;
+  return totpCode(secret, window * 30_000);
+}

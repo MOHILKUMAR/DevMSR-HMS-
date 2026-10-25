@@ -14,6 +14,7 @@ describe('visibleSettingsSections', () => {
       'doctors',
       'wards',
       'rates',
+      'advances',
       'hospital',
     ]);
   });
