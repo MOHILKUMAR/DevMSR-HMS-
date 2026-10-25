@@ -52,6 +52,8 @@ jobs:
       LOCAL: ${{ github.event_name == 'pull_request' }}
       DATABASE_URL: postgresql://hms_app:hms_app_ci_only_pw@localhost:5432/hms
       DIRECT_URL: postgresql://hms:hms_ci_only@localhost:5432/hms
+      # Background jobs run as a login that owns only the pgboss schema, also made by db:api-user.
+      JOBS_DATABASE_URL: postgresql://hms_jobs:hms_jobs_ci_only_pw@localhost:5432/hms
       SEED_USER_PASSWORD: ci-only-Passw0rd
     steps:
       - uses: actions/checkout@v7
