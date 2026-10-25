@@ -42,7 +42,7 @@ DevMSR HMS is a hospital management system for one pilot hospital in India (50 t
 - No business rules in Server Actions or Route Handlers. If they exist at all, they only forward to the NestJS API.
 - Server Components for read-only pages (lists, reports, patient summary). They call the API at `API_INTERNAL_URL` and forward the session cookie.
 - Client Components with TanStack Query for interactive counter screens: registration, billing, payments, bed board, queues.
-- `middleware.ts` only redirects to `/login` when there is no session cookie. The API does the real permission checks.
+- `middleware.ts` (`src/proxy.ts` since Next.js 16) only redirects to `/login` when there is no session cookie, and sets the per-request nonce of the Content-Security-Policy. The API does the real permission checks.
 - Keep client JavaScript small: dynamic import for heavy pieces (PDF preview, charts, rich text). Check bundles with `@next/bundle-analyzer` before every release.
 - Use route groups: `(auth)` for login, `(app)` for the signed-in shell.
 
@@ -114,6 +114,8 @@ Every API module has `<name>.module.ts`, `<name>.controller.ts`, `<name>.service
 | `pnpm dev` | Runs web and api in watch mode |
 | `pnpm db:migrate` | Creates and applies a migration in development |
 | `pnpm db:seed` | Loads fake hospital data |
+| `pnpm db:api-user` | Creates the API's restricted database login (once per environment) |
+| `pnpm db:sync-roles` | Applies permission matrix changes to every hospital with `--apply` (every deploy) |
 | `pnpm test` | Unit and integration tests |
 | `pnpm test:e2e` | Playwright tests |
 | `pnpm lint` and `pnpm typecheck` | ESLint and TypeScript checks |
@@ -269,6 +271,7 @@ Keep `.env.example` up to date with placeholder values. Real values are filled i
 
 ```
 NODE_ENV=development
+APP_ENV=development
 PORT=4000
 CORS_ORIGINS=http://localhost:3000
 LOG_LEVEL=info

@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { databaseRoleProblems } from '../src/common/startup/database-role-check.js';
 import { createHospital, createPatient, unique, type TestHospital } from './support/fixtures.js';
 import { createTestApp, type TestApp } from './support/test-app.js';
 
@@ -17,24 +18,57 @@ describe('database rules', () => {
     await t.close();
   });
 
-  it('keeps audit events append-only: no UPDATE, DELETE or TRUNCATE', async () => {
+  it('keeps audit events append-only: no UPDATE, DELETE or TRUNCATE, even for the table owner', async () => {
     const event = await t.prisma.auditEvent.create({ data: { action: 'test.rule.checked', hospitalId: hospital.id } });
-    await expect(t.prisma.auditEvent.update({ where: { id: event.id }, data: { action: 'test.rule.changed' } })).rejects.toThrow(
+    await expect(t.owner.auditEvent.update({ where: { id: event.id }, data: { action: 'test.rule.changed' } })).rejects.toThrow(
       /not allowed/,
     );
-    await expect(t.prisma.auditEvent.delete({ where: { id: event.id } })).rejects.toThrow(/not allowed/);
-    await expect(t.prisma.$executeRawUnsafe('TRUNCATE audit_events')).rejects.toThrow(/not allowed/);
+    await expect(t.owner.auditEvent.delete({ where: { id: event.id } })).rejects.toThrow(/not allowed/);
+    await expect(t.owner.$executeRawUnsafe('TRUNCATE audit_events')).rejects.toThrow(/not allowed/);
     expect(await t.prisma.auditEvent.count({ where: { id: event.id, action: 'test.rule.checked' } })).toBe(1);
   });
 
   it('keeps login history append-only', async () => {
     const event = await t.prisma.loginEvent.create({ data: { username: 'someone', outcome: 'unknown_user' } });
-    await expect(t.prisma.loginEvent.delete({ where: { id: event.id } })).rejects.toThrow(/not allowed/);
+    await expect(t.owner.loginEvent.delete({ where: { id: event.id } })).rejects.toThrow(/not allowed/);
   });
 
   it('never hard deletes a patient', async () => {
     const patient = await createPatient(t.prisma, hospital.id);
-    await expect(t.prisma.patient.delete({ where: { id: patient.id } })).rejects.toThrow(/not allowed/);
+    await expect(t.owner.patient.delete({ where: { id: patient.id } })).rejects.toThrow(/not allowed/);
+  });
+
+  describe("the API's database role", () => {
+    it('has no UPDATE, DELETE or TRUNCATE privilege on audit rows', async () => {
+      const event = await t.prisma.auditEvent.create({ data: { action: 'test.rule.checked', hospitalId: hospital.id } });
+      const login = await t.prisma.loginEvent.create({ data: { username: 'someone', outcome: 'unknown_user' } });
+      await expect(t.prisma.auditEvent.update({ where: { id: event.id }, data: { action: 'x' } })).rejects.toThrow(/permission denied/);
+      await expect(t.prisma.auditEvent.delete({ where: { id: event.id } })).rejects.toThrow(/permission denied/);
+      await expect(t.prisma.loginEvent.delete({ where: { id: login.id } })).rejects.toThrow(/permission denied/);
+      await expect(t.prisma.$executeRawUnsafe('TRUNCATE audit_events')).rejects.toThrow(/permission denied/);
+      await expect(t.prisma.$executeRawUnsafe('TRUNCATE login_events')).rejects.toThrow(/permission denied/);
+    });
+
+    it('cannot delete clinical or financial records at all', async () => {
+      const patient = await createPatient(t.prisma, hospital.id);
+      await expect(t.prisma.patient.delete({ where: { id: patient.id } })).rejects.toThrow(/permission denied/);
+      await expect(t.prisma.$executeRawUnsafe('TRUNCATE invoices CASCADE')).rejects.toThrow(/permission denied/);
+    });
+
+    it('cannot change the schema or switch off a trigger', async () => {
+      await expect(t.prisma.$executeRawUnsafe('ALTER TABLE audit_events DISABLE TRIGGER USER')).rejects.toThrow(/must be owner/);
+      await expect(t.prisma.$executeRawUnsafe('DROP TABLE audit_events')).rejects.toThrow(/must be owner/);
+      await expect(t.prisma.$executeRawUnsafe('CREATE TABLE test_rule_probe (id int)')).rejects.toThrow(/permission denied/);
+    });
+
+    it('cannot read migration history', async () => {
+      await expect(t.prisma.$queryRawUnsafe('SELECT count(*) FROM _prisma_migrations')).rejects.toThrow(/permission denied/);
+    });
+
+    it('passes the production check, which the owner fails', async () => {
+      expect(await databaseRoleProblems(t.prisma)).toEqual([]);
+      expect(await databaseRoleProblems(t.owner)).not.toEqual([]);
+    });
   });
 
   it('requires a hospital for staff users and none for platform users', async () => {

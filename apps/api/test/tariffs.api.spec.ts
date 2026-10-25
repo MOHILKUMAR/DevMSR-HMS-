@@ -103,7 +103,7 @@ describe('service items and rates', () => {
     await addRate(itemId, { effectiveFrom: addDays(today, 3) });
     const closed = await t.prisma.tariffRate.findFirstOrThrow({ where: { serviceItemId: itemId, NOT: { effectiveTo: null } } });
     await expect(t.prisma.tariffRate.update({ where: { id: closed.id }, data: { ratePaise: 1n } })).rejects.toThrow(/Rates are history/);
-    await expect(t.prisma.tariffRate.delete({ where: { id: closed.id } })).rejects.toThrow(/not allowed/);
+    await expect(t.owner.tariffRate.delete({ where: { id: closed.id } })).rejects.toThrow(/not allowed/);
   });
 
   it('two rate changes for the same item at once never leave two open rates', async () => {
