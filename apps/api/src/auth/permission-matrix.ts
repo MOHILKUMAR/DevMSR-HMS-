@@ -36,6 +36,7 @@ export const PERMISSIONS = {
   'nursing.return.create': 'Return unused medicines',
 
   // Billing
+  'billing.account.read': "View a patient's charges, bills, receipts and deposits",
   'billing.charge.create': 'Post charges',
   'billing.invoice.create': 'Prepare interim and final bills',
   'billing.invoice.issue': 'Issue and lock bills',
@@ -108,6 +109,7 @@ export const ROLES = {
       'reports.operations.read',
       'reports.profit.read',
       'reports.finance.export',
+      'billing.account.read',
       'billing.discount.approve',
       'billing.refund.approve',
       'billing.void.approve',
@@ -123,7 +125,8 @@ export const ROLES = {
       'tariffs.tariff.manage',
       'tariffs.tariff.read',
       'costing.cost-rate.manage',
-      'billing.refund.approve',
+      // No refund approval: every refund is approved by the MD (docs/billing-rules.md).
+      'billing.account.read',
       'reports.finance.export',
       'reports.collection.read',
     ],
@@ -134,6 +137,7 @@ export const ROLES = {
     permissions: [
       ...STAFF,
       'patients.patient.read',
+      'billing.account.read',
       'billing.charge.create',
       'billing.invoice.create',
       'billing.invoice.issue',
@@ -148,6 +152,7 @@ export const ROLES = {
     permissions: [
       ...STAFF,
       'patients.patient.read',
+      'billing.account.read',
       'payments.receipt.create',
       'payments.deposit.create',
       'payments.shift.manage-own',

@@ -1,0 +1,29 @@
+meta {
+  name: Open my shift
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/cash-shifts
+  body: json
+  auth: none
+}
+
+headers {
+  X-CSRF-Token: {{csrfToken}}
+}
+
+body:json {
+  {
+    "openingCashPaise": 200000
+  }
+}
+
+script:post-response {
+  bru.setVar("shiftId", res.body.id);
+}
+
+assert {
+  res.status: eq 201
+}

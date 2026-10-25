@@ -164,8 +164,8 @@ Every API module has `<name>.module.ts`, `<name>.controller.ts`, `<name>.service
 | --- | --- | --- |
 | Super admin (DevMSR platform) | Create and configure hospitals, emergency fixes | Daily hospital work. Opens patient records only through logged break-glass access with a reason. Two-factor required |
 | Hospital admin | Users, roles, masters, settings | Approve their own discounts, refunds or voids |
-| MD or owner | All reports including profit, final approvals | |
-| Finance head or accountant | Tariffs, cost rates, refund approval, Tally export, collection reports | Edit issued invoices (nobody can) |
+| MD or owner | All reports including profit, final approvals, every refund approval, discounts above the finance limit | |
+| Finance head or accountant | Tariffs, cost rates, credit note approval, discounts up to the hospital's limit, Tally export, collection reports | Approve refunds (MD only, docs/billing-rules.md); edit issued invoices (nobody can) |
 | Billing clerk | Charges, interim and final bills, discount requests | Approve discounts, refunds or voids |
 | Cashier | Receipts, deposits, own cash shift | See or close other cashiers' shifts |
 | Receptionist | Registration, appointments, tokens, admission | Change charges or bills |

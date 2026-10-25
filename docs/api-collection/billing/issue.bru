@@ -1,0 +1,29 @@
+meta {
+  name: Issue the bill
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/invoices/{{invoiceId}}/issue
+  body: none
+  auth: none
+}
+
+headers {
+  X-CSRF-Token: {{csrfToken}}
+  Idempotency-Key: {{idempotencyKey}}
+}
+
+docs {
+  Gives the next INV number and locks the bill. A second issue is 409 INVOICE_LOCKED.
+}
+
+script:pre-request {
+  // A new key each run. Send the request again without this script to see the stored response.
+  bru.setVar("idempotencyKey", require("crypto").randomUUID());
+}
+
+assert {
+  res.status: eq 200
+}

@@ -1,0 +1,42 @@
+meta {
+  name: Take a UPI payment
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/payments
+  body: json
+  auth: none
+}
+
+headers {
+  X-CSRF-Token: {{csrfToken}}
+  Idempotency-Key: {{idempotencyKey}}
+}
+
+body:json {
+  {
+    "invoiceId": "{{invoiceId}}",
+    "mode": "upi",
+    "amountPaise": 10000,
+    "reference": "412345678901"
+  }
+}
+
+docs {
+  Needs invoiceId from "Issue the bill" in the billing folder and an open shift.
+}
+
+script:pre-request {
+  // A new key each run. Send the request again without this script to see the stored response.
+  bru.setVar("idempotencyKey", require("crypto").randomUUID());
+}
+
+script:post-response {
+  bru.setVar("receiptId", res.body.id);
+}
+
+assert {
+  res.status: eq 201
+}

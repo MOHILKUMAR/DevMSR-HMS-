@@ -25,3 +25,17 @@ describe('NumberingService.nextUhid', () => {
     expect(repo.next).toHaveBeenLastCalledWith('h1', 'uhid', '2026', {});
   });
 });
+
+describe('NumberingService.nextDocumentNumber', () => {
+  it('numbers bills per financial year: 1 April starts a new series', async () => {
+    const repo = { hospitalCode: vi.fn().mockResolvedValue('DEMO'), next: vi.fn().mockResolvedValue(7) };
+    const service = new NumberingService(repo);
+    expect(await service.nextDocumentNumber('h1', 'invoice', {} as never, new Date('2027-03-31T12:00:00Z'))).toEqual({
+      number: 'DEMO/INV/2026-27/000007',
+      financialYear: '2026-27',
+    });
+    // 31 March, 19:00 UTC is already 1 April in India.
+    expect((await service.nextDocumentNumber('h1', 'receipt', {} as never, new Date('2027-03-31T19:00:00Z'))).number).toBe('DEMO/RCT/2027-28/000007');
+    expect(repo.next).toHaveBeenLastCalledWith('h1', 'receipt', '2027-28', {});
+  });
+});

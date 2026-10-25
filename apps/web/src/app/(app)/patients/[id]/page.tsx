@@ -2,8 +2,8 @@ import { notFound, redirect } from 'next/navigation';
 import { PatientRecord } from '@/features/patients/patient-record';
 import { getPatient } from '@/features/patients/server';
 import { getCurrentUser } from '@/lib/api/server';
+import { isUuid } from '@/lib/ids';
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** A patient's record. Opening it is audited by the API. */
 export default async function PatientPage({
@@ -17,7 +17,7 @@ export default async function PatientPage({
   const { registered } = await searchParams;
   const me = await getCurrentUser();
   if (me === null) redirect('/login');
-  if (!UUID.test(id)) notFound();
+  if (!isUuid(id)) notFound();
   const patient = await getPatient(id);
   return (
     <PatientRecord

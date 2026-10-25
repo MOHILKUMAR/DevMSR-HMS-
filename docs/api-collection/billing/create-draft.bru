@@ -1,0 +1,36 @@
+meta {
+  name: Prepare a draft bill
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/invoices
+  body: json
+  auth: none
+}
+
+headers {
+  X-CSRF-Token: {{csrfToken}}
+  Idempotency-Key: {{idempotencyKey}}
+}
+
+body:json {
+  {
+    "patientId": "{{patientId}}",
+    "chargeIds": ["{{chargeId}}"]
+  }
+}
+
+script:pre-request {
+  // A new key each run. Send the request again without this script to see the stored response.
+  bru.setVar("idempotencyKey", require("crypto").randomUUID());
+}
+
+script:post-response {
+  bru.setVar("invoiceId", res.body.id);
+}
+
+assert {
+  res.status: eq 201
+}

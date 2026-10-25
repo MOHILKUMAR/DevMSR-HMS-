@@ -1,0 +1,33 @@
+meta {
+  name: Take a cash deposit
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/deposits
+  body: json
+  auth: none
+}
+
+headers {
+  X-CSRF-Token: {{csrfToken}}
+  Idempotency-Key: {{idempotencyKey}}
+}
+
+body:json {
+  {
+    "patientId": "{{patientId}}",
+    "mode": "cash",
+    "amountPaise": 50000
+  }
+}
+
+script:pre-request {
+  // A new key each run. Send the request again without this script to see the stored response.
+  bru.setVar("idempotencyKey", require("crypto").randomUUID());
+}
+
+assert {
+  res.status: eq 201
+}

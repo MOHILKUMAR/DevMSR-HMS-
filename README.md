@@ -48,6 +48,10 @@ Start with **Settings**. As `admin`, add staff users and their roles, department
 
 At the front desk, sign in as `reception`: search patients from the top bar (press `/`) by UHID, mobile or name, and register new ones under **Patients**. Each new patient gets the next UHID, such as `DEMO-2026-000051`.
 
+To bill, sign in as `billing`: under **Billing**, find the patient, add charges, prepare a bill and issue it (it gets a number such as `DEMO/INV/2026-27/000001` and is locked). Then sign in as `cashier`: under **Payments**, open your shift with the cash in the drawer, find the patient, take a deposit or a payment, print the receipt on A4 or an 80 mm slip, and close the shift with a cash count. `accounts` sees every cashier's shifts.
+
+After pulling changes that add permissions, run `pnpm db:seed` again: it brings the seeded roles in line with `apps/api/src/auth/permission-matrix.ts` and keeps your data.
+
 ## Layout
 
 | Path | What it is |
