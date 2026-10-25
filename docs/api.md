@@ -108,6 +108,24 @@ One user asks and another decides (maker-checker): the requester can never appro
 
 Bills and bill lists now also return `creditedPaise`, `refundedPaise` and `refundablePaise`; `duePaise` is total, less credit notes and payments (void receipts left out), plus refunds. Receipts return `voidedAt`; shifts return `refundsPaise` and `cashRefundsPaise`; the patient account lists credit notes and refunds and returns `refundablePaise`.
 
+## OPD
+
+Walk-in visits (`docs/billing-rules.md`, OPD). Tokens are numbered for the whole hospital and restart every day (IST). The token joins the doctor's queue only once its consultation fee is paid. Doctors reach only their own visits: another doctor's visit, or another hospital's, is 404.
+
+| Method | Path | Permission | Notes |
+| --- | --- | --- | --- |
+| POST | `/opd-visits` | `opd.appointment.manage` | Needs `Idempotency-Key`. Body `{ patientId, doctorId }`. Today's next token; `quotedFeePaise` is the doctor's consultation rate today. Nothing is charged yet. 409 `TOKEN_EXISTS` if the patient already has an open token for that doctor today; 422 `RATE_MISSING` if the doctor has no consultation rate; 422 `REFERENCE_INVALID` for an inactive doctor. |
+| GET | `/opd-visits` | `opd.visit.read` | A day's visits in token order, without clinical notes. `?date=` (default today), `?status=`, `?doctorId=`. |
+| GET | `/opd-visits/queue` | `opd.queue.read-own` | The signed-in doctor's paid visits today (waiting or with them) and how many were seen. `doctor` is null when the login is not linked to a doctor. |
+| GET | `/opd-visits/:id` | `opd.visit.read` | One visit without notes, for the token slip. |
+| POST | `/opd-visits/:id/cancel` | `opd.appointment.manage` | Body `{ reason }`. Only an unpaid token; otherwise 409 `VISIT_STATE`. |
+| POST | `/opd-visits/:id/fee` | `payments.receipt.create` | Needs `Idempotency-Key`. Body: the payment mode and its details, no amount. In one transaction: the consultation charge at today's rate, a bill issued for it (`INV` number), a receipt for the bill's total in the cashier's open shift, and the visit moves to the queue. 201 with the receipt. 422 `SHIFT_REQUIRED`; 409 `VISIT_STATE` if not awaiting payment. |
+| POST | `/opd-visits/:id/call` | `clinical.note.write` | The visit's doctor calls the patient in. Only a paid, waiting visit. |
+| GET | `/opd-visits/:id/consultation` | `clinical.note.write` | The visit with its notes and orders, for its doctor. Audited. |
+| PUT | `/opd-visits/:id/notes` | `clinical.note.write` | Body `{ complaints, findings, diagnosis, advice, followUpDate, admissionAdvised }` (text up to 2,000 characters, null to clear). Only while the patient is with the doctor. The audit event names the fields, not their text. |
+| POST | `/opd-visits/:id/orders` | `clinical.order.create` | Needs `Idempotency-Key`. Body `{ serviceItemId, quantity }` (1 to 99), a test or procedure (not a consultation, room or nursing item). Posts its charge at today's rate for the billing clerk to bill. Only while the patient is with the doctor. |
+| POST | `/opd-visits/:id/complete` | `clinical.note.write` | Ends the visit; its notes are locked from then on. |
+
 ## Error codes
 
 | Code | Status | When |
@@ -149,4 +167,6 @@ Bills and bill lists now also return `creditedPaise`, `refundedPaise` and `refun
 | `AMOUNT_TOO_LARGE` | 422 | A discount, credit note or refund larger than the line, bill, deposit or overpayment allows. |
 | `RECEIPT_NOT_VOIDABLE` | 422 | The receipt's shift is closed, it is void already, or its deposit was used or refunded. |
 | `REFUND_NOT_READY` | 409 | Paying out a refund that is not approved, or was paid already. |
+| `VISIT_STATE` | 409 | The OPD visit has moved on (paid, called in, completed or cancelled) and cannot take this step. |
+| `TOKEN_EXISTS` | 409 | The patient already has an open token for this doctor today. |
 | `INTERNAL_ERROR` | 500 | Anything unexpected. Details are logged with the `X-Request-Id`, never returned. |

@@ -58,6 +58,8 @@ To bill, sign in as `billing`: under **Billing**, find the patient, add charges,
 
 Discounts, credit notes, refunds and receipt voids need a second person. The billing clerk asks for a discount on a draft bill or a credit note on an issued one; the cashier asks for a refund or a receipt void. `accounts` approves discounts up to Rs 1,000, credit notes and voids under **Approvals**; `md` approves larger discounts and every refund. The cashier then pays the refund out from their shift.
 
+For OPD, `reception` issues a token under **OPD** (find the patient, choose the doctor, print the slip). The `cashier` takes the consultation fee from **OPD fees waiting** on the cash counter, and only then does the patient appear in `doctor`'s queue under **OPD**, where the doctor calls them in, writes notes, orders tests and completes the visit.
+
 After pulling changes that add permissions, run `pnpm db:sync-roles --apply`: it brings every hospital's seeded roles in line with `apps/api/src/auth/permission-matrix.ts` and keeps your data (`pnpm db:seed` does the same for the demo hospital). The API logs a warning at start-up while they differ.
 
 ## Layout

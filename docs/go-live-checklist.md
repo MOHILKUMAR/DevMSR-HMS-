@@ -57,7 +57,7 @@ The questions to send are in [`docs/hospital-questions.md`](hospital-questions.m
 Each slice comes with its migration, API, screens, tests, seed data and docs. Details are in `docs/feature-checklist.md`.
 
 - [x] Slice 3b: discounts, refunds, credit notes and voids, each approved by a second user. **Dev**
-- [ ] Slice 4, OPD: tokens, doctor queue, consultation fee, orders that post charges, follow-up dates. **Dev**
+- [x] Slice 4, OPD: tokens, doctor queue, consultation fee, orders that post charges, follow-up dates. **Dev**
 - [ ] Slice 5, IPD and beds: admission with deposit, bed board, transfers, interim bills, room and nursing charges posted at midnight IST. The midnight job needs pg-boss, a new dependency to approve. **Dev**
 - [ ] Slice 6, discharge and reports: fit for discharge, final bill, refund of excess deposit, billing clearance, discharge summary, day-end collection report, Tally export. **Dev**
 - [ ] PDF bills and receipts (PDFKit), and emailed bills: a password-protected PDF, the Resend adapter behind `MessageSender`, the pg-boss outbox, message templates in a table, and the dev inbox for mock mode (`CLAUDE.md` section 14). **Dev**

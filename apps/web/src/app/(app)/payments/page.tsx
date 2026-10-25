@@ -11,5 +11,5 @@ export default async function PaymentsPage() {
     if (canSeeShifts) redirect('/payments/shifts');
     notFound();
   }
-  return <CashierDesk canSeeShifts={canSeeShifts} />;
+  return <CashierDesk canSeeShifts={canSeeShifts} canSeeOpdFees={me.permissions.includes('opd.visit.read')} />;
 }

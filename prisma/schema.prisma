@@ -49,6 +49,8 @@ enum NumberKind {
   receipt
   credit_note
   refund
+  // Per day (IST), for the whole hospital (docs/billing-rules.md).
+  opd_token
 
   @@map("number_kind")
 }
@@ -105,6 +107,17 @@ enum ReceiptPurpose {
   deposit
 
   @@map("receipt_purpose")
+}
+
+// A walk-in OPD visit: the token waits for the consultation fee, then the doctor's queue.
+enum OpdVisitStatus {
+  awaiting_payment
+  waiting
+  with_doctor
+  completed
+  cancelled
+
+  @@map("opd_visit_status")
 }
 
 enum BedStatus {
@@ -229,6 +242,7 @@ model Doctor {
   department   Department    @relation(fields: [hospitalId, departmentId], references: [hospitalId, id], onDelete: Restrict)
   user         User?         @relation(fields: [userId], references: [id], onDelete: Restrict)
   serviceItems ServiceItem[]
+  opdVisits    OpdVisit[]
 
   @@unique([hospitalId, id])
   @@index([hospitalId, departmentId])
@@ -272,6 +286,7 @@ model ServiceItem {
   roomCategory RoomCategory? @relation(fields: [hospitalId, roomCategoryId], references: [hospitalId, id], onDelete: Restrict)
   rates        TariffRate[]
   charges      Charge[]
+  opdVisits    OpdVisit[]
 
   @@unique([hospitalId, code])
   @@unique([hospitalId, id])
@@ -452,6 +467,7 @@ model Patient {
   approvalRequests ApprovalRequest[]
   creditNotes      CreditNote[]
   refunds          Refund[]
+  opdVisits        OpdVisit[]
 
   @@unique([hospitalId, uhid])
   @@unique([hospitalId, id])
@@ -622,7 +638,9 @@ model Charge {
   serviceItem ServiceItem @relation(fields: [hospitalId, serviceItemId], references: [hospitalId, id], onDelete: Restrict)
   tariffRate  TariffRate  @relation(fields: [tariffRateId], references: [id], onDelete: Restrict)
   invoice     Invoice?    @relation(fields: [hospitalId, invoiceId], references: [hospitalId, id], onDelete: Restrict)
+  opdOrder    OpdOrder?
 
+  @@unique([hospitalId, id])
   @@index([hospitalId, patientId, status])
   @@index([invoiceId])
   @@map("charges")
@@ -658,8 +676,10 @@ model Invoice {
   lines            InvoiceLine[]
   charges          Charge[]
   allocations      ReceiptAllocation[]
+  opdVisits        OpdVisit[]
   approvalRequests ApprovalRequest[]
   creditNotes      CreditNote[]
+  creditNoteLines  CreditNoteLine[]
   refunds          Refund[]
 
   @@unique([hospitalId, id])
@@ -855,6 +875,7 @@ model CreditNoteLine {
   totalPaise   BigInt @map("total_paise")
 
   creditNote CreditNote @relation(fields: [hospitalId, creditNoteId], references: [hospitalId, id], onDelete: Restrict)
+  invoice    Invoice    @relation(fields: [hospitalId, invoiceId], references: [hospitalId, id], onDelete: Restrict)
 
   @@unique([creditNoteId, lineNo])
   @@index([invoiceId, lineNo])
@@ -912,4 +933,66 @@ model ReceiptVoid {
   @@unique([hospitalId, receiptId])
   @@unique([hospitalId, approvalRequestId])
   @@map("receipt_voids")
+}
+
+// One OPD visit: a token for the day, the consultation fee's bill once paid, and the doctor's notes.
+// Notes can change only while the patient is with the doctor; a finished visit never changes.
+model OpdVisit {
+  id               String         @id @default(uuid(7)) @db.Uuid
+  hospitalId       String         @map("hospital_id") @db.Uuid
+  patientId        String         @map("patient_id") @db.Uuid
+  doctorId         String         @map("doctor_id") @db.Uuid
+  // The doctor's consultation service item, priced when the fee is paid.
+  serviceItemId    String         @map("service_item_id") @db.Uuid
+  visitDate        DateTime       @map("visit_date") @db.Date
+  tokenNumber      Int            @map("token_number")
+  status           OpdVisitStatus @default(awaiting_payment)
+  // The fee shown when the token was issued. The bill uses the rate in force when it is paid.
+  quotedFeePaise   BigInt         @map("quoted_fee_paise")
+  feeInvoiceId     String?        @map("fee_invoice_id") @db.Uuid
+  createdById      String         @map("created_by_id") @db.Uuid
+  createdAt        DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  paidAt           DateTime?      @map("paid_at") @db.Timestamptz(3)
+  calledAt         DateTime?      @map("called_at") @db.Timestamptz(3)
+  completedAt      DateTime?      @map("completed_at") @db.Timestamptz(3)
+  cancelledAt      DateTime?      @map("cancelled_at") @db.Timestamptz(3)
+  cancelledById    String?        @map("cancelled_by_id") @db.Uuid
+  cancelReason     String?        @map("cancel_reason")
+  complaints       String?
+  findings         String?
+  diagnosis        String?
+  advice           String?
+  followUpDate     DateTime?      @map("follow_up_date") @db.Date
+  admissionAdvised Boolean        @default(false) @map("admission_advised")
+  notesUpdatedAt   DateTime?      @map("notes_updated_at") @db.Timestamptz(3)
+
+  patient     Patient     @relation(fields: [hospitalId, patientId], references: [hospitalId, id], onDelete: Restrict)
+  doctor      Doctor      @relation(fields: [hospitalId, doctorId], references: [hospitalId, id], onDelete: Restrict)
+  serviceItem ServiceItem @relation(fields: [hospitalId, serviceItemId], references: [hospitalId, id], onDelete: Restrict)
+  feeInvoice  Invoice?    @relation(fields: [hospitalId, feeInvoiceId], references: [hospitalId, id], onDelete: Restrict)
+  orders      OpdOrder[]
+
+  @@unique([hospitalId, id])
+  @@unique([hospitalId, visitDate, tokenNumber])
+  @@index([hospitalId, visitDate, status])
+  @@index([hospitalId, doctorId, visitDate])
+  @@index([hospitalId, patientId])
+  @@map("opd_visits")
+}
+
+// A test or procedure the doctor ordered in a visit. Its charge is posted at once, for billing.
+model OpdOrder {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  hospitalId  String   @map("hospital_id") @db.Uuid
+  visitId     String   @map("visit_id") @db.Uuid
+  chargeId    String   @map("charge_id") @db.Uuid
+  orderedById String   @map("ordered_by_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  visit  OpdVisit @relation(fields: [hospitalId, visitId], references: [hospitalId, id], onDelete: Restrict)
+  charge Charge   @relation(fields: [hospitalId, chargeId], references: [hospitalId, id], onDelete: Restrict)
+
+  @@unique([hospitalId, chargeId])
+  @@index([visitId])
+  @@map("opd_orders")
 }

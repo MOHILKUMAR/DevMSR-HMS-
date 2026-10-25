@@ -1,0 +1,19 @@
+meta {
+  name: My queue
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/opd-visits/queue
+  body: none
+  auth: none
+}
+
+docs {
+  As the doctor linked to the visit.
+}
+
+assert {
+  res.status: eq 200
+}

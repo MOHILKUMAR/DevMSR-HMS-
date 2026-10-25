@@ -1,0 +1,40 @@
+meta {
+  name: Issue a token
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/opd-visits
+  body: json
+  auth: none
+}
+
+headers {
+  X-CSRF-Token: {{csrfToken}}
+  Idempotency-Key: {{idempotencyKey}}
+}
+
+body:json {
+  {
+    "patientId": "{{patientId}}",
+    "doctorId": "{{doctorId}}"
+  }
+}
+
+docs {
+  Needs patientId (patients folder) and doctorId (settings folder, a doctor with a consultation rate).
+}
+
+script:pre-request {
+  // A new key each run. Send the request again without this script to see the stored response.
+  bru.setVar("idempotencyKey", require("crypto").randomUUID());
+}
+
+script:post-response {
+  bru.setVar("visitId", res.body.id);
+}
+
+assert {
+  res.status: eq 201
+}

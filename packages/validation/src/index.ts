@@ -4,6 +4,7 @@ export * from './billing.js';
 export * from './common.js';
 export * from './identity.js';
 export * from './masters.js';
+export * from './opd.js';
 export * from './pagination.js';
 export * from './patients.js';
 export * from './tariffs.js';

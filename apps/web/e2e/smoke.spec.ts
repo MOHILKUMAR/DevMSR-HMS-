@@ -1,8 +1,8 @@
 import { randomUUID } from 'node:crypto';
 import { expect, test } from '@playwright/test';
 
-// Seeded demo users from prisma/seed-data.ts, all with SEED_USER_PASSWORD. Tests spread their
-// sign-ins over different users because the API allows 5 per minute per username.
+// Seeded demo users from prisma/seed-data.ts, all with SEED_USER_PASSWORD. The API allows 5 sign-ins
+// per minute per username; CI raises that for the whole suite, and the API tests cover the limit.
 const RECEPTIONIST = { username: 'reception', displayName: 'Demo Receptionist' };
 const NURSE = { username: 'nurse', displayName: 'Demo Nurse' };
 
