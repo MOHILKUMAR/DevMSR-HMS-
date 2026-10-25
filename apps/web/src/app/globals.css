@@ -30,6 +30,10 @@
   --info-soft: #eff6ff;
   --accent-soft: #f5f3ff;
   --neutral-soft: #f1f5f9;
+  /* Printed bills and receipts: black on white whatever the screen theme (section 16). */
+  --print-ink: #000000;
+  --print-paper: #ffffff;
+  --print-rule: #6b7280;
   --radius: 6px;
 }
 
@@ -68,6 +72,9 @@
   --color-surface: var(--surface);
   --color-border: var(--border);
   --color-input-border: var(--input-border);
+  --color-print-ink: var(--print-ink);
+  --color-print-paper: var(--print-paper);
+  --color-print-rule: var(--print-rule);
   --color-text: var(--text);
   --color-text-muted: var(--text-muted);
   --color-success: var(--success);

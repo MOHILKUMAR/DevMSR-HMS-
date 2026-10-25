@@ -29,8 +29,10 @@ Progress against `CLAUDE.md`, section 11. Later phases need the developer's appr
 - [ ] Registration fee (waiting for an answer in `docs/billing-rules.md`)
 - [ ] OPD
 - [ ] IPD and beds
-- [ ] Billing
-- [ ] Payments and cash shifts
+- [x] Billing (slice 3a): charges at the dated rate, draft bills, issue with gapless `INV` numbers per financial year, locked issued bills, discard, A4 and 80 mm print
+- [x] Payments and cash shifts (slice 3a): one open shift per cashier, payments by cash, UPI, card, bank transfer or cheque, deposits, deposits set against bills, gapless `RCT` numbers, shift close with counted cash and a reason for any difference, shift list for finance
+- [ ] Discounts, refunds, credit notes and voids with maker-checker approvals (slice 3b)
+- [ ] Day-end collection report and Tally export
 - [ ] Discharge
 - [ ] Basic reports
 - [ ] Emailed bills

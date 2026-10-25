@@ -22,3 +22,12 @@ export async function takeNumber(tx: Tx, hospitalId: string, kind: NumberKind, p
 export function formatUhid(hospitalCode: string, year: string, value: number): string {
   return `${hospitalCode}-${year}-${String(value).padStart(6, '0')}`;
 }
+
+/** The document types with their own number series, and the code each number carries. */
+export const DOCUMENT_PREFIXES = { invoice: 'INV', receipt: 'RCT' } as const;
+export type DocumentKind = keyof typeof DOCUMENT_PREFIXES;
+
+/** `DEMO/INV/2026-27/000001`: hospital code, type, financial year, 6 digits (docs/billing-rules.md). */
+export function formatDocumentNumber(hospitalCode: string, kind: DocumentKind, financialYear: string, value: number): string {
+  return `${hospitalCode}/${DOCUMENT_PREFIXES[kind]}/${financialYear}/${String(value).padStart(6, '0')}`;
+}

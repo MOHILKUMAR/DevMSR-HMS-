@@ -19,6 +19,15 @@ const KNOWN_CODES = [
   'IDEMPOTENCY_IN_PROGRESS',
   'DUPLICATE_PATIENT',
   'POSSIBLE_DUPLICATE',
+  'RATE_MISSING',
+  'CHARGE_UNAVAILABLE',
+  'INVOICE_LOCKED',
+  'SHIFT_REQUIRED',
+  'SHIFT_ALREADY_OPEN',
+  'AMOUNT_EXCEEDS_DUE',
+  'NO_DEPOSIT_HELD',
+  'BILL_NOT_ISSUED',
+  'SHIFT_CLOSED',
 ] as const;
 
 export type ErrorMessageKey = (typeof KNOWN_CODES)[number] | 'network' | 'unknown';

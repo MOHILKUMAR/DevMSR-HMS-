@@ -89,6 +89,58 @@ export interface paths {
         patch: operations["bedsUpdate"];
         trace?: never;
     };
+    "/api/v1/cash-shifts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Every cashier shift, newest first, with takings and differences */
+        get: operations["cashShiftsList"];
+        put?: never;
+        /** Open your cash shift with the opening cash */
+        post: operations["cashShiftsOpen"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cash-shifts/{id}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Close your shift with the counted cash; a difference needs a reason */
+        post: operations["cashShiftsClose"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cash-shifts/current": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your open shift with its takings so far, or null */
+        get: operations["cashShiftsCurrent"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/departments": {
         parameters: {
             query?: never;
@@ -122,6 +174,23 @@ export interface paths {
         head?: never;
         /** Rename, retire or restore a department */
         patch: operations["departmentsUpdate"];
+        trace?: never;
+    };
+    "/api/v1/deposits": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Take an advance deposit, held for the patient */
+        post: operations["paymentsDeposit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/doctors": {
@@ -194,6 +263,92 @@ export interface paths {
         patch: operations["hospitalProfileUpdate"];
         trace?: never;
     };
+    "/api/v1/invoices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Bills, newest first; drafts and issued, never discarded unless asked */
+        get: operations["invoicesList"];
+        put?: never;
+        /** Draft a bill from a patient's unbilled charges */
+        post: operations["invoicesCreate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invoices/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A bill with its lines (audited) */
+        get: operations["invoicesGet"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invoices/{id}/apply-deposit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Set held deposit against an issued bill, oldest deposit first */
+        post: operations["paymentsApplyDeposit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invoices/{id}/discard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Discard a draft; its charges can go on another bill */
+        post: operations["invoicesDiscard"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invoices/{id}/issue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Issue a draft: the next bill number, then locked for good */
+        post: operations["invoicesIssue"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/patients": {
         parameters: {
             query?: never;
@@ -229,6 +384,41 @@ export interface paths {
         patch: operations["patientsUpdate"];
         trace?: never;
     };
+    "/api/v1/patients/{id}/account": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A patient's unbilled charges, bills, receipts and deposit held (audited) */
+        get: operations["patientBillingAccount"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/patients/{id}/charges": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A patient's charges */
+        get: operations["patientBillingListCharges"];
+        put?: never;
+        /** Post a charge at the rate in force on the service date */
+        post: operations["patientBillingPostCharge"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/patients/duplicate-check": {
         parameters: {
             query?: never;
@@ -257,6 +447,40 @@ export interface paths {
         put?: never;
         /** Find patients by UHID, mobile, name, Aadhaar or ABHA number */
         post: operations["patientsSearch"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Take a payment against an issued bill, up to what is due */
+        post: operations["paymentsPay"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/receipts/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A receipt, for printing (audited) */
+        get: operations["paymentsReceipt"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -566,6 +790,104 @@ export interface components {
             status: "free" | "occupied" | "cleaning" | "reserved" | "blocked";
             isActive: boolean;
         };
+        CashShiftsListResponse: {
+            data: {
+                /** Format: uuid */
+                id: string;
+                cashierName: string | null;
+                /** Format: date-time */
+                openedAt: string;
+                openingCashPaise: number;
+                closedAt: string | null;
+                expectedCashPaise: number;
+                countedCashPaise: number | null;
+                differencePaise: number | null;
+                differenceReason: string | null;
+                byMode: {
+                    /** @enum {string} */
+                    mode: "cash" | "upi" | "card" | "bank_transfer" | "cheque";
+                    count: number;
+                    amountPaise: number;
+                }[];
+                depositsPaise: number;
+                billPaymentsPaise: number;
+            }[];
+            page: number;
+            pageSize: number;
+            total: number;
+        };
+        CashShiftsOpenRequest: {
+            openingCashPaise: number;
+        };
+        CashShiftsOpenResponse: {
+            /** Format: uuid */
+            id: string;
+            cashierName: string | null;
+            /** Format: date-time */
+            openedAt: string;
+            openingCashPaise: number;
+            closedAt: string | null;
+            expectedCashPaise: number;
+            countedCashPaise: number | null;
+            differencePaise: number | null;
+            differenceReason: string | null;
+            byMode: {
+                /** @enum {string} */
+                mode: "cash" | "upi" | "card" | "bank_transfer" | "cheque";
+                count: number;
+                amountPaise: number;
+            }[];
+            depositsPaise: number;
+            billPaymentsPaise: number;
+        };
+        CashShiftsCloseRequest: {
+            countedCashPaise: number;
+            differenceReason?: string;
+        };
+        CashShiftsCloseResponse: {
+            /** Format: uuid */
+            id: string;
+            cashierName: string | null;
+            /** Format: date-time */
+            openedAt: string;
+            openingCashPaise: number;
+            closedAt: string | null;
+            expectedCashPaise: number;
+            countedCashPaise: number | null;
+            differencePaise: number | null;
+            differenceReason: string | null;
+            byMode: {
+                /** @enum {string} */
+                mode: "cash" | "upi" | "card" | "bank_transfer" | "cheque";
+                count: number;
+                amountPaise: number;
+            }[];
+            depositsPaise: number;
+            billPaymentsPaise: number;
+        };
+        CashShiftsCurrentResponse: {
+            shift: {
+                /** Format: uuid */
+                id: string;
+                cashierName: string | null;
+                /** Format: date-time */
+                openedAt: string;
+                openingCashPaise: number;
+                closedAt: string | null;
+                expectedCashPaise: number;
+                countedCashPaise: number | null;
+                differencePaise: number | null;
+                differenceReason: string | null;
+                byMode: {
+                    /** @enum {string} */
+                    mode: "cash" | "upi" | "card" | "bank_transfer" | "cheque";
+                    count: number;
+                    amountPaise: number;
+                }[];
+                depositsPaise: number;
+                billPaymentsPaise: number;
+            } | null;
+        };
         DepartmentsListResponse: {
             data: {
                 /** Format: uuid */
@@ -599,6 +921,60 @@ export interface components {
             code: string;
             name: string;
             isActive: boolean;
+        };
+        PaymentsDepositRequest: {
+            /** Format: uuid */
+            patientId: string;
+            /** @enum {string} */
+            mode: "cash" | "upi" | "card" | "bank_transfer" | "cheque";
+            amountPaise: number;
+            reference?: string;
+            cardLast4?: string;
+            bankName?: string;
+        };
+        PaymentsDepositResponse: {
+            /** Format: uuid */
+            id: string;
+            number: string;
+            /** @enum {string} */
+            purpose: "bill_payment" | "deposit";
+            /** @enum {string} */
+            mode: "cash" | "upi" | "card" | "bank_transfer" | "cheque";
+            amountPaise: number;
+            reference: string | null;
+            cardLast4: string | null;
+            bankName: string | null;
+            patient: {
+                /** Format: uuid */
+                id: string;
+                uhid: string;
+                fullName: string;
+                /** @enum {string} */
+                sex: "male" | "female" | "other" | "unknown";
+                dateOfBirth: string | null;
+                phone: string | null;
+                address: string | null;
+            };
+            issuer: {
+                name: string;
+                addressLine: string | null;
+                city: string | null;
+                state: string | null;
+                pincode: string | null;
+                phone: string | null;
+                email: string | null;
+                gstin: string | null;
+            };
+            receivedByName: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            allocations: {
+                /** Format: uuid */
+                invoiceId: string;
+                invoiceNumber: string;
+                amountPaise: number;
+            }[];
+            heldPaise: number;
         };
         DoctorsListResponse: {
             data: {
@@ -702,6 +1078,326 @@ export interface components {
             pincode: string | null;
             phone: string | null;
             email: string | null;
+        };
+        InvoicesListResponse: {
+            data: {
+                /** Format: uuid */
+                id: string;
+                /** @enum {string} */
+                status: "draft" | "issued" | "discarded";
+                number: string | null;
+                /** Format: uuid */
+                patientId: string;
+                patientUhid: string;
+                patientName: string;
+                totalPaise: number;
+                paidPaise: number;
+                duePaise: number;
+                issuedAt: string | null;
+                /** Format: date-time */
+                createdAt: string;
+            }[];
+            page: number;
+            pageSize: number;
+            total: number;
+        };
+        InvoicesCreateRequest: {
+            /** Format: uuid */
+            patientId: string;
+            chargeIds: string[];
+        };
+        InvoicesCreateResponse: {
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            status: "draft" | "issued" | "discarded";
+            number: string | null;
+            financialYear: string | null;
+            subtotalPaise: number;
+            discountPaise: number;
+            taxablePaise: number;
+            cgstPaise: number;
+            sgstPaise: number;
+            roundOffPaise: number;
+            totalPaise: number;
+            paidPaise: number;
+            duePaise: number;
+            issuer: {
+                name: string;
+                addressLine: string | null;
+                city: string | null;
+                state: string | null;
+                pincode: string | null;
+                phone: string | null;
+                email: string | null;
+                gstin: string | null;
+            };
+            patient: {
+                /** Format: uuid */
+                id: string;
+                uhid: string;
+                fullName: string;
+                /** @enum {string} */
+                sex: "male" | "female" | "other" | "unknown";
+                dateOfBirth: string | null;
+                phone: string | null;
+                address: string | null;
+            };
+            lines: {
+                lineNo: number;
+                description: string;
+                /** Format: date */
+                serviceDate: string;
+                quantity: number;
+                unitRatePaise: number;
+                amountPaise: number;
+                discountPaise: number;
+                taxablePaise: number;
+                taxRateBp: number;
+                cgstPaise: number;
+                sgstPaise: number;
+                totalPaise: number;
+            }[];
+            /** Format: date-time */
+            createdAt: string;
+            createdByName: string | null;
+            issuedAt: string | null;
+            issuedByName: string | null;
+        };
+        InvoicesGetResponse: {
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            status: "draft" | "issued" | "discarded";
+            number: string | null;
+            financialYear: string | null;
+            subtotalPaise: number;
+            discountPaise: number;
+            taxablePaise: number;
+            cgstPaise: number;
+            sgstPaise: number;
+            roundOffPaise: number;
+            totalPaise: number;
+            paidPaise: number;
+            duePaise: number;
+            issuer: {
+                name: string;
+                addressLine: string | null;
+                city: string | null;
+                state: string | null;
+                pincode: string | null;
+                phone: string | null;
+                email: string | null;
+                gstin: string | null;
+            };
+            patient: {
+                /** Format: uuid */
+                id: string;
+                uhid: string;
+                fullName: string;
+                /** @enum {string} */
+                sex: "male" | "female" | "other" | "unknown";
+                dateOfBirth: string | null;
+                phone: string | null;
+                address: string | null;
+            };
+            lines: {
+                lineNo: number;
+                description: string;
+                /** Format: date */
+                serviceDate: string;
+                quantity: number;
+                unitRatePaise: number;
+                amountPaise: number;
+                discountPaise: number;
+                taxablePaise: number;
+                taxRateBp: number;
+                cgstPaise: number;
+                sgstPaise: number;
+                totalPaise: number;
+            }[];
+            /** Format: date-time */
+            createdAt: string;
+            createdByName: string | null;
+            issuedAt: string | null;
+            issuedByName: string | null;
+        };
+        PaymentsApplyDepositRequest: {
+            amountPaise: number;
+        };
+        PaymentsApplyDepositResponse: {
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            status: "draft" | "issued" | "discarded";
+            number: string | null;
+            financialYear: string | null;
+            subtotalPaise: number;
+            discountPaise: number;
+            taxablePaise: number;
+            cgstPaise: number;
+            sgstPaise: number;
+            roundOffPaise: number;
+            totalPaise: number;
+            paidPaise: number;
+            duePaise: number;
+            issuer: {
+                name: string;
+                addressLine: string | null;
+                city: string | null;
+                state: string | null;
+                pincode: string | null;
+                phone: string | null;
+                email: string | null;
+                gstin: string | null;
+            };
+            patient: {
+                /** Format: uuid */
+                id: string;
+                uhid: string;
+                fullName: string;
+                /** @enum {string} */
+                sex: "male" | "female" | "other" | "unknown";
+                dateOfBirth: string | null;
+                phone: string | null;
+                address: string | null;
+            };
+            lines: {
+                lineNo: number;
+                description: string;
+                /** Format: date */
+                serviceDate: string;
+                quantity: number;
+                unitRatePaise: number;
+                amountPaise: number;
+                discountPaise: number;
+                taxablePaise: number;
+                taxRateBp: number;
+                cgstPaise: number;
+                sgstPaise: number;
+                totalPaise: number;
+            }[];
+            /** Format: date-time */
+            createdAt: string;
+            createdByName: string | null;
+            issuedAt: string | null;
+            issuedByName: string | null;
+        };
+        InvoicesDiscardResponse: {
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            status: "draft" | "issued" | "discarded";
+            number: string | null;
+            financialYear: string | null;
+            subtotalPaise: number;
+            discountPaise: number;
+            taxablePaise: number;
+            cgstPaise: number;
+            sgstPaise: number;
+            roundOffPaise: number;
+            totalPaise: number;
+            paidPaise: number;
+            duePaise: number;
+            issuer: {
+                name: string;
+                addressLine: string | null;
+                city: string | null;
+                state: string | null;
+                pincode: string | null;
+                phone: string | null;
+                email: string | null;
+                gstin: string | null;
+            };
+            patient: {
+                /** Format: uuid */
+                id: string;
+                uhid: string;
+                fullName: string;
+                /** @enum {string} */
+                sex: "male" | "female" | "other" | "unknown";
+                dateOfBirth: string | null;
+                phone: string | null;
+                address: string | null;
+            };
+            lines: {
+                lineNo: number;
+                description: string;
+                /** Format: date */
+                serviceDate: string;
+                quantity: number;
+                unitRatePaise: number;
+                amountPaise: number;
+                discountPaise: number;
+                taxablePaise: number;
+                taxRateBp: number;
+                cgstPaise: number;
+                sgstPaise: number;
+                totalPaise: number;
+            }[];
+            /** Format: date-time */
+            createdAt: string;
+            createdByName: string | null;
+            issuedAt: string | null;
+            issuedByName: string | null;
+        };
+        InvoicesIssueResponse: {
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            status: "draft" | "issued" | "discarded";
+            number: string | null;
+            financialYear: string | null;
+            subtotalPaise: number;
+            discountPaise: number;
+            taxablePaise: number;
+            cgstPaise: number;
+            sgstPaise: number;
+            roundOffPaise: number;
+            totalPaise: number;
+            paidPaise: number;
+            duePaise: number;
+            issuer: {
+                name: string;
+                addressLine: string | null;
+                city: string | null;
+                state: string | null;
+                pincode: string | null;
+                phone: string | null;
+                email: string | null;
+                gstin: string | null;
+            };
+            patient: {
+                /** Format: uuid */
+                id: string;
+                uhid: string;
+                fullName: string;
+                /** @enum {string} */
+                sex: "male" | "female" | "other" | "unknown";
+                dateOfBirth: string | null;
+                phone: string | null;
+                address: string | null;
+            };
+            lines: {
+                lineNo: number;
+                description: string;
+                /** Format: date */
+                serviceDate: string;
+                quantity: number;
+                unitRatePaise: number;
+                amountPaise: number;
+                discountPaise: number;
+                taxablePaise: number;
+                taxRateBp: number;
+                cgstPaise: number;
+                sgstPaise: number;
+                totalPaise: number;
+            }[];
+            /** Format: date-time */
+            createdAt: string;
+            createdByName: string | null;
+            issuedAt: string | null;
+            issuedByName: string | null;
         };
         PatientsRegisterRequest: {
             fullName: string;
@@ -820,6 +1516,102 @@ export interface components {
             /** Format: date-time */
             updatedAt: string;
         };
+        PatientBillingAccountResponse: {
+            /** Format: uuid */
+            patientId: string;
+            patient: {
+                /** Format: uuid */
+                id: string;
+                uhid: string;
+                fullName: string;
+                /** @enum {string} */
+                sex: "male" | "female" | "other" | "unknown";
+                dateOfBirth: string | null;
+                phone: string | null;
+                address: string | null;
+            };
+            pendingCharges: {
+                count: number;
+                amountPaise: number;
+            };
+            invoices: {
+                /** Format: uuid */
+                id: string;
+                /** @enum {string} */
+                status: "draft" | "issued" | "discarded";
+                number: string | null;
+                /** Format: uuid */
+                patientId: string;
+                patientUhid: string;
+                patientName: string;
+                totalPaise: number;
+                paidPaise: number;
+                duePaise: number;
+                issuedAt: string | null;
+                /** Format: date-time */
+                createdAt: string;
+            }[];
+            receipts: {
+                /** Format: uuid */
+                id: string;
+                number: string;
+                /** @enum {string} */
+                purpose: "bill_payment" | "deposit";
+                /** @enum {string} */
+                mode: "cash" | "upi" | "card" | "bank_transfer" | "cheque";
+                amountPaise: number;
+                heldPaise: number;
+                /** Format: date-time */
+                createdAt: string;
+            }[];
+            depositHeldPaise: number;
+            totalDuePaise: number;
+        };
+        PatientBillingListChargesResponse: {
+            data: {
+                /** Format: uuid */
+                id: string;
+                /** Format: uuid */
+                serviceItemId: string;
+                description: string;
+                /** Format: date */
+                serviceDate: string;
+                quantity: number;
+                unitRatePaise: number;
+                taxRateBp: number;
+                amountPaise: number;
+                /** @enum {string} */
+                status: "pending" | "billed";
+                invoiceId: string | null;
+                /** Format: date-time */
+                postedAt: string;
+            }[];
+        };
+        PatientBillingPostChargeRequest: {
+            /** Format: uuid */
+            serviceItemId: string;
+            quantity: number;
+            /** Format: date */
+            serviceDate?: string;
+        };
+        PatientBillingPostChargeResponse: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            serviceItemId: string;
+            description: string;
+            /** Format: date */
+            serviceDate: string;
+            quantity: number;
+            unitRatePaise: number;
+            taxRateBp: number;
+            amountPaise: number;
+            /** @enum {string} */
+            status: "pending" | "billed";
+            invoiceId: string | null;
+            /** Format: date-time */
+            postedAt: string;
+        };
         PatientsDuplicateCheckRequest: {
             fullName: string;
             /** Format: date */
@@ -878,6 +1670,104 @@ export interface components {
             page: number;
             pageSize: number;
             total: number;
+        };
+        PaymentsPayRequest: {
+            /** Format: uuid */
+            invoiceId: string;
+            /** @enum {string} */
+            mode: "cash" | "upi" | "card" | "bank_transfer" | "cheque";
+            amountPaise: number;
+            reference?: string;
+            cardLast4?: string;
+            bankName?: string;
+        };
+        PaymentsPayResponse: {
+            /** Format: uuid */
+            id: string;
+            number: string;
+            /** @enum {string} */
+            purpose: "bill_payment" | "deposit";
+            /** @enum {string} */
+            mode: "cash" | "upi" | "card" | "bank_transfer" | "cheque";
+            amountPaise: number;
+            reference: string | null;
+            cardLast4: string | null;
+            bankName: string | null;
+            patient: {
+                /** Format: uuid */
+                id: string;
+                uhid: string;
+                fullName: string;
+                /** @enum {string} */
+                sex: "male" | "female" | "other" | "unknown";
+                dateOfBirth: string | null;
+                phone: string | null;
+                address: string | null;
+            };
+            issuer: {
+                name: string;
+                addressLine: string | null;
+                city: string | null;
+                state: string | null;
+                pincode: string | null;
+                phone: string | null;
+                email: string | null;
+                gstin: string | null;
+            };
+            receivedByName: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            allocations: {
+                /** Format: uuid */
+                invoiceId: string;
+                invoiceNumber: string;
+                amountPaise: number;
+            }[];
+            heldPaise: number;
+        };
+        PaymentsReceiptResponse: {
+            /** Format: uuid */
+            id: string;
+            number: string;
+            /** @enum {string} */
+            purpose: "bill_payment" | "deposit";
+            /** @enum {string} */
+            mode: "cash" | "upi" | "card" | "bank_transfer" | "cheque";
+            amountPaise: number;
+            reference: string | null;
+            cardLast4: string | null;
+            bankName: string | null;
+            patient: {
+                /** Format: uuid */
+                id: string;
+                uhid: string;
+                fullName: string;
+                /** @enum {string} */
+                sex: "male" | "female" | "other" | "unknown";
+                dateOfBirth: string | null;
+                phone: string | null;
+                address: string | null;
+            };
+            issuer: {
+                name: string;
+                addressLine: string | null;
+                city: string | null;
+                state: string | null;
+                pincode: string | null;
+                phone: string | null;
+                email: string | null;
+                gstin: string | null;
+            };
+            receivedByName: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            allocations: {
+                /** Format: uuid */
+                invoiceId: string;
+                invoiceNumber: string;
+                amountPaise: number;
+            }[];
+            heldPaise: number;
         };
         RolesListResponse: {
             data: {
@@ -1352,6 +2242,142 @@ export interface operations {
             };
         };
     };
+    cashShiftsList: {
+        parameters: {
+            query?: {
+                page?: number;
+                pageSize?: number;
+                sort?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CashShiftsListResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    cashShiftsOpen: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Value of the CSRF cookie */
+                "X-CSRF-Token": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CashShiftsOpenRequest"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CashShiftsOpenResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    cashShiftsClose: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Value of the CSRF cookie */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CashShiftsCloseRequest"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CashShiftsCloseResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    cashShiftsCurrent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CashShiftsCurrentResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
     departmentsList: {
         parameters: {
             query?: {
@@ -1448,6 +2474,44 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DepartmentsUpdateResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    paymentsDeposit: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Value of the CSRF cookie */
+                "X-CSRF-Token": string;
+                /** @description Unique per financial request. A repeat returns the stored response. */
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PaymentsDepositRequest"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentsDepositResponse"];
                 };
             };
             /** @description Error */
@@ -1665,6 +2729,220 @@ export interface operations {
             };
         };
     };
+    invoicesList: {
+        parameters: {
+            query?: {
+                page?: number;
+                pageSize?: number;
+                sort?: string;
+                status?: "draft" | "issued" | "discarded";
+                patientId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvoicesListResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    invoicesCreate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Value of the CSRF cookie */
+                "X-CSRF-Token": string;
+                /** @description Unique per financial request. A repeat returns the stored response. */
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InvoicesCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvoicesCreateResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    invoicesGet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvoicesGetResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    paymentsApplyDeposit: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Value of the CSRF cookie */
+                "X-CSRF-Token": string;
+                /** @description Unique per financial request. A repeat returns the stored response. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PaymentsApplyDepositRequest"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentsApplyDepositResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    invoicesDiscard: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Value of the CSRF cookie */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvoicesDiscardResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    invoicesIssue: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Value of the CSRF cookie */
+                "X-CSRF-Token": string;
+                /** @description Unique per financial request. A repeat returns the stored response. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvoicesIssueResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
     patientsRegister: {
         parameters: {
             query?: never;
@@ -1772,6 +3050,110 @@ export interface operations {
             };
         };
     };
+    patientBillingAccount: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PatientBillingAccountResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    patientBillingListCharges: {
+        parameters: {
+            query?: {
+                status?: "pending" | "billed";
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PatientBillingListChargesResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    patientBillingPostCharge: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Value of the CSRF cookie */
+                "X-CSRF-Token": string;
+                /** @description Unique per financial request. A repeat returns the stored response. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PatientBillingPostChargeRequest"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PatientBillingPostChargeResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
     patientsDuplicateCheck: {
         parameters: {
             query?: never;
@@ -1831,6 +3213,75 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PatientsSearchResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    paymentsPay: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Value of the CSRF cookie */
+                "X-CSRF-Token": string;
+                /** @description Unique per financial request. A repeat returns the stored response. */
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PaymentsPayRequest"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentsPayResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    paymentsReceipt: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentsReceiptResponse"];
                 };
             };
             /** @description Error */

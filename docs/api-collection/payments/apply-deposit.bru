@@ -1,0 +1,31 @@
+meta {
+  name: Use deposit for the bill
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/invoices/{{invoiceId}}/apply-deposit
+  body: json
+  auth: none
+}
+
+headers {
+  X-CSRF-Token: {{csrfToken}}
+  Idempotency-Key: {{idempotencyKey}}
+}
+
+body:json {
+  {
+    "amountPaise": 10000
+  }
+}
+
+script:pre-request {
+  // A new key each run. Send the request again without this script to see the stored response.
+  bru.setVar("idempotencyKey", require("crypto").randomUUID());
+}
+
+assert {
+  res.status: eq 200
+}

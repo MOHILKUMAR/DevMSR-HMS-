@@ -1,0 +1,15 @@
+meta {
+  name: Open a receipt
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{baseUrl}}/receipts/{{receiptId}}
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+}

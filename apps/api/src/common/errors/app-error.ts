@@ -59,6 +59,17 @@ export const Errors = {
     new AppError(409, 'POSSIBLE_DUPLICATE', 'This may be a patient who is already registered. Check the matches before registering.', {
       matches,
     }),
+  rateMissing: () =>
+    new AppError(422, 'RATE_MISSING', 'This service has no rate on the service date. Ask finance to set one in Rates and fees.'),
+  chargeUnavailable: () =>
+    new AppError(422, 'CHARGE_UNAVAILABLE', 'A chosen charge is already on a bill, or belongs to another patient. Reload and choose again.'),
+  invoiceLocked: () => new AppError(409, 'INVOICE_LOCKED', 'This bill is no longer a draft. Issued bills never change.'),
+  shiftRequired: () => new AppError(422, 'SHIFT_REQUIRED', 'Open your cash shift before taking money.'),
+  shiftAlreadyOpen: () => new AppError(409, 'SHIFT_ALREADY_OPEN', 'Your shift is already open. Close it before opening another.'),
+  amountExceedsDue: () => new AppError(422, 'AMOUNT_EXCEEDS_DUE', 'The amount is more than is due on this bill.'),
+  noDepositHeld: () => new AppError(422, 'NO_DEPOSIT_HELD', 'This patient does not have that much deposit left to set against the bill.'),
+  billNotIssued: () => new AppError(422, 'BILL_NOT_ISSUED', 'Issue the bill before taking payment against it.'),
+  shiftClosed: () => new AppError(409, 'SHIFT_CLOSED', 'This shift is already closed.'),
   internal: () =>
     new AppError(500, 'INTERNAL_ERROR', 'Something went wrong on our side. Try again, and tell your admin if it keeps happening.'),
 };
