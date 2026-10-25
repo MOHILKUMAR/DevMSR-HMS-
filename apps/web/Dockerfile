@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 # Build from the repo root: docker build -f apps/web/Dockerfile --build-arg NEXT_PUBLIC_API_URL=https://api.example.in/api/v1 .
 
-FROM node:22-slim AS build
+FROM node:26-slim AS build
 RUN npm install -g pnpm@12.15.0
 WORKDIR /repo
 
@@ -23,7 +23,7 @@ ARG NEXT_PUBLIC_SENTRY_DSN=
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN pnpm --filter "@devmsr/web..." build
 
-FROM node:22-slim AS runtime
+FROM node:26-slim AS runtime
 ENV NODE_ENV=production \
     PORT=3000 \
     HOSTNAME=0.0.0.0 \
