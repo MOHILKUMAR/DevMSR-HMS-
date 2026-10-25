@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { expect, test, type Page } from '@playwright/test';
+import { freshTotpCode, seedTotpSecret } from './totp';
 
 // Admin setup screens against the seeded demo hospital. Each run adds records with unique codes,
 // so it can run again on the same database. Sign-ins are spread over users because of the login
@@ -16,16 +17,22 @@ function suffix(): string {
   return randomUUID().replace(/-/g, '').slice(0, 6).toUpperCase();
 }
 
-async function signIn(page: Page, username: string, password: string, displayName: string): Promise<void> {
+/** `twoFactor` for the demo users whose role needs it: the seed gave them SEED_TOTP_SECRET. */
+async function signIn(page: Page, username: string, password: string, displayName: string, twoFactor = false): Promise<void> {
   await page.goto('/login');
   await page.getByLabel('Username').fill(username);
   await page.getByLabel('Password').fill(password);
   await page.getByRole('button', { name: 'Sign in' }).click();
+  if (twoFactor) {
+    const step = page.getByRole('form', { name: 'Two-factor sign-in' });
+    await step.getByLabel('Code from the app').fill(await freshTotpCode(seedTotpSecret()));
+    await step.getByRole('button', { name: 'Sign in' }).click();
+  }
   await expect(page.getByRole('heading', { name: `Welcome, ${displayName}` })).toBeVisible();
 }
 
 test('the hospital admin adds a staff user who can then sign in, and sets up a ward with a bed', async ({ page }) => {
-  await signIn(page, 'admin', seedPassword(), 'Demo Hospital Admin');
+  await signIn(page, 'admin', seedPassword(), 'Demo Hospital Admin', true);
   const nav = page.getByRole('navigation', { name: 'Main' });
   await nav.getByRole('link', { name: 'Settings' }).click();
 
@@ -53,6 +60,7 @@ test('the hospital admin adds a staff user who can then sign in, and sets up a w
   await expect(row).toContainText('E2E Cashier');
   await expect(row).toContainText('Cashier');
   await expect(row).toContainText('Never');
+  await expect(row).toContainText('Must change password');
 
   // Editing a doctor starts from their current department and login, loaded after the dialog opens.
   await tabs.getByRole('link', { name: 'Doctors' }).click();
@@ -98,16 +106,29 @@ test('the hospital admin adds a staff user who can then sign in, and sets up a w
   await page.keyboard.press('Escape');
   await expect(beds).toBeHidden();
 
-  // The new cashier signs in with the admin's password and sees cashier sections only.
+  // The new cashier signs in with the admin's password, must choose their own first, and then sees
+  // cashier sections only.
   await page.getByRole('button', { name: 'Sign out' }).click();
   await expect(page).toHaveURL(/\/login$/);
-  await signIn(page, username, password, 'E2E Cashier');
+  await page.getByLabel('Username').fill(username);
+  await page.getByLabel('Password').fill(password);
+  await page.getByRole('button', { name: 'Sign in' }).click();
+  const choose = page.getByRole('form', { name: 'Choose your own password' });
+  await choose.getByLabel('New password', { exact: true }).fill(password);
+  await choose.getByLabel('Type the new password again').fill(password);
+  await choose.getByRole('button', { name: 'Save and continue' }).click();
+  await expect(choose.getByText('Choose a password different from the one you have now.')).toBeVisible();
+  const ownPassword = randomUUID();
+  await choose.getByLabel('New password', { exact: true }).fill(ownPassword);
+  await choose.getByLabel('Type the new password again').fill(ownPassword);
+  await choose.getByRole('button', { name: 'Save and continue' }).click();
+  await expect(page.getByRole('heading', { name: 'Welcome, E2E Cashier' })).toBeVisible();
   await expect(nav.getByRole('link', { name: 'Payments' })).toBeVisible();
   await expect(nav.getByRole('link', { name: 'Settings' })).toHaveCount(0);
 });
 
 test('finance adds a service item and gives it a rate from today, kept in its history', async ({ page }) => {
-  await signIn(page, 'accounts', seedPassword(), 'Demo Accountant');
+  await signIn(page, 'accounts', seedPassword(), 'Demo Accountant', true);
   await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Settings' }).click();
 
   // Finance may view masters but not change them.

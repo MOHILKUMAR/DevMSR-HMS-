@@ -22,6 +22,8 @@ export interface RequestMeta {
   requestId: string;
   ipAddress: string | null;
   userAgent: string | null;
+  /** Set while a super admin works through break-glass, so every audit event of the request names the grant. */
+  breakGlassId?: string | undefined;
 }
 
 export function requestMeta(req: AppRequest): RequestMeta {
@@ -29,6 +31,7 @@ export function requestMeta(req: AppRequest): RequestMeta {
     requestId: req.id,
     ipAddress: req.ip ?? null,
     userAgent: req.get('user-agent')?.slice(0, 512) ?? null,
+    ...(req.auth?.breakGlass == null ? {} : { breakGlassId: req.auth.breakGlass.grantId }),
   };
 }
 

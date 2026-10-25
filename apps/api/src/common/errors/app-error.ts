@@ -28,6 +28,8 @@ export const Errors = {
       'LOGIN_FAILED',
       'Wrong username or password. After 5 failed tries the account is locked for 15 minutes.',
     ),
+  loginChallengeInvalid: () =>
+    new AppError(401, 'LOGIN_CHALLENGE_INVALID', 'Your sign-in timed out or was already finished. Sign in again.'),
   csrfFailed: () => new AppError(403, 'CSRF_FAILED', 'This request could not be verified. Reload the page and try again.'),
   permissionDenied: () =>
     new AppError(403, 'PERMISSION_DENIED', 'You do not have permission to do this. Ask your hospital admin if you need it.'),
@@ -70,6 +72,19 @@ export const Errors = {
   noDepositHeld: () => new AppError(422, 'NO_DEPOSIT_HELD', 'This patient does not have that much deposit left to set against the bill.'),
   billNotIssued: () => new AppError(422, 'BILL_NOT_ISSUED', 'Issue the bill before taking payment against it.'),
   shiftClosed: () => new AppError(409, 'SHIFT_CLOSED', 'This shift is already closed.'),
+  passwordReused: () =>
+    new AppError(422, 'PASSWORD_REUSED', 'Choose a password different from the one you have now.'),
+  currentPasswordWrong: () =>
+    new AppError(422, 'CURRENT_PASSWORD_WRONG', 'Your current password is not right. Type it again.'),
+  currentSession: () =>
+    new AppError(422, 'CURRENT_SESSION', 'This is the session you are using now. Use Sign out to end it.'),
+  totpInvalid: () =>
+    new AppError(422, 'TOTP_INVALID', 'The code is not right. Check the time on your phone and type the newest code.'),
+  twoFactorRequired: () =>
+    new AppError(422, 'TWO_FACTOR_REQUIRED', 'Your role needs two-factor sign-in, so it cannot be turned off.'),
+  twoFactorState: (message: string) => new AppError(409, 'TWO_FACTOR_STATE', message),
+  breakGlassActive: () =>
+    new AppError(409, 'BREAK_GLASS_ACTIVE', 'Break-glass access is already open in this session. End it before opening another.'),
   requestPending: () =>
     new AppError(409, 'REQUEST_PENDING', 'A request of this kind is already waiting for approval here. Wait for it to be decided.'),
   requestDecided: () => new AppError(409, 'REQUEST_DECIDED', 'This request has already been decided. Reload to see the decision.'),

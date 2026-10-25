@@ -49,7 +49,9 @@ export function productionProblems(env: Env, source: Record<string, string | und
   for (const key of ['DATABASE_URL', 'DIRECT_URL', 'JOBS_DATABASE_URL'] as const) {
     if (DEMO_DATABASE_PASSWORD.test(databaseLogin(source[key]).password)) problems.push(`${key} uses the local or CI demo password`);
   }
-  if ((source['SEED_USER_PASSWORD'] ?? '') !== '') problems.push('SEED_USER_PASSWORD is set: demo users must never exist in production');
+  for (const key of ['SEED_USER_PASSWORD', 'SEED_TOTP_SECRET'] as const) {
+    if ((source[key] ?? '') !== '') problems.push(`${key} is set: demo users must never exist in production`);
+  }
 
   const insecure = env.CORS_ORIGINS.filter((origin) => !origin.startsWith('https://'));
   if (insecure.length > 0) problems.push('CORS_ORIGINS must list https:// origins only');

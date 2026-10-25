@@ -10,7 +10,7 @@ import type { PaymentsRepository, ShiftRow } from './payments.repository.js';
 import { PaymentsService } from './payments.service.js';
 
 const META = { requestId: 'r', ipAddress: null, userAgent: null };
-const CASHIER: AuthContext = { sessionId: 's', userId: 'u1', hospitalId: 'h1', kind: 'staff', permissions: new Set(), expiresAt: new Date() };
+const CASHIER: AuthContext = { sessionId: 's', userId: 'u1', hospitalId: 'h1', kind: 'staff', permissions: new Set(), expiresAt: new Date(), userHospitalId: 'h1', breakGlass: null };
 const NOW = new Date('2026-10-25T04:30:00Z');
 const SHIFT: ShiftRow = {
   id: 'sh1',

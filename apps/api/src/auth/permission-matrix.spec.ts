@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { PERMISSIONS, ROLES, isPermissionCode, type PermissionCode } from './permission-matrix.js';
+import { BREAK_GLASS_PERMISSIONS, PERMISSIONS, ROLES, isPermissionCode, type PermissionCode, requiresTwoFactor } from './permission-matrix.js';
 
 const roles = Object.entries(ROLES);
-const PLATFORM_ONLY: PermissionCode[] = ['platform.hospital.manage'];
+const PLATFORM_ONLY: PermissionCode[] = ['platform.hospital.manage', 'platform.break-glass.use'];
+/** Held by every role, platform or hospital. */
+const EVERYONE: PermissionCode[] = ['auth.session.manage-own', 'notifications.notification.read-own'];
 
 describe('permission matrix', () => {
   it('uses module.resource.action codes', () => {
@@ -32,7 +34,7 @@ describe('permission matrix', () => {
       if (role.scope === 'hospital') {
         expect(platformCodes).toEqual([]);
       } else {
-        expect(role.permissions.filter((code) => code !== 'auth.session.manage-own')).toEqual(platformCodes);
+        expect(role.permissions.filter((code) => !EVERYONE.includes(code))).toEqual(platformCodes);
       }
     }
   });
@@ -73,5 +75,16 @@ describe('permission matrix', () => {
     for (const code of ['doctor', 'nurse'] as const) {
       expect(ROLES[code].permissions.some((p: string) => p.startsWith('billing.') || p.startsWith('payments.'))).toBe(false);
     }
+  });
+
+  it('makes two-factor compulsory for exactly the super admin, hospital admin and finance (CLAUDE.md section 9)', () => {
+    const required = roles.filter(([, role]) => requiresTwoFactor(role.permissions)).map(([code]) => code);
+    expect(required.sort()).toEqual(['accountant', 'hospital_admin', 'super_admin']);
+  });
+
+  it('lets break-glass only read, and gives it to the super admin alone', () => {
+    for (const code of BREAK_GLASS_PERMISSIONS) expect(code).toMatch(/\.(read|read-own)$/);
+    const holders = roles.filter(([, role]) => (role.permissions as readonly string[]).includes('platform.break-glass.use')).map(([code]) => code);
+    expect(holders).toEqual(['super_admin']);
   });
 });

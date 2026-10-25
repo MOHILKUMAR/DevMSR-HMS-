@@ -3,6 +3,7 @@
 // Run with `pnpm db:seed`. Never runs in production and never loads real patient data.
 
 import { hashPassword } from '../apps/api/src/auth/password.js';
+import { ROLES, requiresTwoFactor } from '../apps/api/src/auth/permission-matrix.js';
 import { syncHospitalRoles, syncPermissions, syncPlatformRoles } from '../apps/api/src/auth/role-sync.js';
 import { createFieldCipher } from '../apps/api/src/common/crypto/field-encryption.js';
 import { todayIst } from '../apps/api/src/common/dates.js';
@@ -47,6 +48,12 @@ if (process.env['NODE_ENV'] === 'production' || process.env['APP_ENV'] === 'prod
 const prisma = createPrismaClient(required('DATABASE_URL'));
 const cipher = createFieldCipher(required('FIELD_ENCRYPTION_KEY'));
 const passwordHash = await hashPassword(required('SEED_USER_PASSWORD'));
+// Demo users whose role needs two-factor get this base32 secret, so a developer adds it to an
+// authenticator app once and the e2e tests can make codes. Without it they set it up at first sign-in.
+const totpSecret = process.env['SEED_TOTP_SECRET'] ?? '';
+if (totpSecret !== '' && !/^[A-Z2-7]{16,}$/.test(totpSecret)) {
+  throw new Error('SEED_TOTP_SECRET must be base32: 16 or more of A to Z and 2 to 7.');
+}
 
 try {
   const summary = await prisma.$transaction(
@@ -81,6 +88,10 @@ try {
           isActive: true,
           failedLoginCount: 0,
           lockedUntil: null,
+          mustChangePassword: false,
+          ...(totpSecret !== '' && requiresTwoFactor(ROLES[demo.role].permissions)
+            ? { totpSecretEncrypted: cipher.seal('totp_secret', totpSecret), totpEnabledAt: new Date(), totpLastTimeStep: null }
+            : {}),
         };
         const user = await tx.user.upsert({
           where: { username: demo.username },
@@ -232,6 +243,11 @@ try {
 
   log(`Seeded ${DEMO_HOSPITAL.name}: ${JSON.stringify(summary)}`);
   log(`Usernames: ${DEMO_USERS.map((user) => user.username).join(', ')}. Password: SEED_USER_PASSWORD from .env.`);
+  log(
+    totpSecret === ''
+      ? 'superadmin, admin and accounts set up two-factor at first sign-in (SEED_TOTP_SECRET is empty).'
+      : 'superadmin, admin and accounts use two-factor with SEED_TOTP_SECRET from .env.',
+  );
 } finally {
   await prisma.$disconnect();
 }

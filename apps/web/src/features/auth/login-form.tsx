@@ -1,25 +1,31 @@
 'use client';
 
 import { useMutation } from '@tanstack/react-query';
-import { loginRequestSchema, type LoginRequest } from '@devmsr/validation';
+import { loginRequestSchema, type LoginRequest, type LoginResponse, type LoginStep } from '@devmsr/validation';
 import { TriangleAlert } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { api, csrfHeader, refreshCsrfToken } from '@/lib/api/client';
-import { ApiRequestError, errorMessageKey } from '@/lib/api/errors';
+import { errorMessageKey, unwrap } from '@/lib/api/errors';
 import { zodResolver } from '@/lib/forms';
+import { NewPasswordForm } from './new-password-form';
+import { TotpSetupStep, TotpVerifyStep } from './totp-steps';
 
 export function LoginForm({ next }: { next: string }) {
   const t = useTranslations('login');
   const tErrors = useTranslations('errors');
   const router = useRouter();
+  // Set when the password was right but sign-in needs another step first.
+  const [step, setStep] = useState<LoginStep | null>(null);
   const {
     register,
     handleSubmit,
+    reset,
     formState: { errors },
   } = useForm<LoginRequest>({
     resolver: zodResolver(loginRequestSchema),
@@ -31,14 +37,32 @@ export function LoginForm({ next }: { next: string }) {
       // The API checks a CSRF token even on login. Always a fresh one: the browser may still hold a
       // token from a session that expired, which would fail every attempt.
       await refreshCsrfToken();
-      const { error } = await api.POST('/api/v1/auth/login', { params: { header: csrfHeader() }, body: values });
-      if (error !== undefined) throw new ApiRequestError(error);
+      return unwrap(await api.POST('/api/v1/auth/login', { params: { header: csrfHeader() }, body: values }));
     },
-    onSuccess: () => {
-      router.replace(next);
-      router.refresh();
+    onSuccess: (response) => {
+      finish(response);
     },
   });
+
+  function finish(response: LoginResponse): void {
+    if (response.status === 'challenge') {
+      setStep(response.step);
+      return;
+    }
+    router.replace(next);
+    router.refresh();
+  }
+
+  function restart(): void {
+    setStep(null);
+    signIn.reset();
+    reset();
+  }
+
+  // Each step remounts, so a step that follows another starts with an empty form.
+  if (step === 'change_password') return <NewPasswordForm key={step} onSignedIn={finish} onRestart={restart} />;
+  if (step === 'totp_setup') return <TotpSetupStep key={step} onSignedIn={finish} onRestart={restart} />;
+  if (step === 'totp_verify') return <TotpVerifyStep key={step} onSignedIn={finish} onRestart={restart} />;
 
   return (
     <form

@@ -222,7 +222,7 @@ describe('Discharge: fit, final bill, billing clearance, summary and completion'
 
   it('charges the nights the job missed on the final bill, and refuses a bill with a room rate missing', async () => {
     const service = t.app.get(DischargeService);
-    const staff: AuthContext = { sessionId: 's', userId: clerkUser.id, hospitalId: hospital.id, kind: 'staff', permissions: new Set(), expiresAt: new Date() };
+    const staff: AuthContext = { sessionId: 's', userId: clerkUser.id, hospitalId: hospital.id, kind: 'staff', permissions: new Set(), expiresAt: new Date(), userHospitalId: hospital.id, breakGlass: null };
     const meta = { requestId: 'test', ipAddress: null, userAgent: null };
 
     const { admissionId } = await admitted(beds[2] ?? '');

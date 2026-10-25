@@ -1,0 +1,15 @@
+meta {
+  name: Unread notifications
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/notifications/unread-count
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+}

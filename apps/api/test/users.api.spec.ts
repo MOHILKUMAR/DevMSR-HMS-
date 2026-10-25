@@ -1,6 +1,16 @@
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { anonymousBrowser, as, createHospital, createUser, signIn, unique, type SignedInBrowser, type TestHospital } from './support/fixtures.js';
+import {
+  anonymousBrowser,
+  as,
+  createHospital,
+  createUser,
+  signIn,
+  signInChangingPassword,
+  unique,
+  type SignedInBrowser,
+  type TestHospital,
+} from './support/fixtures.js';
 import { createTestApp, type TestApp } from './support/test-app.js';
 
 interface ErrorBody {
@@ -12,6 +22,7 @@ interface StaffUserBody {
   displayName: string;
   isActive: boolean;
   locked: boolean;
+  mustChangePassword: boolean;
   roles: { code: string; name: string }[];
 }
 
@@ -82,11 +93,19 @@ describe('staff users', () => {
     const body = created.body as StaffUserBody;
     expect(body.username).toBe(username.toLowerCase());
     expect(body.roles.map((role) => role.code)).toEqual(['cashier']);
-    expect(JSON.stringify(body)).not.toMatch(/password/i);
+    expect(JSON.stringify(body)).not.toMatch(/passwordHash|argon2|"password"/);
 
-    const signedIn = await login(username.toLowerCase(), PASSWORD);
+    expect(body.mustChangePassword).toBe(true);
+
+    // The admin chose the first password, so sign-in asks for the user's own before any session.
+    const first = await login(username.toLowerCase(), PASSWORD);
+    expect(first.status).toBe(200);
+    expect(first.body).toMatchObject({ status: 'challenge', step: 'change_password' });
+    const signedIn = await signInChangingPassword(t.http, username.toLowerCase(), PASSWORD, 'own-chosen-Passw0rd');
     expect(signedIn.status).toBe(200);
+    expect(signedIn.body).toMatchObject({ status: 'signed_in' });
     expect((signedIn.body as { permissions: string[] }).permissions).toContain('payments.receipt.create');
+    expect((await login(username.toLowerCase(), 'own-chosen-Passw0rd')).body).toMatchObject({ status: 'signed_in' });
     expect(await t.prisma.auditEvent.count({ where: { entityId: body.id, action: 'users.user.created' } })).toBe(1);
   });
 
@@ -150,8 +169,22 @@ describe('staff users', () => {
     const response = await as(request(t.http).post(`/api/v1/users/${user.id}/password`), admin).send({ password: PASSWORD });
     expect(response.status).toBe(204);
     expect((await as(request(t.http).get('/api/v1/auth/me'), browser)).status).toBe(401);
-    expect((await login(user.username, PASSWORD)).status).toBe(200);
+    const next = await login(user.username, PASSWORD);
+    expect(next.status).toBe(200);
+    expect(next.body).toMatchObject({ status: 'challenge', step: 'change_password' });
     expect(await t.prisma.auditEvent.count({ where: { entityId: user.id, action: 'users.user.password-set' } })).toBe(1);
+  });
+
+  it('allows 3 password resets of one account per hour, then 429', async () => {
+    const user = await createUser(t.prisma, hospital, 'nurse');
+    const other = await createUser(t.prisma, hospital, 'nurse');
+    const reset = (id: string) => as(request(t.http).post(`/api/v1/users/${id}/password`), admin).send({ password: PASSWORD });
+    for (let attempt = 0; attempt < 3; attempt += 1) expect((await reset(user.id)).status).toBe(204);
+    const limited = await reset(user.id);
+    expect(limited.status).toBe(429);
+    expect(Number(limited.headers['retry-after'])).toBeGreaterThan(60);
+    // Another account has its own budget.
+    expect((await reset(other.id)).status).toBe(204);
   });
 
   it('lists the hospital roles with their permission codes', async () => {

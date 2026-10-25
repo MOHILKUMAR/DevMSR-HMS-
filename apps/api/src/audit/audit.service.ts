@@ -37,7 +37,8 @@ export class AuditService {
         entityId: entry.entityId ?? null,
         requestId: entry.meta?.requestId ?? null,
         ipAddress: entry.meta?.ipAddress ?? null,
-        metadata: entry.details ?? {},
+        // Everything done during break-glass carries the grant, so the hospital admin can trace it.
+        metadata: entry.meta?.breakGlassId === undefined ? (entry.details ?? {}) : { ...entry.details, breakGlassId: entry.meta.breakGlassId },
       },
       tx,
     );

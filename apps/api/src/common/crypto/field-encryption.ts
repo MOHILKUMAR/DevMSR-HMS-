@@ -4,6 +4,12 @@ import { deriveKey } from './tokens.js';
 /** Which identifier a value is. Also bound into the ciphertext, so an Aadhaar value cannot be pasted into the ABHA column. */
 export type ProtectedField = 'aadhaar' | 'abha_number';
 
+/** Secrets stored as given (not reduced to digits), such as a two-factor key. */
+export type SealedField = 'totp_secret';
+
+/** Values only ever compared, never read back, such as recovery codes. */
+export type HashedField = 'recovery_code';
+
 /** What is stored for one protected identifier. */
 export interface ProtectedValue {
   /** AES-256-GCM ciphertext: `v1:<iv>:<ciphertext>:<tag>`, base64url parts. */
@@ -18,6 +24,9 @@ export interface FieldCipher {
   protect(field: ProtectedField, value: string): ProtectedValue;
   reveal(field: ProtectedField, encrypted: string): string;
   blindIndex(field: ProtectedField, value: string): string;
+  seal(field: SealedField, value: string): string;
+  open(field: SealedField, sealed: string): string;
+  keyedHash(field: HashedField, value: string): string;
 }
 
 const VERSION = 'v1';
@@ -37,31 +46,38 @@ export function createFieldCipher(keyBase64: string): FieldCipher {
   const blindIndex = (field: ProtectedField, value: string): string =>
     createHmac('sha256', indexKey).update(`${field}:${digitsOnly(value)}`).digest('hex');
 
+  // The field name is the additional data, so a value sealed for one field never opens as another.
+  const encrypt = (field: string, plaintext: string): string => {
+    const iv = randomBytes(12);
+    const cipher = createCipheriv('aes-256-gcm', key, iv);
+    cipher.setAAD(Buffer.from(field));
+    const ciphertext = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()]);
+    return [VERSION, iv, ciphertext, cipher.getAuthTag()]
+      .map((part) => (typeof part === 'string' ? part : part.toString('base64url')))
+      .join(':');
+  };
+
+  const decrypt = (field: string, encrypted: string): string => {
+    const [version, iv, ciphertext, tag] = encrypted.split(':');
+    if (version !== VERSION || iv === undefined || ciphertext === undefined || tag === undefined) {
+      throw new Error('Unsupported ciphertext format');
+    }
+    const decipher = createDecipheriv('aes-256-gcm', key, Buffer.from(iv, 'base64url'));
+    decipher.setAAD(Buffer.from(field));
+    decipher.setAuthTag(Buffer.from(tag, 'base64url'));
+    return Buffer.concat([decipher.update(Buffer.from(ciphertext, 'base64url')), decipher.final()]).toString('utf8');
+  };
+
   return {
     protect(field, value) {
       const digits = digitsOnly(value);
-      const iv = randomBytes(12);
-      const cipher = createCipheriv('aes-256-gcm', key, iv);
-      cipher.setAAD(Buffer.from(field));
-      const ciphertext = Buffer.concat([cipher.update(digits, 'utf8'), cipher.final()]);
-      const encrypted = [VERSION, iv, ciphertext, cipher.getAuthTag()]
-        .map((part) => (typeof part === 'string' ? part : part.toString('base64url')))
-        .join(':');
-      return { encrypted, last4: digits.slice(-4), blindIndex: blindIndex(field, digits) };
+      return { encrypted: encrypt(field, digits), last4: digits.slice(-4), blindIndex: blindIndex(field, digits) };
     },
-
-    reveal(field, encrypted) {
-      const [version, iv, ciphertext, tag] = encrypted.split(':');
-      if (version !== VERSION || iv === undefined || ciphertext === undefined || tag === undefined) {
-        throw new Error('Unsupported ciphertext format');
-      }
-      const decipher = createDecipheriv('aes-256-gcm', key, Buffer.from(iv, 'base64url'));
-      decipher.setAAD(Buffer.from(field));
-      decipher.setAuthTag(Buffer.from(tag, 'base64url'));
-      return Buffer.concat([decipher.update(Buffer.from(ciphertext, 'base64url')), decipher.final()]).toString('utf8');
-    },
-
+    reveal: decrypt,
     blindIndex,
+    seal: encrypt,
+    open: decrypt,
+    keyedHash: (field, value) => createHmac('sha256', indexKey).update(`${field}:${value}`).digest('hex'),
   };
 }
 

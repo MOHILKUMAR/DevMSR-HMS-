@@ -58,7 +58,8 @@ export class IpdChargesService {
     return result;
   }
 
-  private async postForHospital(hospitalId: string, now: Date): Promise<PostingResult> {
+  /** One hospital's nights, as the midnight job posts them for every hospital. */
+  async postForHospital(hospitalId: string, now: Date): Promise<PostingResult> {
     const result: PostingResult = { posted: 0, missingRates: 0 };
     const dischargedSince = new Date(now.getTime() - DISCHARGED_LOOKBACK_DAYS * 24 * 60 * 60 * 1000);
     for (const admission of await this.ipd.admissionsToCharge(hospitalId, dischargedSince)) {

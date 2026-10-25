@@ -10,6 +10,8 @@ export const STAFF_USER_SELECT = {
   displayName: true,
   isActive: true,
   lockedUntil: true,
+  mustChangePassword: true,
+  totpEnabledAt: true,
   lastLoginAt: true,
   createdAt: true,
   userRoles: { select: { role: { select: { code: true, name: true } } } },
@@ -81,6 +83,8 @@ export class UsersRepository {
         username: data.username,
         displayName: data.displayName,
         passwordHash: data.passwordHash,
+        // The admin chose this password, so the user replaces it at first sign-in.
+        mustChangePassword: true,
         userRoles: { create: data.roleIds.map((roleId) => ({ roleId })) },
       },
       select: STAFF_USER_SELECT,
@@ -96,11 +100,11 @@ export class UsersRepository {
     await tx.userRole.createMany({ data: roleIds.map((roleId) => ({ userId, roleId })) });
   }
 
-  /** A new password also unlocks the account. */
+  /** A new password also unlocks the account, and the user must replace it at the next sign-in. */
   async setPassword(hospitalId: string, id: string, passwordHash: string, now: Date, tx: Tx): Promise<void> {
     await tx.user.update({
       where: { id, hospitalId },
-      data: { passwordHash, passwordChangedAt: now, failedLoginCount: 0, lockedUntil: null },
+      data: { passwordHash, passwordChangedAt: now, mustChangePassword: true, failedLoginCount: 0, lockedUntil: null },
       select: { id: true },
     });
   }

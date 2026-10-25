@@ -9,7 +9,7 @@ import type { BedPlaceRow, IpdRepository } from './ipd.repository.js';
 import { IpdService } from './ipd.service.js';
 
 const META = { requestId: 'r', ipAddress: null, userAgent: null };
-const AUTH: AuthContext = { sessionId: 's', userId: 'u1', hospitalId: 'h1', kind: 'staff', permissions: new Set(), expiresAt: new Date() };
+const AUTH: AuthContext = { sessionId: 's', userId: 'u1', hospitalId: 'h1', kind: 'staff', permissions: new Set(), expiresAt: new Date(), userHospitalId: 'h1', breakGlass: null };
 
 function bed(overrides: Partial<BedPlaceRow> = {}): BedPlaceRow {
   return {

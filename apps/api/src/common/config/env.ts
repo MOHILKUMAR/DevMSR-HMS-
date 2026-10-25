@@ -42,6 +42,10 @@ const envSchema = z
     // Starting values from CLAUDE.md section 9, kept in config so they can change without code.
     RATE_LIMIT_LOGIN_PER_MINUTE: positiveInt.default(5),
     RATE_LIMIT_API_PER_MINUTE: positiveInt.default(300),
+    RATE_LIMIT_PASSWORD_PER_HOUR: positiveInt.default(3),
+    // Section 9: alert on more than 20 failed sign-ins in 10 minutes, on the platform and per hospital.
+    ALERT_FAILED_LOGINS_THRESHOLD: positiveInt.default(20),
+    ALERT_FAILED_LOGINS_WINDOW_MINUTES: positiveInt.default(10),
     RATE_LIMIT_EXPORT_PER_HOUR: positiveInt.default(10),
     SENTRY_DSN: optionalString.pipe(z.url().optional()),
     // Vendor adapters (CLAUDE.md section 14). Each real adapter adds its name here when it is built.

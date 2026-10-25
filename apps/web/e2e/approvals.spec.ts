@@ -1,5 +1,6 @@
 import { randomInt, randomUUID } from 'node:crypto';
 import { expect, test, type Browser, type Page } from '@playwright/test';
+import { freshTotpCode, seedTotpSecret } from './totp';
 
 // Maker-checker end to end, with seeded staff in their own browser contexts: the billing clerk asks
 // for a discount and finance approves it; after payment the clerk asks for a credit note and finance
@@ -12,12 +13,18 @@ function seedPassword(): string {
   return password;
 }
 
-async function signIn(browser: Browser, username: string, displayName: string): Promise<Page> {
+/** `twoFactor` for the demo users whose role needs it: the seed gave them SEED_TOTP_SECRET. */
+async function signIn(browser: Browser, username: string, displayName: string, twoFactor = false): Promise<Page> {
   const page = await (await browser.newContext()).newPage();
   await page.goto('/login');
   await page.getByLabel('Username').fill(username);
   await page.getByLabel('Password').fill(seedPassword());
   await page.getByRole('button', { name: 'Sign in' }).click();
+  if (twoFactor) {
+    const step = page.getByRole('form', { name: 'Two-factor sign-in' });
+    await step.getByLabel('Code from the app').fill(await freshTotpCode(seedTotpSecret()));
+    await step.getByRole('button', { name: 'Sign in' }).click();
+  }
   await expect(page.getByRole('heading', { name: `Welcome, ${displayName}` })).toBeVisible();
   return page;
 }
@@ -78,7 +85,7 @@ test('a discount, a credit note and a refund are each asked for by one person an
   const waiting = billing.getByRole('row').filter({ hasText: 'Senior citizen' });
   await expect(waiting).toContainText('Waiting');
   await expect(waiting.getByRole('button')).toHaveCount(0);
-  const finance = await signIn(browser, 'accounts', 'Demo Accountant');
+  const finance = await signIn(browser, 'accounts', 'Demo Accountant', true);
   await decide(finance, 'Discount', name, 'Approve');
 
   await billing.reload();
