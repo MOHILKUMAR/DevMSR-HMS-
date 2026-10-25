@@ -13,6 +13,8 @@ Steps the developer follows on servers and accounts. Claude Code writes and test
 | [restore-drill-log.md](restore-drill-log.md) | The record of every drill |
 | [monitoring.md](monitoring.md) | Uptime checks, heartbeats, Sentry rules, where to look |
 | [log-retention.md](log-retention.md) | 180-day logs in India, the daily encrypted copy |
+| [load-test.md](load-test.md) | k6 billing counter load test and the number series check |
+| [zap-scan.md](zap-scan.md) | OWASP ZAP baseline scan against staging |
 
 Order for a new server: hardening, Cloudflare, Supabase, secrets, the first deploy, then backups, monitoring and log retention.
 

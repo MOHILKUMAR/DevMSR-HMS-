@@ -357,3 +357,28 @@ Every non-obvious decision, oldest first. Each entry has the date, the decision 
 
 - Decision: an external uptime service (the developer's choice; none signed up) checks the health URL and the login page every minute, and receives heartbeats from the backup (`BACKUP_PING_URL`) and from an hourly host check (`deploy/check-host.sh`: disk space, container health), so it alerts on failure and on silence. Sentry is planned as app work with `beforeSend` scrubbing, needing approval for its SDKs.
 - Reason: section 3 rules out extra infrastructure and paid services without approval. Heartbeats catch a timer that silently stopped, which an exit status alone cannot.
+
+## 2026-10-25: The load test bills seeded patients through shared sessions per counter
+
+- Decision: `tests/load/billing-counter.js` (k6, run from the `grafana/k6` image) treats each virtual user as one counter with its own billing clerk and cashier sessions, signed in during setup and waiting out the login limit. It bills the seeded demo patients (found by UHID number) instead of registering new ones, sends one issue and one payment in ten twice at once with one `Idempotency-Key`, and writes its counts so the workflow can check the database holds exactly that many bills and receipts and that `deploy/sql/check-number-series.sql` passes. Cookies are carried by hand because k6's jar never sends `Secure` cookies over plain http.
+- Reason: the API only accepts mobile numbers that look real, and section 7 keeps real-looking personal data out of tests. Sessions are rate limited per session and logins per user and address, so per-counter sessions keep the test inside the limits a real counter has. The CI run proves the script and the numbering under concurrency; the peak measurement is on staging.
+
+## 2026-10-25: The JavaScript budget counts compressed bytes, measured in the browser
+
+- Decision: `apps/web/e2e/performance-budget.spec.ts` opens the login screen and the main signed-in screens on a cold cache against the production build in CI and fails if the JavaScript transferred (compressed, as served) reaches 1,000,000 bytes, or if first contentful paint over an emulated 4 Mbps line (40 ms round trip) reaches 1.5 s. `@next/bundle-analyzer` is not added.
+- Reason: the developer chose compressed size, since the promise is about weak hospital lines. Measuring what the browser downloads covers every chunk the page really loads, with no new dependency; the analyzer can be added later to find what is big.
+
+## 2026-10-25: Accessibility checks with axe and a keyboard-only counter run
+
+- Decision: `apps/web/e2e/accessibility.spec.ts` runs axe (`@axe-core/playwright` 4.14.0, approved) with the WCAG 2.0 and 2.1 A and AA rules on the login screen and every screen that exists, signed in as the role that uses it, and works the billing counter (find patient, add a charge, prepare and issue the bill) and the payment counter (open shift, find patient, take payment) with Tab, typing and Enter only. Any violation fails the test. New screens are added to its list.
+- Reason: section 16 asks for WCAG 2.1 AA and a billing flow that works from the keyboard. axe finds what can be found automatically; the keyboard run proves the counters are reachable. A manual check with a screen reader is still part of UAT.
+
+## 2026-10-25: ZAP baseline from its pinned image, scanning the runner until staging exists
+
+- Decision: `.github/workflows/zap-baseline.yml` runs `zap-baseline.py` from `ghcr.io/zaproxy/zaproxy:2.16.1` pinned by digest, not the third-party action. Run by hand it scans the staging web and API URLs given; on pull requests that change the scan it scans the production builds started on the runner. Only rules marked FAIL in `.zap/rules.tsv` fail the job; accepted warnings carry their reason there.
+- Reason: section 18 asks for a ZAP baseline against staging in CI, and staging does not exist yet. A manual dispatch works only from `main`, so the pull request mode is what proves the job before then.
+
+## 2026-10-25: The contract test also covers the web's generated types
+
+- Decision: `ci.yml` regenerates `apps/web/src/lib/api/generated/schema.d.ts` from `docs/openapi.json` after `pnpm test` and fails if it differs. Together with the existing test that fails when `docs/openapi.json` is stale against the routes, the web app and the API cannot drift apart unnoticed.
+- Reason: section 18's contract row. The OpenAPI snapshot test already existed; the generated client was the unchecked half.
