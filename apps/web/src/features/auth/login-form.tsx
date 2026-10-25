@@ -5,12 +5,11 @@ import { loginRequestSchema, type LoginRequest } from '@devmsr/validation';
 import { TriangleAlert } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { api, csrfHeader, ensureCsrfToken } from '@/lib/api/client';
+import { api, csrfHeader, refreshCsrfToken } from '@/lib/api/client';
 import { ApiRequestError, errorMessageKey } from '@/lib/api/errors';
 import { zodResolver } from '@/lib/forms';
 
@@ -27,14 +26,11 @@ export function LoginForm({ next }: { next: string }) {
     defaultValues: { username: '', password: '' },
   });
 
-  // The API checks a CSRF token even on login, so fetch one as soon as the screen opens.
-  useEffect(() => {
-    ensureCsrfToken().catch(() => undefined);
-  }, []);
-
   const signIn = useMutation({
     mutationFn: async (values: LoginRequest) => {
-      await ensureCsrfToken();
+      // The API checks a CSRF token even on login. Always a fresh one: the browser may still hold a
+      // token from a session that expired, which would fail every attempt.
+      await refreshCsrfToken();
       const { error } = await api.POST('/api/v1/auth/login', { params: { header: csrfHeader() }, body: values });
       if (error !== undefined) throw new ApiRequestError(error);
     },

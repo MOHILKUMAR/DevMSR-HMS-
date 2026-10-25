@@ -14,9 +14,10 @@ export function csrfHeader(): { 'X-CSRF-Token': string } {
   return { 'X-CSRF-Token': readCsrfToken(document.cookie) ?? '' };
 }
 
-/** Makes sure the CSRF cookie exists, as the login screen needs before anyone is signed in. */
-export async function ensureCsrfToken(): Promise<void> {
-  if (readCsrfToken(document.cookie) === undefined) {
-    await api.GET('/api/v1/auth/csrf');
-  }
+/**
+ * Gets a fresh CSRF token, signed for whatever session the browser has now. Signing in needs this
+ * every time: a CSRF cookie left from a session that has since expired no longer verifies.
+ */
+export async function refreshCsrfToken(): Promise<void> {
+  await api.GET('/api/v1/auth/csrf');
 }

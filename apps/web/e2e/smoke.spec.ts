@@ -1,8 +1,10 @@
 import { randomUUID } from 'node:crypto';
 import { expect, test } from '@playwright/test';
 
-// Seeded demo user from prisma/seed-data.ts. Its password is SEED_USER_PASSWORD.
+// Seeded demo users from prisma/seed-data.ts, all with SEED_USER_PASSWORD. Tests spread their
+// sign-ins over different users because the API allows 5 per minute per username.
 const RECEPTIONIST = { username: 'reception', displayName: 'Demo Receptionist' };
+const NURSE = { username: 'nurse', displayName: 'Demo Nurse' };
 
 function seedPassword(): string {
   const password = process.env['SEED_USER_PASSWORD'];
@@ -47,6 +49,25 @@ test('a receptionist signs in from the keyboard, sees only their sections, and s
   // The old session is gone: the shell is not reachable any more.
   await page.goto('/');
   await expect(page).toHaveURL(/\/login$/);
+});
+
+test('signing in again works after the old session has expired', async ({ page, context }) => {
+  await page.goto('/login');
+  await page.getByLabel('Username').fill(NURSE.username);
+  await page.getByLabel('Password').fill(seedPassword());
+  await page.getByRole('button', { name: 'Sign in' }).click();
+  await expect(page.getByRole('heading', { name: `Welcome, ${NURSE.displayName}` })).toBeVisible();
+
+  // The server no longer knows this session (as after the 15 minute idle timeout), but the browser
+  // still holds the CSRF cookie that was signed for it.
+  await context.addCookies([{ name: 'hms_session', value: 'expired-session', domain: 'localhost', path: '/' }]);
+  await page.goto('/');
+  await expect(page).toHaveURL(/\/login$/);
+
+  await page.getByLabel('Username').fill(NURSE.username);
+  await page.getByLabel('Password').fill(seedPassword());
+  await page.getByRole('button', { name: 'Sign in' }).click();
+  await expect(page.getByRole('heading', { name: `Welcome, ${NURSE.displayName}` })).toBeVisible();
 });
 
 test('a failed sign-in shows a plain message and does not reveal whether the user exists', async ({ page }) => {
