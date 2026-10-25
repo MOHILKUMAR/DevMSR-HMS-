@@ -28,7 +28,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: shellcheck (preinstalled on the runner)
-        run: shellcheck --external-sources deploy/*.sh deploy/server/*.sh deploy/test/*.sh
+        run: shellcheck --external-sources deploy/*.sh deploy/server/*.sh deploy/test/*.sh deploy/backup/*.sh
       - run: deploy/test/dry-run.sh
 
   rehearsal:

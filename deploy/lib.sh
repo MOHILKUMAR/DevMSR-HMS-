@@ -179,10 +179,10 @@ prepare_backup_container() {
   dry_run || chmod 700 "$work"
   backup_container_opts=(--user "$(id -u):$(id -g)" --read-only --tmpfs /tmp --cap-drop ALL
     --security-opt no-new-privileges:true --volume "$work:/work")
-  for store in $(sed -n 's/^\(BACKUP_STORE\|LOG_STORE\)=//p' "$env_file"); do
+  while read -r store; do
     if [[ "$store" == /* ]]; then
       run mkdir -p "$HMS_HOME/local-store$store"
       backup_container_opts+=(--volume "$HMS_HOME/local-store$store:$store")
     fi
-  done
+  done < <(sed -n 's/^\(BACKUP_STORE\|LOG_STORE\)=//p' "$env_file")
 }
