@@ -25,6 +25,8 @@ export const PERMISSIONS = {
   'patients.patient.update': 'Edit patient details',
   'opd.appointment.manage': 'Book appointments and issue tokens',
   'opd.queue.read-own': 'View own consultation queue',
+  'opd.visit.read': "View the day's OPD tokens and visits, without clinical notes",
+  'clinical.order.create': 'Order tests and procedures, which post their charges',
   'clinical.note.write': 'Write consultation notes and orders',
 
   // IPD, beds and nursing
@@ -114,6 +116,7 @@ export const ROLES = {
       'reports.operations.read',
       'reports.profit.read',
       'reports.finance.export',
+      'opd.visit.read',
       'billing.account.read',
       'billing.discount.approve',
       'billing.discount.approve-above-limit',
@@ -168,6 +171,8 @@ export const ROLES = {
       'payments.deposit.create',
       'payments.shift.manage-own',
       'payments.refund.pay',
+      // The OPD tokens waiting for their consultation fee.
+      'opd.visit.read',
       'payments.receipt.void-request',
       'billing.refund.request',
       'tariffs.tariff.read',
@@ -182,6 +187,7 @@ export const ROLES = {
       'patients.patient.create',
       'patients.patient.update',
       'opd.appointment.manage',
+      'opd.visit.read',
       'ipd.admission.create',
       'beds.bed.read',
       'tariffs.tariff.read',
@@ -190,7 +196,16 @@ export const ROLES = {
   doctor: {
     name: 'Doctor',
     scope: 'hospital',
-    permissions: [...STAFF, 'patients.patient.read', 'opd.queue.read-own', 'clinical.note.write', 'ipd.discharge.mark-fit'],
+    permissions: [
+      ...STAFF,
+      'patients.patient.read',
+      'opd.queue.read-own',
+      'clinical.note.write',
+      'clinical.order.create',
+      'ipd.discharge.mark-fit',
+      // To choose tests and procedures to order, with their rates.
+      'tariffs.tariff.read',
+    ],
   },
   nurse: {
     name: 'Nurse',

@@ -192,6 +192,11 @@ export type TakePayment = z.infer<typeof takePaymentSchema>;
 export const takeDepositSchema = z.object({ patientId: uuidSchema, ...paymentDetails }).refine(detailsComplete, detailsMessage);
 export type TakeDeposit = z.infer<typeof takeDepositSchema>;
 
+/** The OPD consultation fee: how it is paid. The amount is the bill's total, worked out by the API. */
+const { amountPaise: _feeAmount, ...feeDetails } = paymentDetails;
+export const payOpdFeeSchema = z.object(feeDetails).refine(detailsComplete, detailsMessage);
+export type PayOpdFee = z.infer<typeof payOpdFeeSchema>;
+
 /** Sets held deposit against a bill, oldest deposit first. */
 export const applyDepositSchema = z.object({ amountPaise: paiseSchema.refine((value) => value > 0, 'More than nothing') });
 export type ApplyDeposit = z.infer<typeof applyDepositSchema>;

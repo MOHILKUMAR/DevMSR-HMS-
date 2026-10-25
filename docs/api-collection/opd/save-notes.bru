@@ -1,0 +1,30 @@
+meta {
+  name: Save notes
+  type: http
+  seq: 7
+}
+
+put {
+  url: {{baseUrl}}/opd-visits/{{visitId}}/notes
+  body: json
+  auth: none
+}
+
+headers {
+  X-CSRF-Token: {{csrfToken}}
+}
+
+body:json {
+  {
+    "complaints": "Fever for 3 days",
+    "findings": "Temp 101 F",
+    "diagnosis": "Viral fever",
+    "advice": "Rest, fluids",
+    "followUpDate": null,
+    "admissionAdvised": false
+  }
+}
+
+assert {
+  res.status: eq 200
+}

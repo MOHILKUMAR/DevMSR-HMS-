@@ -1,5 +1,6 @@
 'use client';
 
+import type { PatientSummary } from '@devmsr/validation';
 import { Search } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
@@ -11,10 +12,20 @@ import { formatMobile } from './format';
 import { MIN_SEARCH_LENGTH, usePatientSearch } from './queries';
 
 /**
- * Finds a patient and links to a desk's page for them, such as their bill or payments. The search
- * text stays in the page, never in a URL.
+ * Finds a patient and links to a desk's page for them, such as their bill or payments, or hands the
+ * choice to the page (`onSelect`). The search text stays in the page, never in a URL.
  */
-export function PatientPicker({ id, label, hrefFor }: { id: string; label: string; hrefFor: (patientId: string) => string }) {
+export function PatientPicker({
+  id,
+  label,
+  hrefFor,
+  onSelect,
+}: {
+  id: string;
+  label: string;
+  hrefFor?: (patientId: string) => string;
+  onSelect?: (patient: PatientSummary) => void;
+}) {
   const t = useTranslations('patients');
   const [text, setText] = useState('');
   const q = useDebounced(text, 300);
@@ -44,9 +55,9 @@ export function PatientPicker({ id, label, hrefFor }: { id: string; label: strin
       </div>
       {searching && (
         <ul aria-label={t('resultsLabel')} className="divide-y divide-border rounded-md border border-border bg-surface">
-          {rows.map((row) => (
-            <li key={row.id}>
-              <Link href={hrefFor(row.id)} className="flex items-baseline justify-between gap-3 px-3 py-2 text-sm hover:bg-primary-soft">
+          {rows.map((row) => {
+            const inner = (
+              <>
                 <span>
                   <span className="font-medium">{row.fullName}</span>
                   <span className="block text-xs text-text-muted">
@@ -55,9 +66,30 @@ export function PatientPicker({ id, label, hrefFor }: { id: string; label: strin
                   </span>
                 </span>
                 <span className="font-mono text-xs text-text-muted">{row.uhid}</span>
-              </Link>
-            </li>
-          ))}
+              </>
+            );
+            const style = 'flex w-full items-baseline justify-between gap-3 px-3 py-2 text-left text-sm hover:bg-primary-soft';
+            return (
+              <li key={row.id}>
+                {onSelect === undefined ? (
+                  <Link href={hrefFor?.(row.id) ?? '#'} className={style}>
+                    {inner}
+                  </Link>
+                ) : (
+                  <button
+                    type="button"
+                    className={style}
+                    onClick={() => {
+                      onSelect(row);
+                      setText('');
+                    }}
+                  >
+                    {inner}
+                  </button>
+                )}
+              </li>
+            );
+          })}
           {rows.length === 0 && <li className="px-3 py-2 text-sm text-text-muted">{results.isFetching ? t('searching') : t('noMatches')}</li>}
         </ul>
       )}

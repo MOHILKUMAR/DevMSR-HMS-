@@ -29,7 +29,7 @@ Everything else needed before real patients (hosting, backups, audits, paperwork
 - [x] Patient registration: UHIDs from a gapless yearly counter, duplicate checks (Aadhaar and ABHA block, mobile and name warn), search by UHID, mobile, name, Aadhaar or ABHA, audited record views, edits
 - [ ] Merging duplicate patient records, patient photo, printed UHID card
 - [ ] Registration fee (waiting for an answer in `docs/billing-rules.md`)
-- [ ] OPD
+- [x] OPD (slice 4): walk-in tokens numbered daily for the whole hospital, the consultation fee billed and receipted at the cash counter, the doctor's own queue, notes locked once the visit is done, orders that post charges, an 80 mm token slip
 - [ ] IPD and beds
 - [x] Billing (slice 3a): charges at the dated rate, draft bills, issue with gapless `INV` numbers per financial year, locked issued bills, discard, A4 and 80 mm print
 - [x] Payments and cash shifts (slice 3a): one open shift per cashier, payments by cash, UPI, card, bank transfer or cheque, deposits, deposits set against bills, gapless `RCT` numbers, shift close with counted cash and a reason for any difference, shift list for finance

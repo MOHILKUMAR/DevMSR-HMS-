@@ -502,6 +502,177 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/opd-visits": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A day's OPD visits in token order, without clinical notes */
+        get: operations["opdList"];
+        put?: never;
+        /** Issue today's next OPD token for a patient to see a doctor */
+        post: operations["opdIssue"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/opd-visits/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One OPD visit, without clinical notes (the token slip) */
+        get: operations["opdGet"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/opd-visits/{id}/call": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Call your next patient in */
+        post: operations["opdCall"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/opd-visits/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel a token that has not been paid for */
+        post: operations["opdCancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/opd-visits/{id}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Complete the visit; its notes are locked from then on */
+        post: operations["opdComplete"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/opd-visits/{id}/consultation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your visit with its notes and orders (audited) */
+        get: operations["opdConsultation"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/opd-visits/{id}/fee": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Take the consultation fee: a bill issued for it and a receipt in your open shift. The token then joins the queue */
+        post: operations["opdPayFee"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/opd-visits/{id}/notes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Save your notes while the patient is with you */
+        put: operations["opdNotes"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/opd-visits/{id}/orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Order a test or procedure; its charge is posted for billing */
+        post: operations["opdOrder"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/opd-visits/queue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The signed-in doctor's paid visits for today, in token order */
+        get: operations["opdQueue"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/patients": {
         parameters: {
             query?: never;
@@ -2494,6 +2665,543 @@ export interface components {
             createdByName: string | null;
             issuedAt: string | null;
             issuedByName: string | null;
+        };
+        OpdListResponse: {
+            data: {
+                /** Format: uuid */
+                id: string;
+                /** Format: date */
+                visitDate: string;
+                tokenNumber: number;
+                /** @enum {string} */
+                status: "awaiting_payment" | "waiting" | "with_doctor" | "completed" | "cancelled";
+                patient: {
+                    /** Format: uuid */
+                    id: string;
+                    uhid: string;
+                    fullName: string;
+                    /** @enum {string} */
+                    sex: "male" | "female" | "other" | "unknown";
+                    dateOfBirth: string | null;
+                };
+                doctor: {
+                    /** Format: uuid */
+                    id: string;
+                    fullName: string;
+                    departmentName: string;
+                };
+                quotedFeePaise: number;
+                feeInvoiceId: string | null;
+                feeInvoiceNumber: string | null;
+                createdByName: string | null;
+                /** Format: date-time */
+                createdAt: string;
+                paidAt: string | null;
+                calledAt: string | null;
+                completedAt: string | null;
+                cancelledAt: string | null;
+                cancelReason: string | null;
+            }[];
+            page: number;
+            pageSize: number;
+            total: number;
+        };
+        OpdIssueRequest: {
+            /** Format: uuid */
+            patientId: string;
+            /** Format: uuid */
+            doctorId: string;
+        };
+        OpdIssueResponse: {
+            /** Format: uuid */
+            id: string;
+            /** Format: date */
+            visitDate: string;
+            tokenNumber: number;
+            /** @enum {string} */
+            status: "awaiting_payment" | "waiting" | "with_doctor" | "completed" | "cancelled";
+            patient: {
+                /** Format: uuid */
+                id: string;
+                uhid: string;
+                fullName: string;
+                /** @enum {string} */
+                sex: "male" | "female" | "other" | "unknown";
+                dateOfBirth: string | null;
+            };
+            doctor: {
+                /** Format: uuid */
+                id: string;
+                fullName: string;
+                departmentName: string;
+            };
+            quotedFeePaise: number;
+            feeInvoiceId: string | null;
+            feeInvoiceNumber: string | null;
+            createdByName: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            paidAt: string | null;
+            calledAt: string | null;
+            completedAt: string | null;
+            cancelledAt: string | null;
+            cancelReason: string | null;
+        };
+        OpdGetResponse: {
+            /** Format: uuid */
+            id: string;
+            /** Format: date */
+            visitDate: string;
+            tokenNumber: number;
+            /** @enum {string} */
+            status: "awaiting_payment" | "waiting" | "with_doctor" | "completed" | "cancelled";
+            patient: {
+                /** Format: uuid */
+                id: string;
+                uhid: string;
+                fullName: string;
+                /** @enum {string} */
+                sex: "male" | "female" | "other" | "unknown";
+                dateOfBirth: string | null;
+            };
+            doctor: {
+                /** Format: uuid */
+                id: string;
+                fullName: string;
+                departmentName: string;
+            };
+            quotedFeePaise: number;
+            feeInvoiceId: string | null;
+            feeInvoiceNumber: string | null;
+            createdByName: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            paidAt: string | null;
+            calledAt: string | null;
+            completedAt: string | null;
+            cancelledAt: string | null;
+            cancelReason: string | null;
+        };
+        OpdCallResponse: {
+            visit: {
+                /** Format: uuid */
+                id: string;
+                /** Format: date */
+                visitDate: string;
+                tokenNumber: number;
+                /** @enum {string} */
+                status: "awaiting_payment" | "waiting" | "with_doctor" | "completed" | "cancelled";
+                patient: {
+                    /** Format: uuid */
+                    id: string;
+                    uhid: string;
+                    fullName: string;
+                    /** @enum {string} */
+                    sex: "male" | "female" | "other" | "unknown";
+                    dateOfBirth: string | null;
+                };
+                doctor: {
+                    /** Format: uuid */
+                    id: string;
+                    fullName: string;
+                    departmentName: string;
+                };
+                quotedFeePaise: number;
+                feeInvoiceId: string | null;
+                feeInvoiceNumber: string | null;
+                createdByName: string | null;
+                /** Format: date-time */
+                createdAt: string;
+                paidAt: string | null;
+                calledAt: string | null;
+                completedAt: string | null;
+                cancelledAt: string | null;
+                cancelReason: string | null;
+            };
+            notes: {
+                complaints: string | null;
+                findings: string | null;
+                diagnosis: string | null;
+                advice: string | null;
+                followUpDate: string | null;
+                admissionAdvised: boolean;
+            };
+            notesUpdatedAt: string | null;
+            orders: {
+                /** Format: uuid */
+                chargeId: string;
+                description: string;
+                quantity: number;
+                amountPaise: number;
+                /** Format: date-time */
+                orderedAt: string;
+            }[];
+        };
+        OpdCancelRequest: {
+            reason: string;
+        };
+        OpdCancelResponse: {
+            /** Format: uuid */
+            id: string;
+            /** Format: date */
+            visitDate: string;
+            tokenNumber: number;
+            /** @enum {string} */
+            status: "awaiting_payment" | "waiting" | "with_doctor" | "completed" | "cancelled";
+            patient: {
+                /** Format: uuid */
+                id: string;
+                uhid: string;
+                fullName: string;
+                /** @enum {string} */
+                sex: "male" | "female" | "other" | "unknown";
+                dateOfBirth: string | null;
+            };
+            doctor: {
+                /** Format: uuid */
+                id: string;
+                fullName: string;
+                departmentName: string;
+            };
+            quotedFeePaise: number;
+            feeInvoiceId: string | null;
+            feeInvoiceNumber: string | null;
+            createdByName: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            paidAt: string | null;
+            calledAt: string | null;
+            completedAt: string | null;
+            cancelledAt: string | null;
+            cancelReason: string | null;
+        };
+        OpdCompleteResponse: {
+            visit: {
+                /** Format: uuid */
+                id: string;
+                /** Format: date */
+                visitDate: string;
+                tokenNumber: number;
+                /** @enum {string} */
+                status: "awaiting_payment" | "waiting" | "with_doctor" | "completed" | "cancelled";
+                patient: {
+                    /** Format: uuid */
+                    id: string;
+                    uhid: string;
+                    fullName: string;
+                    /** @enum {string} */
+                    sex: "male" | "female" | "other" | "unknown";
+                    dateOfBirth: string | null;
+                };
+                doctor: {
+                    /** Format: uuid */
+                    id: string;
+                    fullName: string;
+                    departmentName: string;
+                };
+                quotedFeePaise: number;
+                feeInvoiceId: string | null;
+                feeInvoiceNumber: string | null;
+                createdByName: string | null;
+                /** Format: date-time */
+                createdAt: string;
+                paidAt: string | null;
+                calledAt: string | null;
+                completedAt: string | null;
+                cancelledAt: string | null;
+                cancelReason: string | null;
+            };
+            notes: {
+                complaints: string | null;
+                findings: string | null;
+                diagnosis: string | null;
+                advice: string | null;
+                followUpDate: string | null;
+                admissionAdvised: boolean;
+            };
+            notesUpdatedAt: string | null;
+            orders: {
+                /** Format: uuid */
+                chargeId: string;
+                description: string;
+                quantity: number;
+                amountPaise: number;
+                /** Format: date-time */
+                orderedAt: string;
+            }[];
+        };
+        OpdConsultationResponse: {
+            visit: {
+                /** Format: uuid */
+                id: string;
+                /** Format: date */
+                visitDate: string;
+                tokenNumber: number;
+                /** @enum {string} */
+                status: "awaiting_payment" | "waiting" | "with_doctor" | "completed" | "cancelled";
+                patient: {
+                    /** Format: uuid */
+                    id: string;
+                    uhid: string;
+                    fullName: string;
+                    /** @enum {string} */
+                    sex: "male" | "female" | "other" | "unknown";
+                    dateOfBirth: string | null;
+                };
+                doctor: {
+                    /** Format: uuid */
+                    id: string;
+                    fullName: string;
+                    departmentName: string;
+                };
+                quotedFeePaise: number;
+                feeInvoiceId: string | null;
+                feeInvoiceNumber: string | null;
+                createdByName: string | null;
+                /** Format: date-time */
+                createdAt: string;
+                paidAt: string | null;
+                calledAt: string | null;
+                completedAt: string | null;
+                cancelledAt: string | null;
+                cancelReason: string | null;
+            };
+            notes: {
+                complaints: string | null;
+                findings: string | null;
+                diagnosis: string | null;
+                advice: string | null;
+                followUpDate: string | null;
+                admissionAdvised: boolean;
+            };
+            notesUpdatedAt: string | null;
+            orders: {
+                /** Format: uuid */
+                chargeId: string;
+                description: string;
+                quantity: number;
+                amountPaise: number;
+                /** Format: date-time */
+                orderedAt: string;
+            }[];
+        };
+        OpdPayFeeRequest: {
+            /** @enum {string} */
+            mode: "cash" | "upi" | "card" | "bank_transfer" | "cheque";
+            reference?: string;
+            cardLast4?: string;
+            bankName?: string;
+        };
+        OpdPayFeeResponse: {
+            /** Format: uuid */
+            id: string;
+            number: string;
+            /** @enum {string} */
+            purpose: "bill_payment" | "deposit";
+            /** @enum {string} */
+            mode: "cash" | "upi" | "card" | "bank_transfer" | "cheque";
+            amountPaise: number;
+            reference: string | null;
+            cardLast4: string | null;
+            bankName: string | null;
+            patient: {
+                /** Format: uuid */
+                id: string;
+                uhid: string;
+                fullName: string;
+                /** @enum {string} */
+                sex: "male" | "female" | "other" | "unknown";
+                dateOfBirth: string | null;
+                phone: string | null;
+                address: string | null;
+            };
+            issuer: {
+                name: string;
+                addressLine: string | null;
+                city: string | null;
+                state: string | null;
+                pincode: string | null;
+                phone: string | null;
+                email: string | null;
+                gstin: string | null;
+            };
+            receivedByName: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            allocations: {
+                /** Format: uuid */
+                invoiceId: string;
+                invoiceNumber: string;
+                amountPaise: number;
+            }[];
+            heldPaise: number;
+            voidedAt: string | null;
+        };
+        OpdNotesRequest: {
+            complaints: string | null;
+            findings: string | null;
+            diagnosis: string | null;
+            advice: string | null;
+            followUpDate: string | null;
+            admissionAdvised: boolean;
+        };
+        OpdNotesResponse: {
+            visit: {
+                /** Format: uuid */
+                id: string;
+                /** Format: date */
+                visitDate: string;
+                tokenNumber: number;
+                /** @enum {string} */
+                status: "awaiting_payment" | "waiting" | "with_doctor" | "completed" | "cancelled";
+                patient: {
+                    /** Format: uuid */
+                    id: string;
+                    uhid: string;
+                    fullName: string;
+                    /** @enum {string} */
+                    sex: "male" | "female" | "other" | "unknown";
+                    dateOfBirth: string | null;
+                };
+                doctor: {
+                    /** Format: uuid */
+                    id: string;
+                    fullName: string;
+                    departmentName: string;
+                };
+                quotedFeePaise: number;
+                feeInvoiceId: string | null;
+                feeInvoiceNumber: string | null;
+                createdByName: string | null;
+                /** Format: date-time */
+                createdAt: string;
+                paidAt: string | null;
+                calledAt: string | null;
+                completedAt: string | null;
+                cancelledAt: string | null;
+                cancelReason: string | null;
+            };
+            notes: {
+                complaints: string | null;
+                findings: string | null;
+                diagnosis: string | null;
+                advice: string | null;
+                followUpDate: string | null;
+                admissionAdvised: boolean;
+            };
+            notesUpdatedAt: string | null;
+            orders: {
+                /** Format: uuid */
+                chargeId: string;
+                description: string;
+                quantity: number;
+                amountPaise: number;
+                /** Format: date-time */
+                orderedAt: string;
+            }[];
+        };
+        OpdOrderRequest: {
+            /** Format: uuid */
+            serviceItemId: string;
+            quantity: number;
+        };
+        OpdOrderResponse: {
+            visit: {
+                /** Format: uuid */
+                id: string;
+                /** Format: date */
+                visitDate: string;
+                tokenNumber: number;
+                /** @enum {string} */
+                status: "awaiting_payment" | "waiting" | "with_doctor" | "completed" | "cancelled";
+                patient: {
+                    /** Format: uuid */
+                    id: string;
+                    uhid: string;
+                    fullName: string;
+                    /** @enum {string} */
+                    sex: "male" | "female" | "other" | "unknown";
+                    dateOfBirth: string | null;
+                };
+                doctor: {
+                    /** Format: uuid */
+                    id: string;
+                    fullName: string;
+                    departmentName: string;
+                };
+                quotedFeePaise: number;
+                feeInvoiceId: string | null;
+                feeInvoiceNumber: string | null;
+                createdByName: string | null;
+                /** Format: date-time */
+                createdAt: string;
+                paidAt: string | null;
+                calledAt: string | null;
+                completedAt: string | null;
+                cancelledAt: string | null;
+                cancelReason: string | null;
+            };
+            notes: {
+                complaints: string | null;
+                findings: string | null;
+                diagnosis: string | null;
+                advice: string | null;
+                followUpDate: string | null;
+                admissionAdvised: boolean;
+            };
+            notesUpdatedAt: string | null;
+            orders: {
+                /** Format: uuid */
+                chargeId: string;
+                description: string;
+                quantity: number;
+                amountPaise: number;
+                /** Format: date-time */
+                orderedAt: string;
+            }[];
+        };
+        OpdQueueResponse: {
+            doctor: {
+                /** Format: uuid */
+                id: string;
+                fullName: string;
+            } | null;
+            visits: {
+                /** Format: uuid */
+                id: string;
+                /** Format: date */
+                visitDate: string;
+                tokenNumber: number;
+                /** @enum {string} */
+                status: "awaiting_payment" | "waiting" | "with_doctor" | "completed" | "cancelled";
+                patient: {
+                    /** Format: uuid */
+                    id: string;
+                    uhid: string;
+                    fullName: string;
+                    /** @enum {string} */
+                    sex: "male" | "female" | "other" | "unknown";
+                    dateOfBirth: string | null;
+                };
+                doctor: {
+                    /** Format: uuid */
+                    id: string;
+                    fullName: string;
+                    departmentName: string;
+                };
+                quotedFeePaise: number;
+                feeInvoiceId: string | null;
+                feeInvoiceNumber: string | null;
+                createdByName: string | null;
+                /** Format: date-time */
+                createdAt: string;
+                paidAt: string | null;
+                calledAt: string | null;
+                completedAt: string | null;
+                cancelledAt: string | null;
+                cancelReason: string | null;
+            }[];
+            completedToday: number;
         };
         PatientsRegisterRequest: {
             fullName: string;
@@ -5010,6 +5718,395 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["InvoicesIssueResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    opdList: {
+        parameters: {
+            query?: {
+                page?: number;
+                pageSize?: number;
+                sort?: string;
+                date?: string;
+                status?: "awaiting_payment" | "waiting" | "with_doctor" | "completed" | "cancelled";
+                doctorId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OpdListResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    opdIssue: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Value of the CSRF cookie */
+                "X-CSRF-Token": string;
+                /** @description Unique per financial request. A repeat returns the stored response. */
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OpdIssueRequest"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OpdIssueResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    opdGet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OpdGetResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    opdCall: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Value of the CSRF cookie */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OpdCallResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    opdCancel: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Value of the CSRF cookie */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OpdCancelRequest"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OpdCancelResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    opdComplete: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Value of the CSRF cookie */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OpdCompleteResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    opdConsultation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OpdConsultationResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    opdPayFee: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Value of the CSRF cookie */
+                "X-CSRF-Token": string;
+                /** @description Unique per financial request. A repeat returns the stored response. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OpdPayFeeRequest"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OpdPayFeeResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    opdNotes: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Value of the CSRF cookie */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OpdNotesRequest"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OpdNotesResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    opdOrder: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Value of the CSRF cookie */
+                "X-CSRF-Token": string;
+                /** @description Unique per financial request. A repeat returns the stored response. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OpdOrderRequest"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OpdOrderResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    opdQueue: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OpdQueueResponse"];
                 };
             };
             /** @description Error */

@@ -86,6 +86,8 @@ export const Errors = {
       'This receipt cannot be voided: its shift is closed, it is void already, or its deposit has been used or refunded.',
     ),
   refundNotReady: () => new AppError(409, 'REFUND_NOT_READY', 'This refund is not approved, or it has been paid already.'),
+  visitState: () => new AppError(409, 'VISIT_STATE', 'This visit has moved on. Reload to see where it is now.'),
+  tokenExists: () => new AppError(409, 'TOKEN_EXISTS', 'This patient already has an open token for this doctor today.'),
   internal: () =>
     new AppError(500, 'INTERNAL_ERROR', 'Something went wrong on our side. Try again, and tell your admin if it keeps happening.'),
 };

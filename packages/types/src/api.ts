@@ -39,6 +39,8 @@ export const API_ERROR_CODES = [
   'AMOUNT_TOO_LARGE',
   'RECEIPT_NOT_VOIDABLE',
   'REFUND_NOT_READY',
+  'VISIT_STATE',
+  'TOKEN_EXISTS',
 ] as const;
 
 export type ApiErrorCode = (typeof API_ERROR_CODES)[number];
