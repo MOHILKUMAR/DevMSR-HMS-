@@ -1,6 +1,7 @@
--- Checks every number series (UHIDs, bills, receipts) against its counter: each series starts at 1,
--- has no gaps and no repeats, and its highest number equals the counter's last value
--- (CLAUDE.md section 7, docs/decisions.md "UHIDs come from a locked counter row").
+-- Checks every number series (UHIDs, bills, receipts, credit notes, refunds, admissions and OPD
+-- tokens) against its counter: each series starts at 1, has no gaps and no repeats, and its highest
+-- number equals the counter's last value (CLAUDE.md section 7, docs/decisions.md "UHIDs come from a
+-- locked counter row"). A new number kind must be added here, or its counter fails the check.
 -- Read-only apart from a temporary view. Fails (exit code 3 with ON_ERROR_STOP) if any series is wrong.
 -- Used after the load test (tests/load) and by every restore drill (restore-checks.sql).
 --   psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f deploy/sql/check-number-series.sql
@@ -18,6 +19,19 @@ WITH documents AS (
   UNION ALL
   SELECT hospital_id, 'receipt', financial_year, substring(number FROM '([0-9]+)$')::bigint
   FROM receipts
+  UNION ALL
+  SELECT hospital_id, 'credit_note', financial_year, substring(number FROM '([0-9]+)$')::bigint
+  FROM credit_notes
+  UNION ALL
+  SELECT hospital_id, 'refund', financial_year, substring(number FROM '([0-9]+)$')::bigint
+  FROM refunds
+  UNION ALL
+  SELECT hospital_id, 'admission', financial_year, substring(number FROM '([0-9]+)$')::bigint
+  FROM admissions
+  UNION ALL
+  -- OPD tokens restart every day (IST), so their period is the visit date.
+  SELECT hospital_id, 'opd_token', to_char(visit_date, 'YYYY-MM-DD'), token_number::bigint
+  FROM opd_visits
 ),
 series AS (
   SELECT hospital_id, kind, period,
