@@ -24,15 +24,25 @@ cp .env.example .env
 cp apps/web/.env.example apps/web/.env.local
 ```
 
+Fill in `SESSION_SECRET` and `FIELD_ENCRYPTION_KEY` in `.env` (the file says how to generate them).
+
 ```bash
 docker compose up -d
+```
+
+```bash
+pnpm db:migrate
+```
+
+```bash
+pnpm db:seed
 ```
 
 ```bash
 pnpm dev
 ```
 
-The web app runs on http://localhost:3000 and the API on http://localhost:4000/api/v1 (try `/api/v1/health`).
+The web app runs on http://localhost:3000 and the API on http://localhost:4000/api/v1 (try `/api/v1/health`). The seed creates a fake demo hospital with one user per role (`superadmin`, `admin`, `md`, `accounts`, `billing`, `cashier`, `reception`, `doctor`, `nurse`, `pharmacy`, `lab`, `ot`), all with `SEED_USER_PASSWORD` from `.env`.
 
 ## Layout
 
@@ -53,10 +63,15 @@ The web app runs on http://localhost:3000 and the API on http://localhost:4000/a
 | `pnpm build` | Production builds of every package |
 | `pnpm lint` | ESLint |
 | `pnpm typecheck` | TypeScript |
-| `pnpm test` | Unit and API tests |
+| `pnpm test` | Unit tests, and API tests against `TEST_DATABASE_URL` (wiped on every run) |
 | `pnpm check:text` | Fails if any tracked file contains an em dash or en dash |
+| `pnpm db:migrate` | Creates and applies a migration in development |
+| `pnpm db:seed` | Loads the fake demo hospital |
+| `pnpm db:reset` | Drops the development database and reapplies every migration |
+| `pnpm db:deploy` | Applies pending migrations (staging and production) |
+| `pnpm api:spec` | Regenerates `docs/openapi.json` and the web app's API types |
 
-`pnpm db:migrate`, `pnpm db:seed`, `pnpm test:e2e` and `pnpm api:spec` arrive with the request pipeline and web shell.
+`pnpm test:e2e` arrives with the web shell.
 
 ## Docker images
 

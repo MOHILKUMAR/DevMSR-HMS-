@@ -1,0 +1,339 @@
+// Schema v0. Rules for every table are in CLAUDE.md section 7:
+// UUID keys, snake_case names, timestamptz, hospital_id on every business table.
+
+generator client {
+  provider            = "prisma-client"
+  output              = "../apps/api/src/generated/prisma"
+  moduleFormat        = "esm"
+  importFileExtension = "js"
+  previewFeatures     = ["partialIndexes"]
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserKind {
+  // Works inside one hospital.
+  staff
+  // DevMSR platform staff. No hospital, no daily hospital work.
+  platform
+
+  @@map("user_kind")
+}
+
+enum Sex {
+  male
+  female
+  other
+  unknown
+
+  @@map("sex")
+}
+
+enum BedStatus {
+  free
+  occupied
+  cleaning
+  reserved
+  blocked
+
+  @@map("bed_status")
+}
+
+enum LoginOutcome {
+  succeeded
+  wrong_password
+  unknown_user
+  locked
+  inactive
+
+  @@map("login_outcome")
+}
+
+enum SessionEndReason {
+  logout
+  idle_timeout
+  max_age
+  replaced
+  user_inactive
+
+  @@map("session_end_reason")
+}
+
+enum IdempotencyStatus {
+  in_progress
+  completed
+
+  @@map("idempotency_status")
+}
+
+model Hospital {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  code      String   @unique
+  name      String
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  branches Branch[]
+  users    User[]
+  roles    Role[]
+  patients Patient[]
+  wards    Ward[]
+  beds     Bed[]
+
+  @@map("hospitals")
+}
+
+model Branch {
+  id         String   @id @default(uuid(7)) @db.Uuid
+  hospitalId String   @map("hospital_id") @db.Uuid
+  code       String
+  name       String
+  isActive   Boolean  @default(true) @map("is_active")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  hospital Hospital @relation(fields: [hospitalId], references: [id], onDelete: Restrict)
+  wards    Ward[]
+
+  @@unique([hospitalId, code])
+  // Target of composite foreign keys, so a child row cannot point at another hospital's branch.
+  @@unique([hospitalId, id])
+  @@map("branches")
+}
+
+model User {
+  id                  String    @id @default(uuid(7)) @db.Uuid
+  // Null only for platform users (enforced by a check constraint).
+  hospitalId          String?   @map("hospital_id") @db.Uuid
+  kind                UserKind  @default(staff)
+  // Stored lowercase. Unique across the platform so login needs no hospital picker.
+  username            String    @unique
+  displayName         String    @map("display_name")
+  passwordHash        String    @map("password_hash")
+  failedLoginCount    Int       @default(0) @map("failed_login_count")
+  lockedUntil         DateTime? @map("locked_until") @db.Timestamptz(3)
+  totpSecretEncrypted String?   @map("totp_secret_encrypted")
+  totpEnabledAt       DateTime? @map("totp_enabled_at") @db.Timestamptz(3)
+  passwordChangedAt   DateTime  @default(now()) @map("password_changed_at") @db.Timestamptz(3)
+  lastLoginAt         DateTime? @map("last_login_at") @db.Timestamptz(3)
+  isActive            Boolean   @default(true) @map("is_active")
+  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt           DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  hospital    Hospital?    @relation(fields: [hospitalId], references: [id], onDelete: Restrict)
+  userRoles   UserRole[]
+  sessions    Session[]
+  loginEvents LoginEvent[]
+  auditEvents AuditEvent[]
+
+  @@index([hospitalId])
+  @@map("users")
+}
+
+model Role {
+  id         String   @id @default(uuid(7)) @db.Uuid
+  // Null only for platform roles such as super admin.
+  hospitalId String?  @map("hospital_id") @db.Uuid
+  code       String
+  name       String
+  // Seeded from the permission matrix. Custom roles have false.
+  isSystem   Boolean  @default(false) @map("is_system")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  hospital        Hospital?        @relation(fields: [hospitalId], references: [id], onDelete: Restrict)
+  rolePermissions RolePermission[]
+  userRoles       UserRole[]
+
+  @@unique([hospitalId, code])
+  // Platform role codes are unique. Prisma exposes this partial index as `where: { code }`, but it
+  // only covers platform roles: never look up a role by code alone, always with hospitalId.
+  @@unique([code], map: "roles_platform_code_key", where: raw("hospital_id IS NULL"))
+  @@map("roles")
+}
+
+model Permission {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  code        String   @unique
+  description String
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  rolePermissions RolePermission[]
+
+  @@map("permissions")
+}
+
+model RolePermission {
+  roleId       String   @map("role_id") @db.Uuid
+  permissionId String   @map("permission_id") @db.Uuid
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Restrict)
+
+  @@id([roleId, permissionId])
+  @@index([permissionId])
+  @@map("role_permissions")
+}
+
+model UserRole {
+  userId     String   @map("user_id") @db.Uuid
+  roleId     String   @map("role_id") @db.Uuid
+  assignedAt DateTime @default(now()) @map("assigned_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Restrict)
+
+  @@id([userId, roleId])
+  @@index([roleId])
+  @@map("user_roles")
+}
+
+model Patient {
+  id                   String    @id @default(uuid(7)) @db.Uuid
+  hospitalId           String    @map("hospital_id") @db.Uuid
+  fullName             String    @map("full_name")
+  sex                  Sex
+  dateOfBirth          DateTime? @map("date_of_birth") @db.Date
+  // E.164, for example +919876543210.
+  phone                String?
+  // Aadhaar and ABHA: AES-256-GCM ciphertext, last 4 digits for masked display,
+  // and an HMAC blind index for duplicate checks without decrypting.
+  aadhaarEncrypted     String?   @map("aadhaar_encrypted")
+  aadhaarLast4         String?   @map("aadhaar_last4") @db.Char(4)
+  aadhaarBlindIndex    String?   @map("aadhaar_blind_index")
+  abhaNumberEncrypted  String?   @map("abha_number_encrypted")
+  abhaNumberLast4      String?   @map("abha_number_last4") @db.Char(4)
+  abhaNumberBlindIndex String?   @map("abha_number_blind_index")
+  createdById          String?   @map("created_by_id") @db.Uuid
+  createdAt            DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt            DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  hospital Hospital @relation(fields: [hospitalId], references: [id], onDelete: Restrict)
+
+  @@index([hospitalId, createdAt])
+  @@index([hospitalId, phone])
+  @@index([hospitalId, aadhaarBlindIndex])
+  @@index([hospitalId, abhaNumberBlindIndex])
+  @@map("patients")
+}
+
+model Ward {
+  id         String   @id @default(uuid(7)) @db.Uuid
+  hospitalId String   @map("hospital_id") @db.Uuid
+  branchId   String   @map("branch_id") @db.Uuid
+  code       String
+  name       String
+  isActive   Boolean  @default(true) @map("is_active")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  hospital Hospital @relation(fields: [hospitalId], references: [id], onDelete: Restrict)
+  branch   Branch   @relation(fields: [hospitalId, branchId], references: [hospitalId, id], onDelete: Restrict)
+  beds     Bed[]
+
+  @@unique([hospitalId, code])
+  @@unique([hospitalId, id])
+  @@map("wards")
+}
+
+model Bed {
+  id         String    @id @default(uuid(7)) @db.Uuid
+  hospitalId String    @map("hospital_id") @db.Uuid
+  wardId     String    @map("ward_id") @db.Uuid
+  code       String
+  status     BedStatus @default(free)
+  isActive   Boolean   @default(true) @map("is_active")
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt  DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  hospital Hospital @relation(fields: [hospitalId], references: [id], onDelete: Restrict)
+  ward     Ward     @relation(fields: [hospitalId, wardId], references: [hospitalId, id], onDelete: Restrict)
+
+  @@unique([wardId, code])
+  @@index([hospitalId, status])
+  @@map("beds")
+}
+
+model Session {
+  id         String            @id @default(uuid(7)) @db.Uuid
+  // SHA-256 of the cookie token, so a database leak does not leak live sessions.
+  tokenHash  String            @unique @map("token_hash")
+  userId     String            @map("user_id") @db.Uuid
+  hospitalId String?           @map("hospital_id") @db.Uuid
+  ipAddress  String?           @map("ip_address")
+  userAgent  String?           @map("user_agent")
+  createdAt  DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  lastSeenAt DateTime          @default(now()) @map("last_seen_at") @db.Timestamptz(3)
+  expiresAt  DateTime          @map("expires_at") @db.Timestamptz(3)
+  endedAt    DateTime?         @map("ended_at") @db.Timestamptz(3)
+  endReason  SessionEndReason? @map("end_reason")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([userId, endedAt])
+  @@map("sessions")
+}
+
+model LoginEvent {
+  id         String       @id @default(uuid(7)) @db.Uuid
+  hospitalId String?      @map("hospital_id") @db.Uuid
+  userId     String?      @map("user_id") @db.Uuid
+  // The username as typed, so failed attempts on unknown names are recorded too.
+  username   String
+  outcome    LoginOutcome
+  ipAddress  String?      @map("ip_address")
+  userAgent  String?      @map("user_agent")
+  createdAt  DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user User? @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([createdAt])
+  @@index([userId, createdAt])
+  @@map("login_events")
+}
+
+model IdempotencyKey {
+  id             String            @id @default(uuid(7)) @db.Uuid
+  hospitalId     String?           @map("hospital_id") @db.Uuid
+  userId         String            @map("user_id") @db.Uuid
+  key            String
+  method         String
+  path           String
+  // SHA-256 of method, path and body: the same key with a different request is rejected.
+  requestHash    String            @map("request_hash")
+  status         IdempotencyStatus
+  responseStatus Int?              @map("response_status")
+  responseBody   Json?             @map("response_body")
+  createdAt      DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  completedAt    DateTime?         @map("completed_at") @db.Timestamptz(3)
+  expiresAt      DateTime          @map("expires_at") @db.Timestamptz(3)
+
+  @@unique([userId, key])
+  @@index([expiresAt])
+  @@map("idempotency_keys")
+}
+
+model AuditEvent {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  hospitalId  String?  @map("hospital_id") @db.Uuid
+  actorUserId String?  @map("actor_user_id") @db.Uuid
+  // module.resource.verb, for example auth.session.created or patients.patient.viewed.
+  action      String
+  entityType  String?  @map("entity_type")
+  entityId    String?  @map("entity_id") @db.Uuid
+  requestId   String?  @map("request_id")
+  ipAddress   String?  @map("ip_address")
+  // IDs and codes only. Never patient names, phone numbers, Aadhaar or ABHA numbers.
+  metadata    Json     @default("{}")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  actor User? @relation(fields: [actorUserId], references: [id], onDelete: Restrict)
+
+  @@index([hospitalId, createdAt])
+  @@index([entityType, entityId])
+  @@map("audit_events")
+}

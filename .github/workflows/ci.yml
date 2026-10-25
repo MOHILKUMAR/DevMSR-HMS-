@@ -17,6 +17,25 @@ jobs:
     name: Text, lint, typecheck, test
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: hms
+          POSTGRES_PASSWORD: hms_ci_only
+          POSTGRES_DB: hms_test
+          # Like many Indian servers. The app must store UTC whatever the server's time zone.
+          TZ: Asia/Kolkata
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U hms -d hms_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      # The API tests wipe and migrate this throwaway database.
+      TEST_DATABASE_URL: postgresql://hms:hms_ci_only@localhost:5432/hms_test
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
