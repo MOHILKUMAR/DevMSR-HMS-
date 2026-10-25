@@ -33,6 +33,7 @@ const USER: StaffUser = {
   displayName: 'Ravi Kumar',
   isActive: true,
   locked: false,
+  mustChangePassword: false,
   roles: [
     { code: 'cashier', name: 'Cashier' },
     { code: 'receptionist', name: 'Receptionist' },

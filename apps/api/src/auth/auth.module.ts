@@ -1,4 +1,6 @@
 import { Module } from '@nestjs/common';
+import { AccountController } from './account.controller.js';
+import { AccountService } from './account.service.js';
 import { AuthCookies } from './auth-cookies.js';
 import { AuthController } from './auth.controller.js';
 import { AuthRepository } from './auth.repository.js';
@@ -8,8 +10,8 @@ import { SessionsRepository } from './sessions.repository.js';
 import { SessionsService } from './sessions.service.js';
 
 @Module({
-  controllers: [AuthController],
-  providers: [AuthService, AuthRepository, SessionsService, SessionsRepository, CsrfService, AuthCookies],
+  controllers: [AuthController, AccountController],
+  providers: [AuthService, AccountService, AuthRepository, SessionsService, SessionsRepository, CsrfService, AuthCookies],
   // Used by the global guards registered in AppModule.
   exports: [SessionsService, CsrfService, AuthCookies],
 })

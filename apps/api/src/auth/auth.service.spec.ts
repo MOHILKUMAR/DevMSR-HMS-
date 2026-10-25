@@ -24,6 +24,8 @@ function candidate(overrides: Partial<LoginCandidate> = {}): LoginCandidate {
     username: 'reception1',
     displayName: 'Reception One',
     passwordHash,
+    passwordChangedAt: new Date(NOW.getTime() - 86_400_000),
+    mustChangePassword: false,
     lockedUntil: null,
     isActive: true,
     hospital: { id: 'h1', code: 'DEMO', name: 'Demo', isActive: true },
@@ -37,6 +39,8 @@ function setup(user: LoginCandidate | null, failure = { locked: false }) {
     recordFailure: vi.fn().mockResolvedValue(failure),
     recordSuccess: vi.fn().mockResolvedValue(undefined),
     insertLoginEvent: vi.fn().mockResolvedValue(undefined),
+    resetFailures: vi.fn().mockResolvedValue(undefined),
+    createChallenge: vi.fn().mockResolvedValue(undefined),
     findProfile: vi.fn(),
   };
   const sessions = {
@@ -67,8 +71,7 @@ describe('AuthService.login', () => {
   it('signs in with the right password and records it', async () => {
     const { service, repository, sessions, audit } = setup(candidate());
     const result = await service.login({ username: 'reception1', password: 'right-password' }, META, undefined, NOW);
-    expect(result.sessionToken).toBe('session-token');
-    expect(result.response.csrfToken).toBe('csrf-token');
+    expect(result).toMatchObject({ kind: 'signed_in', sessionToken: 'session-token', response: { status: 'signed_in', csrfToken: 'csrf-token' } });
     expect(sessions.endByToken).not.toHaveBeenCalled();
     expect(repository.recordSuccess).toHaveBeenCalledWith('u1', NOW, {});
     expect(repository.insertLoginEvent).toHaveBeenCalledWith(expect.objectContaining({ outcome: 'succeeded' }), {});
@@ -117,5 +120,26 @@ describe('AuthService.login', () => {
       await loginError(service.login({ username: 'reception1', password: 'right-password' }, META, undefined, NOW));
       expect(repository.insertLoginEvent).toHaveBeenCalledWith(expect.objectContaining({ outcome: 'inactive' }));
     }
+  });
+
+  it('asks for a new password instead of starting a session when an admin set the password', async () => {
+    const { service, repository, sessions } = setup(candidate({ mustChangePassword: true }));
+    const result = await service.login({ username: 'reception1', password: 'right-password' }, META, 'old-token', NOW);
+    expect(result).toMatchObject({ kind: 'challenge', response: { status: 'challenge', step: 'change_password' } });
+    expect(result.kind === 'challenge' ? result.challengeToken : '').toMatch(/^[\w-]{40,}$/);
+    expect(sessions.start).not.toHaveBeenCalled();
+    expect(sessions.endByToken).toHaveBeenCalledWith('old-token', 'replaced', NOW, {});
+    expect(repository.resetFailures).toHaveBeenCalledWith('u1', {});
+    expect(repository.createChallenge).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: 'u1', step: 'change_password', expiresAt: new Date(NOW.getTime() + 10 * 60_000) }),
+      {},
+    );
+    expect(repository.insertLoginEvent).toHaveBeenCalledWith(expect.objectContaining({ outcome: 'challenge_started' }), {});
+  });
+
+  it('never starts a challenge for a wrong password', async () => {
+    const { service, repository } = setup(candidate({ mustChangePassword: true }));
+    await loginError(service.login({ username: 'reception1', password: 'wrong' }, META, undefined, NOW));
+    expect(repository.createChallenge).not.toHaveBeenCalled();
   });
 });

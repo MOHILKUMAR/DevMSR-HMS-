@@ -8,9 +8,14 @@ Every POST, PUT, PATCH and DELETE needs the `X-CSRF-Token` header matching the `
 | --- | --- | --- | --- |
 | GET | `/health` | Public | Liveness and database check. 200 `{ "status": "ok" }`, 500 when the database does not answer. |
 | GET | `/auth/csrf` | Public | Issues a CSRF token (bound to the current session, if any) and sets the CSRF cookie. The login screen calls it first. |
-| POST | `/auth/login` | Public | Body `{ username, password }`. Sets the session and CSRF cookies and returns the profile, permissions and a new CSRF token. Every failure is 401 `LOGIN_FAILED`. Limited to 5 per minute per username and IP. |
+| POST | `/auth/login` | Public | Body `{ username, password }`. Either `{ status: "signed_in", ...profile, csrfToken }` with the session and CSRF cookies set, or `{ status: "challenge", step, expiresAt }` with an httpOnly `hms_login` cookie (path `/api/v1/auth/login`, 10 minutes) when the user owes another step first: `change_password` after an admin set the password. Every failure is 401 `LOGIN_FAILED`. Limited to 5 per minute per username and IP. |
+| POST | `/auth/login/password` | Public (challenge cookie) | The `change_password` step. Body `{ newPassword }` (10 or more characters, not the current one: 422 `PASSWORD_REUSED`). Answers like `/auth/login`. 401 `LOGIN_CHALLENGE_INVALID` for a missing, used, expired or outdated challenge. Limited to 3 per hour per challenge. |
 | POST | `/auth/logout` | `auth.session.manage-own` | Ends the session and clears both cookies. 204. |
 | GET | `/auth/me` | `auth.session.manage-own` | The signed-in user, hospital, permission codes and session expiry. |
+| POST | `/auth/password` | `auth.session.manage-own` | Body `{ currentPassword, newPassword }`. Ends your other sessions and keeps this one. 422 `CURRENT_PASSWORD_WRONG` (audited) or `PASSWORD_REUSED`. Limited to 3 per hour per session. 204. |
+| GET | `/auth/sessions` | `auth.session.manage-own` | `{ data }`: your open sessions (not ended, idle or expired) with created, last seen, expiry, IP address, user agent and `current`. |
+| POST | `/auth/sessions/:id/end` | `auth.session.manage-own` | Ends one of your other sessions. 422 `CURRENT_SESSION` for the one in use (sign out instead); 404 for another user's or an ended session. 204. |
+| POST | `/auth/sessions/end-others` | `auth.session.manage-own` | Ends all your sessions except this one. `{ ended }`. |
 
 ## Admin setup
 
@@ -18,10 +23,10 @@ Lists take `?page=1&pageSize=50&q=text&includeInactive=true` and return `{ data,
 
 | Method | Path | Permission | Notes |
 | --- | --- | --- | --- |
-| GET | `/users` | `users.user.manage` | Staff users of the hospital with their roles, lock state and last sign-in. `?permission=opd.queue.read-own` lists only users holding that permission. Never lists platform users. |
+| GET | `/users` | `users.user.manage` | Staff users of the hospital with their roles, lock state, `mustChangePassword` and last sign-in. `?permission=opd.queue.read-own` lists only users holding that permission. Never lists platform users. |
 | POST | `/users` | `users.user.manage` | Body `{ username, displayName, password, roleCodes }`. 409 if the username is taken, 422 `ROLE_NOT_ASSIGNABLE` for a role outside the hospital. |
 | PATCH | `/users/:id` | `users.user.manage` | Any of `{ displayName, isActive, roleCodes }`. Deactivating ends the user's sessions. 422 `SELF_CHANGE_NOT_ALLOWED` for your own roles or status. |
-| POST | `/users/:id/password` | `users.user.manage` | Body `{ password }` (10 or more characters). Unlocks the account and ends its sessions. 204. Not for your own account. |
+| POST | `/users/:id/password` | `users.user.manage` | Body `{ password }` (10 or more characters). The user must replace it at the next sign-in. Unlocks the account and ends its sessions. 204. Not for your own account. Limited to 3 per hour per account. |
 | GET | `/roles` | `users.user.manage` | The hospital's roles with their permission codes. |
 | GET | `/hospital-profile` | `masters.data.read` | Name, code, address, PIN code, phone and email, as printed on bills. |
 | PATCH | `/hospital-profile` | `settings.hospital.manage` | Any of `{ name, addressLine, city, state, pincode, phone, email }`. Empty optional fields become null. |
@@ -90,6 +95,7 @@ Money is in paise (integers). Rules are in `docs/billing-rules.md`. Routes marke
 | `UNAUTHENTICATED` | 401 | No valid session. |
 | `SESSION_EXPIRED` | 401 | Idle for 15 minutes or past the 12 hour maximum. |
 | `LOGIN_FAILED` | 401 | Any failed login. |
+| `LOGIN_CHALLENGE_INVALID` | 401 | A sign-in step without a valid challenge: missing, already used, older than 10 minutes, or older than the account's last password change. |
 | `CSRF_FAILED` | 403 | Missing, mismatched or wrongly signed CSRF token. |
 | `PERMISSION_DENIED` | 403 | The user lacks the route's permission code. |
 | `NOT_FOUND` | 404 | No such record in the user's hospital, including records of other hospitals. |
@@ -116,4 +122,7 @@ Money is in paise (integers). Rules are in `docs/billing-rules.md`. Routes marke
 | `AMOUNT_EXCEEDS_DUE` | 422 | A payment or deposit use larger than the bill's amount due. |
 | `NO_DEPOSIT_HELD` | 422 | Using more deposit than the patient has held. |
 | `BILL_NOT_ISSUED` | 422 | Paying a draft or discarded bill. |
+| `PASSWORD_REUSED` | 422 | A new password the same as the current one. |
+| `CURRENT_PASSWORD_WRONG` | 422 | Changing your own password with a wrong current password. |
+| `CURRENT_SESSION` | 422 | Ending the session you are using through `/auth/sessions/:id/end`. |
 | `INTERNAL_ERROR` | 500 | Anything unexpected. Details are logged with the `X-Request-Id`, never returned. |

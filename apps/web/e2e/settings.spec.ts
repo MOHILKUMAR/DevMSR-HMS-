@@ -53,6 +53,7 @@ test('the hospital admin adds a staff user who can then sign in, and sets up a w
   await expect(row).toContainText('E2E Cashier');
   await expect(row).toContainText('Cashier');
   await expect(row).toContainText('Never');
+  await expect(row).toContainText('Must change password');
 
   // Editing a doctor starts from their current department and login, loaded after the dialog opens.
   await tabs.getByRole('link', { name: 'Doctors' }).click();
@@ -98,10 +99,23 @@ test('the hospital admin adds a staff user who can then sign in, and sets up a w
   await page.keyboard.press('Escape');
   await expect(beds).toBeHidden();
 
-  // The new cashier signs in with the admin's password and sees cashier sections only.
+  // The new cashier signs in with the admin's password, must choose their own first, and then sees
+  // cashier sections only.
   await page.getByRole('button', { name: 'Sign out' }).click();
   await expect(page).toHaveURL(/\/login$/);
-  await signIn(page, username, password, 'E2E Cashier');
+  await page.getByLabel('Username').fill(username);
+  await page.getByLabel('Password').fill(password);
+  await page.getByRole('button', { name: 'Sign in' }).click();
+  const choose = page.getByRole('form', { name: 'Choose your own password' });
+  await choose.getByLabel('New password').fill(password);
+  await choose.getByLabel('Type the new password again').fill(password);
+  await choose.getByRole('button', { name: 'Save and continue' }).click();
+  await expect(choose.getByText('Choose a password different from the one you have now.')).toBeVisible();
+  const ownPassword = randomUUID();
+  await choose.getByLabel('New password').fill(ownPassword);
+  await choose.getByLabel('Type the new password again').fill(ownPassword);
+  await choose.getByRole('button', { name: 'Save and continue' }).click();
+  await expect(page.getByRole('heading', { name: 'Welcome, E2E Cashier' })).toBeVisible();
   await expect(nav.getByRole('link', { name: 'Payments' })).toBeVisible();
   await expect(nav.getByRole('link', { name: 'Settings' })).toHaveCount(0);
 });

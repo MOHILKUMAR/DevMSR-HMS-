@@ -28,6 +28,8 @@ export const Errors = {
       'LOGIN_FAILED',
       'Wrong username or password. After 5 failed tries the account is locked for 15 minutes.',
     ),
+  loginChallengeInvalid: () =>
+    new AppError(401, 'LOGIN_CHALLENGE_INVALID', 'Your sign-in timed out or was already finished. Sign in again.'),
   csrfFailed: () => new AppError(403, 'CSRF_FAILED', 'This request could not be verified. Reload the page and try again.'),
   permissionDenied: () =>
     new AppError(403, 'PERMISSION_DENIED', 'You do not have permission to do this. Ask your hospital admin if you need it.'),
@@ -70,6 +72,12 @@ export const Errors = {
   noDepositHeld: () => new AppError(422, 'NO_DEPOSIT_HELD', 'This patient does not have that much deposit left to set against the bill.'),
   billNotIssued: () => new AppError(422, 'BILL_NOT_ISSUED', 'Issue the bill before taking payment against it.'),
   shiftClosed: () => new AppError(409, 'SHIFT_CLOSED', 'This shift is already closed.'),
+  passwordReused: () =>
+    new AppError(422, 'PASSWORD_REUSED', 'Choose a password different from the one you have now.'),
+  currentPasswordWrong: () =>
+    new AppError(422, 'CURRENT_PASSWORD_WRONG', 'Your current password is not right. Type it again.'),
+  currentSession: () =>
+    new AppError(422, 'CURRENT_SESSION', 'This is the session you are using now. Use Sign out to end it.'),
   internal: () =>
     new AppError(500, 'INTERNAL_ERROR', 'Something went wrong on our side. Try again, and tell your admin if it keeps happening.'),
 };

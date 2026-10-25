@@ -102,6 +102,8 @@ enum LoginOutcome {
   unknown_user
   locked
   inactive
+  // The password was right, and the user must finish another step (login_challenges) before a session starts.
+  challenge_started
 
   @@map("login_outcome")
 }
@@ -114,8 +116,18 @@ enum SessionEndReason {
   user_inactive
   // An admin set a new password: every session of that user ends.
   credentials_changed
+  // The user ended it from another of their own sessions (My account).
+  ended_by_user
 
   @@map("session_end_reason")
+}
+
+// What a user must do after a correct password and before a session starts.
+enum LoginStep {
+  // An admin created the account or set its password, so the user chooses their own.
+  change_password
+
+  @@map("login_step")
 }
 
 enum IdempotencyStatus {
@@ -314,17 +326,20 @@ model User {
   totpSecretEncrypted String?   @map("totp_secret_encrypted")
   totpEnabledAt       DateTime? @map("totp_enabled_at") @db.Timestamptz(3)
   passwordChangedAt   DateTime  @default(now()) @map("password_changed_at") @db.Timestamptz(3)
+  // Set when an admin creates the account or sets its password; cleared when the user chooses one.
+  mustChangePassword  Boolean   @default(false) @map("must_change_password")
   lastLoginAt         DateTime? @map("last_login_at") @db.Timestamptz(3)
   isActive            Boolean   @default(true) @map("is_active")
   createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt           DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  hospital    Hospital?    @relation(fields: [hospitalId], references: [id], onDelete: Restrict)
-  userRoles   UserRole[]
-  sessions    Session[]
-  loginEvents LoginEvent[]
-  auditEvents AuditEvent[]
-  doctor      Doctor?
+  hospital        Hospital?        @relation(fields: [hospitalId], references: [id], onDelete: Restrict)
+  userRoles       UserRole[]
+  sessions        Session[]
+  loginEvents     LoginEvent[]
+  loginChallenges LoginChallenge[]
+  auditEvents     AuditEvent[]
+  doctor          Doctor?
 
   @@index([hospitalId])
   @@map("users")
@@ -510,6 +525,26 @@ model Session {
 
   @@index([userId, endedAt])
   @@map("sessions")
+}
+
+// A sign-in that passed the password check and waits for another step. The token sits in an
+// httpOnly cookie; only its SHA-256 is stored. Rows are kept: completed_at is the only change allowed.
+model LoginChallenge {
+  id          String    @id @default(uuid(7)) @db.Uuid
+  tokenHash   String    @unique @map("token_hash")
+  userId      String    @map("user_id") @db.Uuid
+  hospitalId  String?   @map("hospital_id") @db.Uuid
+  step        LoginStep
+  ipAddress   String?   @map("ip_address")
+  userAgent   String?   @map("user_agent")
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  expiresAt   DateTime  @map("expires_at") @db.Timestamptz(3)
+  completedAt DateTime? @map("completed_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([userId])
+  @@map("login_challenges")
 }
 
 model LoginEvent {

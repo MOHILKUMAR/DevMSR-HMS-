@@ -91,6 +91,7 @@ export function StaffUsers({ currentUserId }: { currentUserId: string }) {
                 <span className="flex flex-wrap gap-1">
                   <ActiveBadge active={user.isActive} />
                   {user.locked && <StatusBadge tone="warning" icon={Lock} label={t('locked')} />}
+                  {user.mustChangePassword && <StatusBadge tone="info" icon={KeyRound} label={t('mustChange')} />}
                 </span>
               </Td>
               <Td className="tabular-nums">{user.lastLoginAt === null ? t('never') : formatDateTime(user.lastLoginAt)}</Td>

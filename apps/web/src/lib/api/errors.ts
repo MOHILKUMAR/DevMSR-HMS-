@@ -28,6 +28,10 @@ const KNOWN_CODES = [
   'NO_DEPOSIT_HELD',
   'BILL_NOT_ISSUED',
   'SHIFT_CLOSED',
+  'LOGIN_CHALLENGE_INVALID',
+  'PASSWORD_REUSED',
+  'CURRENT_PASSWORD_WRONG',
+  'CURRENT_SESSION',
 ] as const;
 
 export type ErrorMessageKey = (typeof KNOWN_CODES)[number] | 'network' | 'unknown';

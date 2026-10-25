@@ -123,3 +123,18 @@ export async function anonymousBrowser(http: Server): Promise<Browser> {
 export function as<T extends request.Test>(req: T, browser: Browser): T {
   return req.set('Cookie', browser.cookie).set('X-CSRF-Token', browser.csrfToken);
 }
+
+/** The browser after a login answered with a challenge: it now also holds the challenge cookie. */
+export function withChallenge(browser: Browser, loginResponse: request.Response): Browser {
+  const challenge = cookiePairs(loginResponse).filter((pair) => pair.startsWith('hms_login='));
+  if (challenge.length !== 1) throw new Error('The login response set no challenge cookie');
+  return { ...browser, cookie: [browser.cookie, ...challenge].join('; ') };
+}
+
+/** Signs in as a user whose password an admin set, choosing `newPassword` at the change_password step. */
+export async function signInChangingPassword(http: Server, username: string, password: string, newPassword: string): Promise<request.Response> {
+  const browser = await anonymousBrowser(http);
+  const login = await as(request(http).post('/api/v1/auth/login'), browser).send({ username, password });
+  if ((login.body as { status?: string }).status !== 'challenge') throw new Error('Expected a password change challenge');
+  return as(request(http).post('/api/v1/auth/login/password'), withChallenge(browser, login)).send({ newPassword });
+}

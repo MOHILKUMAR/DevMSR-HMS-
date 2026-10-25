@@ -107,7 +107,7 @@ export class UsersService {
     });
   }
 
-  /** Sets a new password, unlocks the account and signs the user out everywhere. */
+  /** Sets a password the user must replace at next sign-in, unlocks the account and signs the user out everywhere. */
   async setPassword(auth: AuthContext, id: string, input: SetStaffPassword, meta: RequestMeta): Promise<void> {
     const hospitalId = hospitalOf(auth);
     if (id === auth.userId) throw Errors.selfChangeNotAllowed();

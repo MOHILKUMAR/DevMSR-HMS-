@@ -11,11 +11,23 @@
     "submit": "Sign in",
     "submitting": "Signing in",
     "usernameRequired": "Enter your username.",
-    "passwordRequired": "Enter your password."
+    "passwordRequired": "Enter your password.",
+    "newPassword": {
+      "title": "Choose your own password",
+      "description": "Your admin set a temporary password. Choose one only you know before you continue.",
+      "newPassword": "New password",
+      "newPasswordHint": "At least 10 characters. A short sentence is easy to remember and hard to guess.",
+      "newPasswordInvalid": "Use at least 10 characters.",
+      "confirm": "Type the new password again",
+      "confirmMismatch": "The two passwords do not match.",
+      "submit": "Save and continue",
+      "submitting": "Saving",
+      "restart": "Sign in again"
+    }
   },
   "errors": {
     "LOGIN_FAILED": "Wrong username or password. After 5 failed tries the account is locked for 15 minutes.",
-    "RATE_LIMITED": "Too many attempts. Wait a minute and try again.",
+    "RATE_LIMITED": "Too many attempts. Wait a while and try again.",
     "CSRF_FAILED": "This page has expired. Reload it and try again.",
     "SESSION_EXPIRED": "Your session has ended. Sign in again to continue.",
     "VALIDATION_FAILED": "Some details are not valid. Check the form and try again.",
@@ -43,7 +55,11 @@
     "BILL_NOT_ISSUED": "Only an issued bill can take a payment. Issue the bill first.",
     "SHIFT_CLOSED": "This shift is already closed. Reload the page to see it.",
     "network": "Could not reach the server. Check the connection and try again.",
-    "unknown": "Something went wrong. Try again, and tell your admin if it keeps happening."
+    "unknown": "Something went wrong. Try again, and tell your admin if it keeps happening.",
+    "LOGIN_CHALLENGE_INVALID": "Your sign-in timed out. Sign in again with your username and password.",
+    "PASSWORD_REUSED": "Choose a password different from the one you have now.",
+    "CURRENT_PASSWORD_WRONG": "Your current password is not right. Type it again.",
+    "CURRENT_SESSION": "This is the session you are using now. Use Sign out to end it."
   },
   "shell": {
     "navigation": "Main",
@@ -52,7 +68,8 @@
     "signOut": "Sign out",
     "themeDark": "Switch to dark theme",
     "themeLight": "Switch to light theme",
-    "platform": "DevMSR platform"
+    "platform": "DevMSR platform",
+    "account": "My account"
   },
   "nav": {
     "home": "Home",
@@ -161,7 +178,7 @@
       "setPassword": "Set password",
       "setPasswordNamed": "Set a new password for {name}",
       "createTitle": "Add staff user",
-      "createDescription": "The person signs in with this username and the temporary password you set.",
+      "createDescription": "The person signs in with this username and the temporary password you set, then chooses their own.",
       "fullName": "Full name",
       "usernameHint": "Lowercase, such as ravi.kumar. It cannot be changed later.",
       "password": "Temporary password",
@@ -172,7 +189,8 @@
       "activeLabel": "Active (can sign in)",
       "activeHint": "Turning this off signs the person out everywhere.",
       "passwordTitle": "Set a new password for {name}",
-      "passwordDescription": "This also unlocks the account and signs the person out everywhere."
+      "passwordDescription": "They choose their own password at the next sign-in. This also unlocks the account and signs them out everywhere.",
+      "mustChange": "Must change password"
     },
     "departments": {
       "title": "Departments",
@@ -691,6 +709,35 @@
       "tallied": "Tallied",
       "difference": "Difference",
       "unknownCashier": "Not known"
+    }
+  },
+  "account": {
+    "title": "My account",
+    "description": "Your password and the places you are signed in.",
+    "password": {
+      "title": "Change password",
+      "description": "You need your current password. Your other sessions end when you change it.",
+      "current": "Current password",
+      "currentRequired": "Enter your current password.",
+      "submit": "Change password",
+      "submitting": "Changing",
+      "done": "Password changed. Your other sessions have ended."
+    },
+    "sessions": {
+      "title": "Where you are signed in",
+      "description": "End a session you do not recognise, or one on a computer you have left.",
+      "device": "Device",
+      "ipAddress": "IP address",
+      "signedIn": "Signed in",
+      "lastActive": "Last active",
+      "thisDevice": "This device",
+      "end": "End",
+      "endNamed": "End the session on {device}",
+      "endOthers": "End all other sessions",
+      "ended": "{count, plural, =0 {No other sessions were open.} one {1 other session ended.} other {# other sessions ended.}}",
+      "empty": "No other sessions.",
+      "unknownDevice": "Unknown device",
+      "unknownAddress": "Unknown"
     }
   }
 }

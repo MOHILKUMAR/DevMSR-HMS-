@@ -17,7 +17,7 @@ import {
   type UpdateStaffUser,
 } from '@devmsr/validation';
 import type { AuthContext } from '../auth/auth-context.js';
-import { CurrentAuth, RequirePermission } from '../auth/decorators.js';
+import { CurrentAuth, PasswordRateLimit, RequirePermission } from '../auth/decorators.js';
 import { ApiContract, ValidBody, ValidParams, ValidQuery } from '../common/contract/api-contract.js';
 import { ReqMeta, type RequestMeta } from '../common/http/app-request.js';
 import { UsersService } from './users.service.js';
@@ -59,8 +59,9 @@ export class UsersController {
 
   @Post(':id/password')
   @RequirePermission('users.user.manage')
+  @PasswordRateLimit()
   @HttpCode(204)
-  @ApiContract({ summary: 'Set a new password, unlock the account and end its sessions', params: idParamsSchema, body: setStaffPasswordSchema })
+  @ApiContract({ summary: 'Set a new password the user must replace at next sign-in, unlock the account and end its sessions', params: idParamsSchema, body: setStaffPasswordSchema })
   setPassword(
     @CurrentAuth() auth: AuthContext,
     @ValidParams() params: { id: string },

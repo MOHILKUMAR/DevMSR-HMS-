@@ -38,6 +38,11 @@ describe('permission matrix: every route as every role', () => {
       [
         'GET /api/v1/auth/csrf public',
         'POST /api/v1/auth/login public',
+        'POST /api/v1/auth/login/password public',
+        'POST /api/v1/auth/password auth.session.manage-own',
+        'GET /api/v1/auth/sessions auth.session.manage-own',
+        'POST /api/v1/auth/sessions/end-others auth.session.manage-own',
+        'POST /api/v1/auth/sessions/:id/end auth.session.manage-own',
         'POST /api/v1/auth/logout auth.session.manage-own',
         'GET /api/v1/auth/me auth.session.manage-own',
         'PATCH /api/v1/beds/:id masters.data.manage',

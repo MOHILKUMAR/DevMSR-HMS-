@@ -8,6 +8,7 @@ export function toStaffUser(row: StaffUserRow, now: Date = new Date()): StaffUse
     displayName: row.displayName,
     isActive: row.isActive,
     locked: row.lockedUntil !== null && row.lockedUntil > now,
+    mustChangePassword: row.mustChangePassword,
     roles: row.userRoles.map(({ role }) => role).sort((a, b) => a.name.localeCompare(b.name)),
     lastLoginAt: row.lastLoginAt?.toISOString() ?? null,
     createdAt: row.createdAt.toISOString(),

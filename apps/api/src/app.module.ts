@@ -38,7 +38,7 @@ export class AppModule {
       imports: [
         ConfigModule.forRoot(env),
         LoggerModule.forRoot(loggerOptions(env)),
-        ThrottlerModule.forRoot(rateLimitOptions(env, authCookieNames(env).session)),
+        ThrottlerModule.forRoot(rateLimitOptions(env, authCookieNames(env))),
         PrismaModule,
         CryptoModule,
         AuditModule,

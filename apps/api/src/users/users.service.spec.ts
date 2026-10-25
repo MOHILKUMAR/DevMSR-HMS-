@@ -16,6 +16,7 @@ const ROW: StaffUserRow = {
   displayName: 'Nurse One',
   isActive: true,
   lockedUntil: null,
+  mustChangePassword: true,
   lastLoginAt: null,
   createdAt: new Date('2026-10-25T00:00:00Z'),
   userRoles: [{ role: { code: 'nurse', name: 'Nurse' } }],

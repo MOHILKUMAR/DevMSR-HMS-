@@ -16,6 +16,15 @@ export interface ActiveSession {
   };
 }
 
+export interface OwnSessionRow {
+  id: string;
+  createdAt: Date;
+  lastSeenAt: Date;
+  expiresAt: Date;
+  ipAddress: string | null;
+  userAgent: string | null;
+}
+
 export interface NewSession {
   tokenHash: string;
   userId: string;
@@ -73,5 +82,30 @@ export class SessionsRepository {
       where: { ...where, endedAt: null },
       data: { endedAt: at, endReason: reason },
     });
+  }
+
+  /** A user's own sessions that are still usable: not ended, not past the maximum age or the idle limit. */
+  listOpen(owner: { userId: string; hospitalId: string | null }, now: Date, idleSince: Date): Promise<OwnSessionRow[]> {
+    return this.prisma.session.findMany({
+      where: { ...owner, endedAt: null, expiresAt: { gt: now }, lastSeenAt: { gt: idleSince } },
+      select: { id: true, createdAt: true, lastSeenAt: true, expiresAt: true, ipAddress: true, userAgent: true },
+      orderBy: { lastSeenAt: 'desc' },
+    });
+  }
+
+  /** Ends the owner's sessions matching `ids`, or all but `exceptId`. Returns the IDs actually ended. */
+  async endOwn(
+    owner: { userId: string; hospitalId: string | null },
+    which: { ids: string[] } | { exceptId: string },
+    reason: SessionEndReason,
+    at: Date,
+    tx: Tx,
+  ): Promise<string[]> {
+    const where = { ...owner, endedAt: null, ...('ids' in which ? { id: { in: which.ids } } : { id: { not: which.exceptId } }) };
+    const rows = await tx.session.findMany({ where, select: { id: true } });
+    if (rows.length === 0) return [];
+    const ids = rows.map((row) => row.id);
+    await tx.session.updateMany({ where: { id: { in: ids }, endedAt: null }, data: { endedAt: at, endReason: reason } });
+    return ids;
   }
 }

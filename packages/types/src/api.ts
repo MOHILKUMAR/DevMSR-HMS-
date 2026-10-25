@@ -4,6 +4,7 @@ export const API_ERROR_CODES = [
   'UNAUTHENTICATED',
   'SESSION_EXPIRED',
   'LOGIN_FAILED',
+  'LOGIN_CHALLENGE_INVALID',
   'CSRF_FAILED',
   'PERMISSION_DENIED',
   'NOT_FOUND',
@@ -32,6 +33,9 @@ export const API_ERROR_CODES = [
   'NO_DEPOSIT_HELD',
   'BILL_NOT_ISSUED',
   'SHIFT_CLOSED',
+  'PASSWORD_REUSED',
+  'CURRENT_PASSWORD_WRONG',
+  'CURRENT_SESSION',
 ] as const;
 
 export type ApiErrorCode = (typeof API_ERROR_CODES)[number];

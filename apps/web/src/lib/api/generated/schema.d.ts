@@ -38,6 +38,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/login/password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Choose your own password at sign-in, after an admin set one */
+        post: operations["authLoginPasswordChange"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/logout": {
         parameters: {
             query?: never;
@@ -66,6 +83,74 @@ export interface paths {
         get: operations["authMe"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Change your own password and end your other sessions */
+        post: operations["accountChangePassword"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your own open sessions, the current one marked */
+        get: operations["accountListSessions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/sessions/{id}/end": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** End one of your other sessions, for example on a computer you left */
+        post: operations["accountEndSession"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/sessions/end-others": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** End all your sessions except this one */
+        post: operations["accountEndOtherSessions"];
         delete?: never;
         options?: never;
         head?: never;
@@ -653,7 +738,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Set a new password, unlock the account and end its sessions */
+        /** Set a new password the user must replace at next sign-in, unlock the account and end its sessions */
         post: operations["usersSetPassword"];
         delete?: never;
         options?: never;
@@ -753,7 +838,51 @@ export interface components {
                 expiresAt: string;
                 idleTimeoutSeconds: number;
             };
+            /** @constant */
+            status: "signed_in";
             csrfToken: string;
+        } | {
+            /** @constant */
+            status: "challenge";
+            /** @enum {string} */
+            step: "change_password";
+            /** Format: date-time */
+            expiresAt: string;
+        };
+        AuthLoginPasswordChangeRequest: {
+            newPassword: string;
+        };
+        AuthLoginPasswordChangeResponse: {
+            user: {
+                /** Format: uuid */
+                id: string;
+                username: string;
+                displayName: string;
+                /** @enum {string} */
+                kind: "staff" | "platform";
+            };
+            hospital: {
+                /** Format: uuid */
+                id: string;
+                code: string;
+                name: string;
+            } | null;
+            permissions: string[];
+            session: {
+                /** Format: date-time */
+                expiresAt: string;
+                idleTimeoutSeconds: number;
+            };
+            /** @constant */
+            status: "signed_in";
+            csrfToken: string;
+        } | {
+            /** @constant */
+            status: "challenge";
+            /** @enum {string} */
+            step: "change_password";
+            /** Format: date-time */
+            expiresAt: string;
         };
         AuthMeResponse: {
             user: {
@@ -776,6 +905,28 @@ export interface components {
                 expiresAt: string;
                 idleTimeoutSeconds: number;
             };
+        };
+        AccountChangePasswordRequest: {
+            currentPassword: string;
+            newPassword: string;
+        };
+        AccountListSessionsResponse: {
+            data: {
+                /** Format: uuid */
+                id: string;
+                /** Format: date-time */
+                createdAt: string;
+                /** Format: date-time */
+                lastSeenAt: string;
+                /** Format: date-time */
+                expiresAt: string;
+                ipAddress: string | null;
+                userAgent: string | null;
+                current: boolean;
+            }[];
+        };
+        AccountEndOtherSessionsResponse: {
+            ended: number;
         };
         BedsUpdateRequest: {
             isActive: boolean;
@@ -1945,6 +2096,7 @@ export interface components {
                 displayName: string;
                 isActive: boolean;
                 locked: boolean;
+                mustChangePassword: boolean;
                 roles: {
                     code: string;
                     name: string;
@@ -1970,6 +2122,7 @@ export interface components {
             displayName: string;
             isActive: boolean;
             locked: boolean;
+            mustChangePassword: boolean;
             roles: {
                 code: string;
                 name: string;
@@ -1990,6 +2143,7 @@ export interface components {
             displayName: string;
             isActive: boolean;
             locked: boolean;
+            mustChangePassword: boolean;
             roles: {
                 code: string;
                 name: string;
@@ -2145,6 +2299,42 @@ export interface operations {
             };
         };
     };
+    authLoginPasswordChange: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Value of the CSRF cookie */
+                "X-CSRF-Token": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AuthLoginPasswordChangeRequest"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthLoginPasswordChangeResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
     authLogout: {
         parameters: {
             query?: never;
@@ -2191,6 +2381,133 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AuthMeResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    accountChangePassword: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Value of the CSRF cookie */
+                "X-CSRF-Token": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AccountChangePasswordRequest"];
+            };
+        };
+        responses: {
+            /** @description No content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    accountListSessions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountListSessionsResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    accountEndSession: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Value of the CSRF cookie */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    accountEndOtherSessions: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Value of the CSRF cookie */
+                "X-CSRF-Token": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountEndOtherSessionsResponse"];
                 };
             };
             /** @description Error */

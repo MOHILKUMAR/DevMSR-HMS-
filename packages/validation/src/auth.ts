@@ -1,4 +1,6 @@
 import { z } from 'zod';
+import { itemsResponseSchema } from './common.js';
+import { newPasswordSchema } from './users.js';
 
 export const loginRequestSchema = z.object({
   // Usernames are stored lowercase, so login is case-insensitive.
@@ -40,8 +42,60 @@ export const csrfResponseSchema = z.object({
 
 export type CsrfResponse = z.infer<typeof csrfResponseSchema>;
 
-export const loginResponseSchema = meResponseSchema.extend({
+/** What a user must do after a correct password and before a session starts. */
+export const loginStepSchema = z.enum(['change_password']);
+
+export type LoginStep = z.infer<typeof loginStepSchema>;
+
+const signedInSchema = meResponseSchema.extend({
+  status: z.literal('signed_in'),
   csrfToken: z.string(),
 });
 
+/** The password was right, but sign-in needs another step. The challenge itself is an httpOnly cookie. */
+const loginChallengeSchema = z.object({
+  status: z.literal('challenge'),
+  step: loginStepSchema,
+  expiresAt: z.iso.datetime(),
+});
+
+export const loginResponseSchema = z.discriminatedUnion('status', [signedInSchema, loginChallengeSchema]);
+
 export type LoginResponse = z.infer<typeof loginResponseSchema>;
+
+/** The `change_password` step: an admin set the password, so the user chooses their own. */
+export const loginPasswordChangeSchema = z.object({
+  newPassword: newPasswordSchema,
+});
+
+export type LoginPasswordChange = z.infer<typeof loginPasswordChangeSchema>;
+
+export const changeOwnPasswordSchema = z.object({
+  // Same bound as login, so the hasher is never handed a huge string.
+  currentPassword: z.string().min(1).max(256),
+  newPassword: newPasswordSchema,
+});
+
+export type ChangeOwnPassword = z.infer<typeof changeOwnPasswordSchema>;
+
+/** One of the signed-in user's own open sessions, for My account. */
+export const ownSessionSchema = z.object({
+  id: z.uuid(),
+  createdAt: z.iso.datetime(),
+  lastSeenAt: z.iso.datetime(),
+  expiresAt: z.iso.datetime(),
+  ipAddress: z.string().nullable(),
+  userAgent: z.string().nullable(),
+  /** The session making this request. */
+  current: z.boolean(),
+});
+
+export type OwnSession = z.infer<typeof ownSessionSchema>;
+
+export const ownSessionListSchema = itemsResponseSchema(ownSessionSchema);
+
+export const endOtherSessionsResponseSchema = z.object({
+  ended: z.number().int().min(0),
+});
+
+export type EndOtherSessionsResponse = z.infer<typeof endOtherSessionsResponseSchema>;

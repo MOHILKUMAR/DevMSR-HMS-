@@ -1,0 +1,19 @@
+meta {
+  name: End other own sessions
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/auth/sessions/end-others
+  body: none
+  auth: none
+}
+
+headers {
+  X-CSRF-Token: {{csrfToken}}
+}
+
+assert {
+  res.status: eq 200
+}

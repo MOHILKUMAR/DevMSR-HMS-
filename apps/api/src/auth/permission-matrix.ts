@@ -6,7 +6,7 @@
 
 export const PERMISSIONS = {
   // Every role
-  'auth.session.manage-own': 'View own profile, sign out, see and end own sessions',
+  'auth.session.manage-own': 'View own profile, change own password, sign out, see and end own sessions',
 
   // DevMSR platform
   'platform.hospital.manage': 'Create and configure hospitals',
