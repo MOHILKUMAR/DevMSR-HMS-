@@ -21,8 +21,15 @@ GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO hms_api;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE ON TABLES TO hms_api;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO hms_api;
 
--- Migration history is for the migration role only.
-REVOKE ALL ON "_prisma_migrations" FROM hms_api;
+-- Migration history is for the migration role only. Prisma's shadow database (prisma migrate dev)
+-- has no history table, so the revoke only runs where the table exists.
+DO $$
+BEGIN
+  IF to_regclass('_prisma_migrations') IS NOT NULL THEN
+    REVOKE ALL ON "_prisma_migrations" FROM hms_api;
+  END IF;
+END
+$$;
 
 -- Audit history is append only: insert and read, never change.
 REVOKE UPDATE ON "audit_events", "login_events" FROM hms_api;
