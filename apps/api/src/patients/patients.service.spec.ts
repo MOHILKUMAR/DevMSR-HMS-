@@ -9,7 +9,7 @@ import type { CandidateRow, PatientRow, PatientsRepository } from './patients.re
 import { PatientsService } from './patients.service.js';
 
 const META = { requestId: 'r', ipAddress: null, userAgent: null };
-const RECEPTION: AuthContext = { sessionId: 's', userId: 'u1', hospitalId: 'h1', kind: 'staff', permissions: new Set(), expiresAt: new Date() };
+const RECEPTION: AuthContext = { sessionId: 's', userId: 'u1', hospitalId: 'h1', kind: 'staff', permissions: new Set(), expiresAt: new Date(), userHospitalId: 'h1', breakGlass: null };
 // 25 Oct 2026, 10:00 IST.
 const NOW = new Date('2026-10-25T04:30:00Z');
 

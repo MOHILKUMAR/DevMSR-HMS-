@@ -7,7 +7,7 @@ import type { BedsRepository, WardRow } from './beds.repository.js';
 import { BedsService } from './beds.service.js';
 
 const META = { requestId: 'r', ipAddress: null, userAgent: null };
-const ADMIN: AuthContext = { sessionId: 's', userId: 'a1', hospitalId: 'h1', kind: 'staff', permissions: new Set(), expiresAt: new Date() };
+const ADMIN: AuthContext = { sessionId: 's', userId: 'a1', hospitalId: 'h1', kind: 'staff', permissions: new Set(), expiresAt: new Date(), userHospitalId: 'h1', breakGlass: null };
 const WARD: WardRow = {
   id: 'w1',
   code: 'ICU',

@@ -5,6 +5,7 @@ import { AuditService } from '../audit/audit.service.js';
 import type { AuthContext } from '../auth/auth-context.js';
 import { hashPassword } from '../auth/password.js';
 import { SessionsService } from '../auth/sessions.service.js';
+import { TwoFactorRepository } from '../auth/two-factor.repository.js';
 import { Errors } from '../common/errors/app-error.js';
 import type { RequestMeta } from '../common/http/app-request.js';
 import { hospitalOf } from '../common/http/hospital-scope.js';
@@ -23,6 +24,7 @@ export class UsersService {
   constructor(
     private readonly users: UsersRepository,
     private readonly sessions: SessionsService,
+    private readonly twoFactor: TwoFactorRepository,
     private readonly audit: AuditService,
     private readonly transactions: TransactionRunner,
   ) {}
@@ -119,6 +121,27 @@ export class UsersService {
       await this.sessions.endAllForUser(id, 'credentials_changed', now, tx);
       await this.audit.record(
         { action: 'users.user.password-set', hospitalId, actorUserId: auth.userId, entityType: 'user', entityId: id, meta },
+        tx,
+      );
+    });
+  }
+
+  /**
+   * For a lost phone: switches the user's two-factor off, revokes their recovery codes and signs them
+   * out everywhere. If their role needs two-factor, they set it up again at the next sign-in.
+   */
+  async resetTwoFactor(auth: AuthContext, id: string, meta: RequestMeta): Promise<void> {
+    const hospitalId = hospitalOf(auth);
+    if (id === auth.userId) throw Errors.selfChangeNotAllowed();
+    if ((await this.users.findById(hospitalId, id)) === null) throw Errors.notFound('staff user');
+    const now = new Date();
+    const user = { userId: id, hospitalId };
+    await this.transactions.run(async (tx) => {
+      await this.twoFactor.disable(user, tx);
+      await this.twoFactor.revokeRecoveryCodes(user, now, tx);
+      await this.sessions.endAllForUser(id, 'credentials_changed', now, tx);
+      await this.audit.record(
+        { action: 'users.user.two-factor-reset', hospitalId, actorUserId: auth.userId, entityType: 'user', entityId: id, meta },
         tx,
       );
     });

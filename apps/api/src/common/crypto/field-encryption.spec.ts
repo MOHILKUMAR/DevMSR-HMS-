@@ -42,6 +42,20 @@ describe('createFieldCipher', () => {
     expect(() => cipher.reveal('aadhaar', forged)).toThrow();
   });
 
+  it('seals a secret as given, not reduced to digits, and opens it only for its own field', () => {
+    const sealed = cipher.seal('totp_secret', 'JBSWY3DPEHPK3PXP');
+    expect(sealed).not.toContain('JBSWY3DPEHPK3PXP');
+    expect(cipher.open('totp_secret', sealed)).toBe('JBSWY3DPEHPK3PXP');
+    expect(() => cipher.reveal('aadhaar', sealed)).toThrow();
+  });
+
+  it('hashes recovery codes with a key, so equal codes match and the code is not stored', () => {
+    expect(cipher.keyedHash('recovery_code', 'ABCD2345EFGH')).toBe(cipher.keyedHash('recovery_code', 'ABCD2345EFGH'));
+    expect(cipher.keyedHash('recovery_code', 'ABCD2345EFGH')).not.toBe(
+      createFieldCipher(randomBytes(32).toString('base64')).keyedHash('recovery_code', 'ABCD2345EFGH'),
+    );
+  });
+
   it('refuses a key of the wrong length', () => {
     expect(() => createFieldCipher(randomBytes(16).toString('base64'))).toThrow('exactly 32 bytes');
   });

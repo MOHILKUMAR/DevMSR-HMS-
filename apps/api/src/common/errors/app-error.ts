@@ -78,6 +78,13 @@ export const Errors = {
     new AppError(422, 'CURRENT_PASSWORD_WRONG', 'Your current password is not right. Type it again.'),
   currentSession: () =>
     new AppError(422, 'CURRENT_SESSION', 'This is the session you are using now. Use Sign out to end it.'),
+  totpInvalid: () =>
+    new AppError(422, 'TOTP_INVALID', 'The code is not right. Check the time on your phone and type the newest code.'),
+  twoFactorRequired: () =>
+    new AppError(422, 'TWO_FACTOR_REQUIRED', 'Your role needs two-factor sign-in, so it cannot be turned off.'),
+  twoFactorState: (message: string) => new AppError(409, 'TWO_FACTOR_STATE', message),
+  breakGlassActive: () =>
+    new AppError(409, 'BREAK_GLASS_ACTIVE', 'Break-glass access is already open in this session. End it before opening another.'),
   internal: () =>
     new AppError(500, 'INTERNAL_ERROR', 'Something went wrong on our side. Try again, and tell your admin if it keeps happening.'),
 };

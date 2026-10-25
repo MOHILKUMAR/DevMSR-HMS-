@@ -1,6 +1,7 @@
 import type { MeResponse } from '@devmsr/validation';
 import { getTranslations } from 'next-intl/server';
 import type { ReactNode } from 'react';
+import { BreakGlassBanner } from '@/features/break-glass/break-glass-banner';
 import { Sidebar } from './sidebar';
 import { TopBar } from './top-bar';
 
@@ -18,6 +19,7 @@ export async function AppShell({ me, children }: { me: MeResponse; children: Rea
       <Sidebar permissions={me.permissions} />
       <div className="flex min-w-0 flex-1 flex-col">
         <TopBar me={me} />
+        <BreakGlassBanner me={me} />
         <main id="main" tabIndex={-1} className="flex-1 p-6">
           {children}
         </main>

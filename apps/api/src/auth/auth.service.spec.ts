@@ -5,8 +5,11 @@ import type { TransactionRunner } from '../common/prisma/transaction-runner.js';
 import type { AuthRepository, LoginCandidate } from './auth.repository.js';
 import { AuthService, LOCKOUT_MS, MAX_FAILED_LOGINS } from './auth.service.js';
 import type { CsrfService } from './csrf.service.js';
+import type { FailedLoginAlerts } from './failed-login-alerts.js';
 import { hashPassword } from './password.js';
 import type { SessionsService } from './sessions.service.js';
+import type { TwoFactorRepository } from './two-factor.repository.js';
+import type { TwoFactorService } from './two-factor.service.js';
 
 const NOW = new Date('2026-10-25T10:00:00.000Z');
 const META = { requestId: 'r1', ipAddress: '10.0.0.5', userAgent: 'test' };
@@ -26,6 +29,9 @@ function candidate(overrides: Partial<LoginCandidate> = {}): LoginCandidate {
     passwordHash,
     passwordChangedAt: new Date(NOW.getTime() - 86_400_000),
     mustChangePassword: false,
+    totpSecretEncrypted: null,
+    totpEnabledAt: null,
+    totpLastTimeStep: null,
     lockedUntil: null,
     isActive: true,
     hospital: { id: 'h1', code: 'DEMO', name: 'Demo', isActive: true },
@@ -49,6 +55,7 @@ function setup(user: LoginCandidate | null, failure = { locked: false }) {
     permissionCodes: vi.fn().mockResolvedValue(['auth.session.manage-own']),
   };
   const csrf = { issue: vi.fn().mockReturnValue('csrf-token') };
+  const twoFactor = { pendingSecret: vi.fn().mockResolvedValue('sealed') };
   const audit = { record: vi.fn().mockResolvedValue(undefined) };
   const transactions = { run: vi.fn((work: (tx: unknown) => Promise<unknown>) => work({})) };
   const service = new AuthService(
@@ -57,8 +64,11 @@ function setup(user: LoginCandidate | null, failure = { locked: false }) {
     csrf as unknown as CsrfService,
     audit as unknown as AuditService,
     transactions as unknown as TransactionRunner,
+    twoFactor as unknown as TwoFactorService,
+    {} as TwoFactorRepository,
+    { afterFailure: vi.fn().mockResolvedValue(undefined) } as unknown as FailedLoginAlerts,
   );
-  return { service, repository, sessions, audit };
+  return { service, repository, sessions, audit, twoFactor };
 }
 
 async function loginError(promise: Promise<unknown>): Promise<AppError> {
@@ -141,5 +151,27 @@ describe('AuthService.login', () => {
     const { service, repository } = setup(candidate({ mustChangePassword: true }));
     await loginError(service.login({ username: 'reception1', password: 'wrong' }, META, undefined, NOW));
     expect(repository.createChallenge).not.toHaveBeenCalled();
+  });
+
+  it('asks a user whose permissions need two-factor to set it up, keeping one pending secret', async () => {
+    const { service, sessions, twoFactor } = setup(candidate());
+    sessions.permissionCodes.mockResolvedValue(['auth.session.manage-own', 'users.user.manage']);
+    const result = await service.login({ username: 'reception1', password: 'right-password' }, META, undefined, NOW);
+    expect(result).toMatchObject({ kind: 'challenge', response: { step: 'totp_setup' } });
+    expect(twoFactor.pendingSecret).toHaveBeenCalledWith({ userId: 'u1', hospitalId: 'h1' }, expect.objectContaining({ id: 'u1' }), {});
+    expect(sessions.start).not.toHaveBeenCalled();
+  });
+
+  it('asks for a code when two-factor is on, whatever the permissions', async () => {
+    const { service, twoFactor } = setup(candidate({ totpEnabledAt: new Date(NOW.getTime() - 1000), totpSecretEncrypted: 'sealed' }));
+    const result = await service.login({ username: 'reception1', password: 'right-password' }, META, undefined, NOW);
+    expect(result).toMatchObject({ kind: 'challenge', response: { step: 'totp_verify' } });
+    expect(twoFactor.pendingSecret).not.toHaveBeenCalled();
+  });
+
+  it('asks for the new password before two-factor', async () => {
+    const { service } = setup(candidate({ mustChangePassword: true, totpEnabledAt: new Date(NOW.getTime() - 1000) }));
+    const result = await service.login({ username: 'reception1', password: 'right-password' }, META, undefined, NOW);
+    expect(result).toMatchObject({ response: { step: 'change_password' } });
   });
 });

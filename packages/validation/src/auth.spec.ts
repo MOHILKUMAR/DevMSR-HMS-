@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { changeOwnPasswordSchema, loginPasswordChangeSchema, loginRequestSchema, loginResponseSchema } from './auth.js';
+import { changeOwnPasswordSchema, loginPasswordChangeSchema, loginRequestSchema, loginResponseSchema, loginTotpSchema, totpCodeBodySchema } from './auth.js';
 
 describe('loginRequestSchema', () => {
   it('trims and lowercases the username', () => {
@@ -24,6 +24,21 @@ describe('loginResponseSchema', () => {
 
   it('rejects an unknown status', () => {
     expect(loginResponseSchema.safeParse({ status: 'maybe' }).success).toBe(false);
+  });
+});
+
+describe('two-factor codes', () => {
+  it('takes 6 digits, ignoring the space apps show in the middle', () => {
+    expect(totpCodeBodySchema.parse({ code: '123 456' })).toEqual({ code: '123456' });
+    expect(totpCodeBodySchema.safeParse({ code: '12345' }).success).toBe(false);
+    expect(totpCodeBodySchema.safeParse({ code: '12345a' }).success).toBe(false);
+  });
+
+  it('takes either an app code or a recovery code at sign-in, never both or neither', () => {
+    expect(loginTotpSchema.safeParse({ code: '123456' }).success).toBe(true);
+    expect(loginTotpSchema.safeParse({ recoveryCode: '7KQ2-M9XD-4TPA' }).success).toBe(true);
+    expect(loginTotpSchema.safeParse({ code: '123456', recoveryCode: '7KQ2-M9XD-4TPA' }).success).toBe(false);
+    expect(loginTotpSchema.safeParse({}).success).toBe(false);
   });
 });
 

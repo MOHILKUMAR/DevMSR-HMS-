@@ -7,12 +7,24 @@ import {
   House,
   ReceiptIndianRupee,
   Settings,
+  ShieldAlert,
   Stethoscope,
   Users,
   Wallet,
 } from 'lucide-react';
 
-export type NavKey = 'home' | 'patients' | 'opd' | 'ipd' | 'beds' | 'billing' | 'payments' | 'discharge' | 'reports' | 'settings';
+export type NavKey =
+  | 'home'
+  | 'patients'
+  | 'opd'
+  | 'ipd'
+  | 'beds'
+  | 'billing'
+  | 'payments'
+  | 'discharge'
+  | 'reports'
+  | 'settings'
+  | 'breakGlass';
 
 export interface NavItem {
   key: NavKey;
@@ -78,6 +90,8 @@ export const NAV_ITEMS: readonly NavItem[] = [
       'audit.event.read',
     ],
   },
+  // DevMSR super admins only: read-only access to one hospital, for 1 hour.
+  { key: 'breakGlass', href: '/break-glass', icon: ShieldAlert, anyOf: ['platform.break-glass.use'] },
 ];
 
 export function visibleNavItems(permissions: readonly string[]): NavItem[] {

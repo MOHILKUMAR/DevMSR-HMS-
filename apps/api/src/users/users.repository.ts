@@ -11,6 +11,7 @@ export const STAFF_USER_SELECT = {
   isActive: true,
   lockedUntil: true,
   mustChangePassword: true,
+  totpEnabledAt: true,
   lastLoginAt: true,
   createdAt: true,
   userRoles: { select: { role: { select: { code: true, name: true } } } },

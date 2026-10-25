@@ -4,11 +4,17 @@ import {
   loginPasswordChangeSchema,
   loginRequestSchema,
   loginResponseSchema,
+  loginTotpSchema,
+  totpCodeBodySchema,
+  totpSetupSchema,
   meResponseSchema,
   type CsrfResponse,
   type LoginPasswordChange,
   type LoginRequest,
   type LoginResponse,
+  type LoginTotp,
+  type TotpCodeBody,
+  type TotpSetupResponse,
   type MeResponse,
 } from '@devmsr/validation';
 import type { Response } from 'express';
@@ -83,6 +89,47 @@ export class AuthController {
   async logout(@CurrentAuth() auth: AuthContext, @ReqMeta() meta: RequestMeta, @Res({ passthrough: true }) res: Response): Promise<void> {
     await this.auth.logout(auth, meta);
     this.cookies.clear(res);
+  }
+
+  /** Reviewed public route: the totp_setup step shows the secret to scan. Only with the challenge cookie. */
+  @Get('login/totp/setup')
+  @Public()
+  @ApiContract({ summary: 'The two-factor secret and QR code to set up at sign-in', response: totpSetupSchema })
+  totpSetup(@Req() req: AppRequest): Promise<TotpSetupResponse> {
+    return this.auth.totpSetupDetails(this.cookies.challengeToken(req));
+  }
+
+  /**
+   * Reviewed public route: the totp_setup step. A code from the app switches two-factor on; the
+   * session response carries the recovery codes once. Challenge cookie, CSRF and the login limit.
+   */
+  @Post('login/totp/setup')
+  @Public()
+  @LoginRateLimit()
+  @HttpCode(200)
+  @ApiContract({ summary: 'Confirm two-factor setup at sign-in with a code from the app', body: totpCodeBodySchema, response: loginResponseSchema })
+  async completeTotpSetup(
+    @ValidBody() body: TotpCodeBody,
+    @ReqMeta() meta: RequestMeta,
+    @Req() req: AppRequest,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<LoginResponse> {
+    return this.answer(res, await this.auth.completeTotpSetup(this.cookies.challengeToken(req), body, meta));
+  }
+
+  /** Reviewed public route: the totp_verify step, with a code from the app or a recovery code. */
+  @Post('login/totp')
+  @Public()
+  @LoginRateLimit()
+  @HttpCode(200)
+  @ApiContract({ summary: 'Finish sign-in with a two-factor code or a recovery code', body: loginTotpSchema, response: loginResponseSchema })
+  async completeTotpVerify(
+    @ValidBody() body: LoginTotp,
+    @ReqMeta() meta: RequestMeta,
+    @Req() req: AppRequest,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<LoginResponse> {
+    return this.answer(res, await this.auth.completeTotpVerify(this.cookies.challengeToken(req), body, meta));
   }
 
   private answer(res: Response, result: LoginResult): LoginResponse {

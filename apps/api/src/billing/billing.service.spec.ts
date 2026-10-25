@@ -8,7 +8,7 @@ import type { BillingRepository, ChargeRow } from './billing.repository.js';
 import { BillingService } from './billing.service.js';
 
 const META = { requestId: 'r', ipAddress: null, userAgent: null };
-const CLERK: AuthContext = { sessionId: 's', userId: 'u1', hospitalId: 'h1', kind: 'staff', permissions: new Set(), expiresAt: new Date() };
+const CLERK: AuthContext = { sessionId: 's', userId: 'u1', hospitalId: 'h1', kind: 'staff', permissions: new Set(), expiresAt: new Date(), userHospitalId: 'h1', breakGlass: null };
 // 25 Oct 2026, 10:00 IST.
 const NOW = new Date('2026-10-25T04:30:00Z');
 const PATIENT = { id: 'p1', uhid: 'DEMO-2026-000001', fullName: 'Ravi Kumar', sex: 'male', dateOfBirth: null, phone: null, addressLine: null, city: null, state: null, pincode: null };

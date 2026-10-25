@@ -86,6 +86,8 @@ jobs:
       DIRECT_URL: postgresql://hms:hms_ci_only@localhost:5432/hms
       # Fake demo users from the seed, on a throwaway database.
       SEED_USER_PASSWORD: ci-only-Passw0rd
+      # Base32 two-factor secret the seed gives admin, accounts and superadmin; e2e/totp.ts makes their codes.
+      SEED_TOTP_SECRET: CIONLYDEMOTOTPKEYCIONLYDEMOTOTPK
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
