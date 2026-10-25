@@ -114,11 +114,11 @@ A copy of production with fake data, used for UAT, printer checks and the VAPT.
 
 ## Stage 7: Testing, audits and the VAPT
 
-- [ ] Performance budget on staging: first load under 1 MB of JavaScript, and first paint under 1.5 s on 4 Mbps. Measuring bundles needs `@next/bundle-analyzer`, a new dependency to approve. **Dev**
-- [ ] Accessibility: a WCAG 2.1 AA check of every screen, with the billing and payment counters fully usable from the keyboard. **Dev**
-- [ ] Load test (k6) of the billing counter at peak: post charges, issue bills and take payments at once, then check the number series has no gaps. **Dev**
-- [ ] OWASP ZAP baseline scan against staging, run in CI. **Dev**
-- [ ] Contract test: an OpenAPI snapshot, so the web app and the API cannot drift apart. **Dev**
+- [ ] Performance budget on staging: first load under 1 MB of JavaScript, and first paint under 1.5 s on 4 Mbps. Partly: `apps/web/e2e/performance-budget.spec.ts` checks both in CI against the production build (compressed JavaScript, emulated 4 Mbps); still to be measured on staging. `@next/bundle-analyzer` was not needed. **Dev**
+- [ ] Accessibility: a WCAG 2.1 AA check of every screen, with the billing and payment counters fully usable from the keyboard. Partly: `apps/web/e2e/accessibility.spec.ts` runs axe on every current screen and works both counters from the keyboard in CI; new screens join its list, and a screen reader check belongs in UAT. **Dev**
+- [ ] Load test (k6) of the billing counter at peak: post charges, issue bills and take payments at once, then check the number series has no gaps. Partly: `tests/load/billing-counter.js` and the gap check run in CI (`.github/workflows/load-test.yml`); the peak run on staging is still to come (`docs/runbooks/load-test.md`). **Dev**
+- [ ] OWASP ZAP baseline scan against staging, run in CI. Partly: `.github/workflows/zap-baseline.yml` is a manual dispatch for staging URLs and scans the runner's build on pull requests that change it (`docs/runbooks/zap-scan.md`); no staging yet. **Dev**
+- [x] Contract test: an OpenAPI snapshot, so the web app and the API cannot drift apart. The API test checks `docs/openapi.json` against the routes, and CI checks the web's generated types against `docs/openapi.json`. **Dev**
 - [ ] Printers: A4 and 80 mm printouts on the hospital's own printers and browsers. **Hospital + Dev**
 - [ ] UAT: hospital staff run a normal day on staging (registration, OPD, admission, billing, cash shifts, discharge) and sign it off. **Hospital**
 - [ ] VAPT on staging by a CERT-In empanelled auditor. Fix every high and critical finding, get a retest, and keep the report. **Auditor + Dev**
