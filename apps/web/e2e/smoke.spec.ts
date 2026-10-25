@@ -39,7 +39,7 @@ test('a receptionist signs in from the keyboard, sees only their sections, and s
   for (const hidden of ['Billing', 'Payments', 'Reports', 'Settings']) {
     await expect(nav.getByRole('link', { name: hidden })).toHaveCount(0);
   }
-  await expect(page.getByRole('searchbox', { name: 'Search patients' })).toBeVisible();
+  await expect(page.getByRole('combobox', { name: 'Search patients' })).toBeVisible();
 
   await nav.getByRole('link', { name: 'Home' }).click();
   await expect(page.getByRole('heading', { name: `Welcome, ${RECEPTIONIST.displayName}` })).toBeVisible();

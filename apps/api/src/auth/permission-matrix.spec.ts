@@ -52,6 +52,11 @@ describe('permission matrix', () => {
     expect(Object.keys(PERMISSIONS).filter((code) => !granted.has(code as PermissionCode))).toEqual([]);
   });
 
+  it('lets only the MD approve refunds (docs/billing-rules.md)', () => {
+    const approvers = roles.filter(([, role]) => (role.permissions as readonly string[]).includes('billing.refund.approve')).map(([code]) => code);
+    expect(approvers).toEqual(['md']);
+  });
+
   it('matches the role table: clerks and cashiers cannot approve, doctors and nurses cannot bill', () => {
     const approvals = (code: keyof typeof ROLES) => ROLES[code].permissions.filter((p: string) => p.endsWith('.approve'));
     expect(approvals('billing_clerk')).toEqual([]);

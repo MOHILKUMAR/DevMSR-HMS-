@@ -1,0 +1,30 @@
+meta {
+  name: Close my shift
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{baseUrl}}/cash-shifts/{{shiftId}}/close
+  body: json
+  auth: none
+}
+
+headers {
+  X-CSRF-Token: {{csrfToken}}
+}
+
+body:json {
+  {
+    "countedCashPaise": 249000,
+    "differenceReason": "Counted Rs 10 short"
+  }
+}
+
+docs {
+  A count that matches needs no reason. One that differs needs 3 to 200 characters.
+}
+
+assert {
+  res.status: eq 200
+}

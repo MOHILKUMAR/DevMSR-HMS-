@@ -1,0 +1,15 @@
+meta {
+  name: List draft bills
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/invoices?status=draft&page=1&pageSize=20
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+}

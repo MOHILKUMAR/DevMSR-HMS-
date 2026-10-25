@@ -47,6 +47,41 @@ Lists take `?page=1&pageSize=50&q=text&includeInactive=true` and return `{ data,
 | POST | `/service-items/:id/rates` | `tariffs.tariff.manage` | Body `{ ratePaise, taxRateBp, effectiveFrom }`. Starts today or later (IST) and after the current rate's start; the current rate ends the day before. 422 `RATE_DATE_INVALID` otherwise. |
 | POST | `/service-items/:id/rates/:rateId/cancel` | `tariffs.tariff.manage` | Body `{ reason }` (3 to 200 characters). Cancels the latest rate before it starts; the rate before it carries on. 200 with the cancelled rate. 422 `RATE_NOT_CANCELLABLE` for a rate that has started, is followed by a later rate, or is already cancelled. |
 
+## Patients
+
+Patient names, phone numbers, Aadhaar and ABHA numbers never go in a URL, so search is a POST. Aadhaar and ABHA numbers are stored encrypted and only their last 4 digits are ever returned. Errors about duplicates name only patient IDs and UHIDs.
+
+| Method | Path | Permission | Notes |
+| --- | --- | --- | --- |
+| POST | `/patients/search` | `patients.patient.read` | Body `{ q, page?, pageSize? }`. `q` is a UHID (any case), the number part of one (`123` finds `DEMO-2026-000123`), a mobile number, a name (2 characters or more), or an Aadhaar or ABHA number. Paged list of summaries. Audited without the search text. |
+| POST | `/patients/duplicate-check` | `patients.patient.create` | Body `{ fullName, dateOfBirth? or ageYears?, phone?, aadhaar?, abhaNumber? }`. `{ blocking, possible }`: same Aadhaar or ABHA blocks; same mobile, or same name with a birth year within one year, is possible. Each match lists its `reasons`. |
+| POST | `/patients` | `patients.patient.create` | Needs `Idempotency-Key`. Body: `fullName`, `sex`, `ageYears` or `dateOfBirth`, `phone` (10-digit Indian mobile), optional address, guardian (relation and name together), emergency contact, `aadhaar`, `abhaNumber`, and `acknowledgedDuplicateIds`. Gives the next UHID (`<CODE>-<YEAR>-<6 digits>`, gapless per calendar year). 409 `DUPLICATE_PATIENT` for the same Aadhaar or ABHA; 409 `POSSIBLE_DUPLICATE` for a possible duplicate not acknowledged. |
+| GET | `/patients/:id` | `patients.patient.read` | The record, with `aadhaarLast4` and `abhaNumberLast4`. Every view writes an audit event. |
+| PATCH | `/patients/:id` | `patients.patient.update` | Any registration field. `null` clears an optional one; an age replaces the date of birth. The UHID never changes. A new Aadhaar or ABHA number runs the duplicate block again. The audit event lists the field names, not values. |
+
+## Billing and payments
+
+Money is in paise (integers). Rules are in `docs/billing-rules.md`. Routes marked "Needs `Idempotency-Key`" return the stored response when the same key is sent again. Records of another hospital are 404.
+
+| Method | Path | Permission | Notes |
+| --- | --- | --- | --- |
+| POST | `/patients/:id/charges` | `billing.charge.create` | Needs `Idempotency-Key`. Body `{ serviceItemId, quantity, serviceDate? }` (quantity 1 to 999, date in IST, today or earlier). Snapshots the rate and tax rate in force on that date. 422 `RATE_MISSING` when the item has no rate then, `REFERENCE_INVALID` for an inactive item. |
+| GET | `/patients/:id/charges` | `billing.account.read` | `{ data }`: the patient's charges. `?status=pending` or `billed`. A pending charge on a draft bill has its `invoiceId`. |
+| GET | `/patients/:id/account` | `billing.account.read` | The patient as printed on bills, unbilled charges (count and amount), bills with paid and due, receipts, deposit held and total due. Audited. |
+| POST | `/invoices` | `billing.invoice.create` | Needs `Idempotency-Key`. Body `{ patientId, chargeIds }` (1 to 500 pending charges of that patient, not on another draft). Creates a draft with one line per charge: tax per line, CGST and SGST halves, total rounded to the rupee with a round off. 422 `CHARGE_UNAVAILABLE` otherwise. |
+| GET | `/invoices` | `billing.account.read` | Paged bill summaries, newest first. `?status=draft`, `issued` or `discarded`, `?patientId=`. |
+| GET | `/invoices/:id` | `billing.account.read` | The bill with lines, totals, paid and due, and (once issued) the hospital and patient as they were at issue. Audited. |
+| POST | `/invoices/:id/issue` | `billing.invoice.issue` | Needs `Idempotency-Key`. Gives the next number (`<CODE>/INV/<FY>/<6 digits>`, gapless per financial year), snapshots the hospital and patient, marks the charges billed and locks the bill for good. 200. 409 `INVOICE_LOCKED` if it is not a draft. |
+| POST | `/invoices/:id/discard` | `billing.invoice.create` | Discards a draft and releases its charges. The draft is kept. 200. 409 `INVOICE_LOCKED` if it is not a draft. |
+| POST | `/cash-shifts` | `payments.shift.manage-own` | Body `{ openingCashPaise }`. Opens the cashier's shift. 409 `SHIFT_ALREADY_OPEN`. |
+| GET | `/cash-shifts/current` | `payments.shift.manage-own` | `{ shift }`: the cashier's open shift with takings by mode and the cash expected in the drawer, or null. |
+| POST | `/cash-shifts/:id/close` | `payments.shift.manage-own` | Body `{ countedCashPaise, differenceReason? }`. A count that differs from the expected cash needs a reason (3 to 200 characters); the difference is recorded. Only your own shift (another cashier's is 404). 200. 409 `SHIFT_CLOSED`. |
+| GET | `/cash-shifts` | `reports.collection.read` | Paged shifts of every cashier, newest first, for finance. |
+| POST | `/payments` | `payments.receipt.create` | Needs `Idempotency-Key`. Body `{ invoiceId, mode, amountPaise, reference?, cardLast4?, bankName? }`. Cash needs nothing more; UPI the UTR; card the approval code and last 4 digits; bank transfer or cheque the reference and bank. Up to the amount due on an issued bill. Gives a receipt number (`<CODE>/RCT/<FY>/<6 digits>`). 422 `SHIFT_REQUIRED`, `BILL_NOT_ISSUED`, `AMOUNT_EXCEEDS_DUE`. |
+| POST | `/deposits` | `payments.deposit.create` | Needs `Idempotency-Key`. Body `{ patientId, mode, amountPaise, ... }` with the same details as a payment. A numbered receipt for money held for the patient; not revenue. 422 `SHIFT_REQUIRED`. |
+| POST | `/invoices/:id/apply-deposit` | `payments.receipt.create` | Needs `Idempotency-Key`. Body `{ amountPaise }`. Sets held deposit against an issued bill, oldest deposit first. No money moves, so no shift is needed. 200. 422 `BILL_NOT_ISSUED`, `AMOUNT_EXCEEDS_DUE`, `NO_DEPOSIT_HELD`. |
+| GET | `/receipts/:id` | `billing.account.read` | The receipt with the hospital, the patient, what it was set against and, for a deposit, what is still held. |
+
 ## Error codes
 
 | Code | Status | When |
@@ -70,4 +105,15 @@ Lists take `?page=1&pageSize=50&q=text&includeInactive=true` and return `{ data,
 | `RATE_DATE_INVALID` | 422 | A new rate starts in the past, or not after the current rate's start. |
 | `BED_OCCUPIED` | 422 | Retiring a bed or ward that has a patient in it. |
 | `RATE_NOT_CANCELLABLE` | 422 | Cancelling a rate that has started, is followed by a later rate, or is already cancelled. |
+| `DUPLICATE_PATIENT` | 409 | The Aadhaar or ABHA number belongs to another patient of the hospital. `details.matches` lists `{ id, uhid }` only. |
+| `POSSIBLE_DUPLICATE` | 409 | A patient with the same mobile, or the same name and birth year, exists and was not acknowledged. `details.matches` lists `{ id, uhid }` only. |
+| `RATE_MISSING` | 422 | A charge for a service with no rate on the service date. |
+| `CHARGE_UNAVAILABLE` | 422 | A charge chosen for a bill is billed, on another draft, or belongs to another patient. |
+| `INVOICE_LOCKED` | 409 | Issuing or discarding a bill that is no longer a draft. |
+| `SHIFT_REQUIRED` | 422 | Taking money without an open shift of your own. |
+| `SHIFT_ALREADY_OPEN` | 409 | Opening a second shift. |
+| `SHIFT_CLOSED` | 409 | Closing a shift that is already closed. |
+| `AMOUNT_EXCEEDS_DUE` | 422 | A payment or deposit use larger than the bill's amount due. |
+| `NO_DEPOSIT_HELD` | 422 | Using more deposit than the patient has held. |
+| `BILL_NOT_ISSUED` | 422 | Paying a draft or discarded bill. |
 | `INTERNAL_ERROR` | 500 | Anything unexpected. Details are logged with the `X-Request-Id`, never returned. |

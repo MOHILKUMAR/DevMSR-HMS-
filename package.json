@@ -20,6 +20,8 @@
     "db:deploy": "prisma migrate deploy",
     "db:reset": "prisma migrate reset",
     "db:seed": "pnpm db:generate && prisma db seed",
+    "db:sync-roles": "pnpm db:generate && tsx apps/api/src/cli/sync-roles.ts",
+    "db:api-user": "pnpm db:generate && tsx apps/api/src/cli/create-api-db-user.ts",
     "api:spec": "pnpm db:generate && pnpm build:packages && pnpm --filter @devmsr/api spec && pnpm --filter @devmsr/web api:types"
   },
   "devDependencies": {

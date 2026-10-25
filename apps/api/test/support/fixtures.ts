@@ -1,4 +1,4 @@
-import { randomBytes } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
 import type { Server } from 'node:http';
 import request from 'supertest';
 import { AuthCookies } from '../../src/auth/auth-cookies.js';
@@ -75,7 +75,8 @@ export async function createUser(
 
 export async function createPatient(prisma: PrismaService, hospitalId: string): Promise<{ id: string }> {
   return prisma.patient.create({
-    data: { hospitalId, fullName: 'Test Patient', sex: 'female', phone: '+910000000000' },
+    // Outside the UHID series on purpose: the counter belongs to registrations through the API.
+    data: { hospitalId, uhid: `TEST-${randomUUID()}`, fullName: 'Test Patient', sex: 'female', phone: '+910000000000' },
     select: { id: true },
   });
 }

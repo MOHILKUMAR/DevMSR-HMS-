@@ -22,3 +22,13 @@ export function addDays(value: string, days: number): string {
   date.setUTCDate(date.getUTCDate() + days);
   return toDateOnly(date);
 }
+
+/**
+ * The Indian financial year (1 April to 31 March) of an IST date, as bill numbers write it:
+ * `2026-04-01` and `2027-03-31` are both in `2026-27`.
+ */
+export function financialYearOf(date: string): string {
+  const year = Number(date.slice(0, 4));
+  const start = Number(date.slice(5, 7)) >= 4 ? year : year - 1;
+  return `${String(start)}-${String((start + 1) % 100).padStart(2, '0')}`;
+}

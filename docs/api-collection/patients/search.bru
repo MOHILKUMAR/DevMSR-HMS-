@@ -1,0 +1,35 @@
+meta {
+  name: Search patients
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/patients/search
+  body: json
+  auth: none
+}
+
+headers {
+  X-CSRF-Token: {{csrfToken}}
+}
+
+body:json {
+  {
+    "q": "kumar",
+    "pageSize": 10
+  }
+}
+
+docs {
+  A POST so names and phone numbers never appear in a URL. q can be a UHID, its number, a mobile,
+  a name, or an Aadhaar or ABHA number.
+}
+
+script:post-response {
+  bru.setVar("patientId", res.body.data[0].id);
+}
+
+assert {
+  res.status: eq 200
+}

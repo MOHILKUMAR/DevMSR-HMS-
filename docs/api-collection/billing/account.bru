@@ -1,0 +1,19 @@
+meta {
+  name: Patient account
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/patients/{{patientId}}/account
+  body: none
+  auth: none
+}
+
+docs {
+  Unbilled charges, bills with paid and due, receipts and deposit held. Audited.
+}
+
+assert {
+  res.status: eq 200
+}

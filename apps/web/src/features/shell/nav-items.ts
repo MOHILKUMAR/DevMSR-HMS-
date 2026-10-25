@@ -48,7 +48,14 @@ export const NAV_ITEMS: readonly NavItem[] = [
     key: 'payments',
     href: '/payments',
     icon: Wallet,
-    anyOf: ['payments.receipt.create', 'payments.deposit.create', 'payments.shift.manage-own', 'billing.refund.request'],
+    anyOf: [
+      'payments.receipt.create',
+      'payments.deposit.create',
+      'payments.shift.manage-own',
+      'billing.refund.request',
+      // Finance reads every cashier's shifts there.
+      'reports.collection.read',
+    ],
   },
   { key: 'discharge', href: '/discharge', icon: DoorOpen, anyOf: ['ipd.discharge.mark-fit', 'billing.invoice.issue'] },
   {

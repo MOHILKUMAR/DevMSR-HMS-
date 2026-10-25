@@ -6,10 +6,11 @@ import { SESSION_COOKIES } from '../cookies';
 import { serverApiOrigin } from '../env';
 import type { paths } from './generated/schema';
 
-const serverApi = createClient<paths>({ baseUrl: serverApiOrigin() });
+/** The typed API client for Server Components. Pass the session cookie with every call. */
+export const serverApi = createClient<paths>({ baseUrl: serverApiOrigin() });
 
 /** Forwards only the session cookie to the API, not the browser's other cookies. */
-async function sessionCookieHeader(): Promise<string | undefined> {
+export async function sessionCookieHeader(): Promise<string | undefined> {
   const jar = await cookies();
   for (const name of SESSION_COOKIES) {
     const value = jar.get(name)?.value;

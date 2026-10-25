@@ -2,6 +2,8 @@
 
 Progress against `CLAUDE.md`, section 11. Later phases need the developer's approval before they start.
 
+Everything else needed before real patients (hosting, backups, audits, paperwork, cutover) is in `docs/go-live-checklist.md`, with the order to do it in.
+
 ## Foundation (first task)
 
 - [x] pnpm monorepo: `apps/web`, `apps/api`, `packages/validation`, `packages/types`, `packages/config`
@@ -20,15 +22,19 @@ Progress against `CLAUDE.md`, section 11. Later phases need the developer's appr
 - [ ] Separate database role for the API that cannot UPDATE, DELETE or TRUNCATE audit rows (before go-live)
 - [ ] Idempotency key cleanup job (pg-boss)
 - [ ] Tighter web CSP with nonces or SRI (before go-live)
-- [ ] Patient search in the top bar (with patient registration)
+- [x] Patient search in the top bar (with patient registration)
 - [x] Settings and masters (admin setup slice): staff users and roles, hospital profile, departments, doctors, room categories, wards and beds, service items with dated rates, screens under `/settings`
 - [ ] Custom roles screen (`users.role.manage`)
 - [ ] Packages, discounts and other billing masters (waiting for answers in `docs/billing-rules.md`)
-- [ ] Patient registration
+- [x] Patient registration: UHIDs from a gapless yearly counter, duplicate checks (Aadhaar and ABHA block, mobile and name warn), search by UHID, mobile, name, Aadhaar or ABHA, audited record views, edits
+- [ ] Merging duplicate patient records, patient photo, printed UHID card
+- [ ] Registration fee (waiting for an answer in `docs/billing-rules.md`)
 - [ ] OPD
 - [ ] IPD and beds
-- [ ] Billing
-- [ ] Payments and cash shifts
+- [x] Billing (slice 3a): charges at the dated rate, draft bills, issue with gapless `INV` numbers per financial year, locked issued bills, discard, A4 and 80 mm print
+- [x] Payments and cash shifts (slice 3a): one open shift per cashier, payments by cash, UPI, card, bank transfer or cheque, deposits, deposits set against bills, gapless `RCT` numbers, shift close with counted cash and a reason for any difference, shift list for finance
+- [ ] Discounts, refunds, credit notes and voids with maker-checker approvals (slice 3b)
+- [ ] Day-end collection report and Tally export
 - [ ] Discharge
 - [ ] Basic reports
 - [ ] Emailed bills
