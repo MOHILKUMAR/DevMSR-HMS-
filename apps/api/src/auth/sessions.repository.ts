@@ -68,7 +68,7 @@ export class SessionsRepository {
     await this.prisma.session.updateMany({ where: { id, endedAt: null }, data: { lastSeenAt: at } });
   }
 
-  async end(where: { id: string } | { tokenHash: string }, reason: SessionEndReason, at: Date, tx?: Tx): Promise<void> {
+  async end(where: { id: string } | { tokenHash: string } | { userId: string }, reason: SessionEndReason, at: Date, tx?: Tx): Promise<void> {
     await (tx ?? this.prisma).session.updateMany({
       where: { ...where, endedAt: null },
       data: { endedAt: at, endReason: reason },

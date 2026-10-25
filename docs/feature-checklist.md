@@ -21,7 +21,9 @@ Progress against `CLAUDE.md`, section 11. Later phases need the developer's appr
 - [ ] Idempotency key cleanup job (pg-boss)
 - [ ] Tighter web CSP with nonces or SRI (before go-live)
 - [ ] Patient search in the top bar (with patient registration)
-- [ ] Settings and masters
+- [x] Settings and masters (admin setup slice): staff users and roles, hospital profile, departments, doctors, room categories, wards and beds, service items with dated rates, screens under `/settings`
+- [ ] Custom roles screen (`users.role.manage`)
+- [ ] Packages, discounts and other billing masters (waiting for answers in `docs/billing-rules.md`)
 - [ ] Patient registration
 - [ ] OPD
 - [ ] IPD and beds
