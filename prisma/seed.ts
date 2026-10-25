@@ -40,7 +40,7 @@ function log(message: string): void {
   process.stdout.write(`${message}\n`);
 }
 
-if (process.env['NODE_ENV'] === 'production') {
+if (process.env['NODE_ENV'] === 'production' || process.env['APP_ENV'] === 'production') {
   throw new Error('The seed loads fake data and never runs in production.');
 }
 

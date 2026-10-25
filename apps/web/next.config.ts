@@ -3,30 +3,9 @@ import type { NextConfig } from 'next';
 import createNextIntlPlugin from 'next-intl/plugin';
 
 const workspaceRoot = fileURLToPath(new URL('../..', import.meta.url));
-const isDev = process.env.NODE_ENV === 'development';
-// The browser calls the API directly, so the CSP must allow its origin.
-const apiOrigin = new URL(process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1').origin;
-
-// CLAUDE.md section 9: the same headers as the API. Scripts need 'unsafe-inline' because Next.js
-// inlines its bootstrap scripts; a nonce-based policy would need proxy.ts to generate nonces (see
-// docs/decisions.md). Everything else is locked to this origin and the API.
-const contentSecurityPolicy = [
-  "default-src 'self'",
-  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''}`,
-  "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' blob: data:",
-  "font-src 'self'",
-  `connect-src 'self' ${apiOrigin}`,
-  "object-src 'none'",
-  "base-uri 'self'",
-  "form-action 'self'",
-  "frame-ancestors 'none'",
-  // No upgrade-insecure-requests: HSTS already forces HTTPS in production, and the directive would
-  // break a production build served over http://localhost (CI and local Docker runs).
-].join('; ');
-
+// CLAUDE.md section 9: the same headers as the API. The Content-Security-Policy is set per request
+// by src/proxy.ts, because it carries a fresh nonce for every page.
 const securityHeaders = [
-  { key: 'Content-Security-Policy', value: contentSecurityPolicy },
   { key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains' },
   { key: 'X-Frame-Options', value: 'DENY' },
   { key: 'X-Content-Type-Options', value: 'nosniff' },

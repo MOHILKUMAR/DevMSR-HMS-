@@ -26,6 +26,7 @@ if ! dry_run; then
 fi
 
 log "rolling back from ${current:-none} to $target"
+sync_roles "$target" || die "could not sync the seeded roles to $target's permission matrix"
 activate_release "$target" || die "$target is unhealthy too: follow the manual steps in the runbook"
 
 write_state previous "$current"

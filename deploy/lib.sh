@@ -125,6 +125,19 @@ public_check() {
   done
 }
 
+# Brings the seeded roles in line with a release's permission matrix before that release starts:
+# production refuses to start while they differ (docs/decisions.md, "pnpm db:sync-roles"). Runs as
+# the API's login and writes an audit event per changed role. A rollback runs it with the older
+# release, so the older matrix applies again.
+sync_roles() {
+  local tag="$1"
+  log "syncing seeded roles with $tag's permission matrix"
+  run docker run --rm --name "hms-sync-roles-$tag" \
+    --env-file "$HMS_ENV_DIR/api.env" \
+    --read-only --cap-drop ALL --security-opt no-new-privileges:true \
+    "hms-api:$tag" node dist/cli/sync-roles.js --apply
+}
+
 # Starts a release that is already built and checks it. Returns non-zero if it is unhealthy.
 activate_release() {
   local tag="$1"

@@ -61,7 +61,7 @@ Images are named `hms-api:<tag>`, `hms-web:<tag>`, `hms-migrate:<tag>` and `hms-
 1. fetches the tag and refuses it unless it is on `origin/main`;
 2. exports the tagged tree to a temporary folder (never a checkout, so local edits on the server never reach an image);
 3. builds the four images (api, web, migrate, backup), passing the `NEXT_PUBLIC_` values from `deploy.env` as build arguments;
-4. takes an encrypted backup ([backup-and-restore.md](backup-and-restore.md)) and stops if it fails, then applies migrations with the migrate image while the current release keeps serving;
+4. takes an encrypted backup ([backup-and-restore.md](backup-and-restore.md)) and stops if it fails, then applies migrations with the migrate image while the current release keeps serving, then creates the API's restricted database login from `DATABASE_URL` (or resets its password) and runs `sync-roles --apply` so the seeded roles match the new release's permission matrix (production refuses to start while they differ);
 5. starts the new containers, waits for their health checks, then checks `https://api.../api/v1/health` and `https://app.../login` through Cloudflare;
 6. if the new release is unhealthy, starts the previous one again and stops with an error;
 7. records the tag in `state/` and removes images and folders older than the newest 3 releases.
@@ -85,7 +85,7 @@ deploy/rollback.sh            # back to the previous release
 deploy/rollback.sh v1.3.2     # back to another kept release (see state/history.log)
 ```
 
-It starts the kept images of that release, checks health the same way, and records the change. If the release was pruned, deploy its tag again instead.
+It syncs the seeded roles back to that release's permission matrix, starts its kept images, checks health the same way, and records the change. If the release was pruned, deploy its tag again instead.
 
 ## Restarting after a settings change
 

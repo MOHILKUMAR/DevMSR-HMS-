@@ -20,7 +20,8 @@ Run it on the server or the developer's own machine, paste the output straight i
 | --- | --- | --- | --- |
 | `SESSION_SECRET` | `api.env` | Forged CSRF tokens (sessions themselves are random tokens in the database) | Easy, below. Yearly, and on any suspicion |
 | `FIELD_ENCRYPTION_KEY` | `api.env` | Aadhaar and ABHA numbers readable by whoever also has the database | Needs an app feature, below. Never lose it |
-| Database password (`DATABASE_URL`, `DIRECT_URL`) | `api.env`, `migrate.env` | Full database access from an allowed IP | Supabase dashboard, below. Yearly |
+| Owner database password (`DIRECT_URL`) | `migrate.env` | Full database access from an allowed IP | Supabase dashboard, below. Yearly |
+| API database login password (`DATABASE_URL`) | `api.env` | Read and write app rows, never audit changes or schema | Change it in `api.env` and deploy: `deploy.sh` resets the login's password. Yearly |
 | R2 keys (`R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`) | `api.env` | Files (logos, attachments) readable or deletable | New token, deploy, delete old. Yearly |
 | Backup bucket keys | backup env (backup runbook) | Backups deletable (they stay encrypted) | Same as R2 |
 | Backup age private key | Offline only: the vault and a printed copy in the hospital's safe | Backups readable | New key pair; old backups stay readable only with the old key, so keep it until they expire |
@@ -46,11 +47,26 @@ The stored format starts with a version (`v1:iv:ciphertext:tag`, `docs/decisions
 
 Losing this key loses every Aadhaar and ABHA number for good. Restoring a backup needs the key that was in use when the backup was taken.
 
-## Rotating the database password
+## Rotating the database passwords
+
+The owner (`DIRECT_URL`, used by migrations) and the API's own login (`DATABASE_URL`) have separate passwords.
+
+Owner:
 
 1. Supabase dashboard: Database settings, reset the database password.
-2. Update `DATABASE_URL` in `api.env` and `DIRECT_URL` in `migrate.env`, and the vault.
-3. `deploy/restart.sh api`, then `deploy/check-database.sh`.
+2. Update `DIRECT_URL` in `migrate.env` and the vault. The running API does not use it, so nothing restarts.
+
+API login:
+
+1. Generate a new password (`openssl rand -hex 24`) and put it in `DATABASE_URL` in `api.env` and the vault.
+2. Set it on the login and restart the API:
+
+   ```bash
+   tag=$(cat /opt/hms/state/current)
+   docker run --rm --env-file /opt/hms/env/api.env --env-file /opt/hms/env/migrate.env hms-api:$tag node dist/cli/create-api-db-user.js
+   deploy/restart.sh api
+   deploy/check-database.sh
+   ```
 
 Existing connections keep working until they reconnect, so the switch has no outage beyond the restart.
 

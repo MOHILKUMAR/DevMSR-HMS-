@@ -88,12 +88,22 @@ run docker run --rm --name "hms-migrate-$tag" \
   --cap-drop ALL --security-opt no-new-privileges:true \
   "hms-migrate:$tag"
 
+# The API's own restricted login (docs/decisions.md, "The API runs as a database role that owns
+# nothing"): created on the first deploy, its password reset to api.env's on later ones. It runs as
+# the owner (DIRECT_URL from migrate.env, which overrides nothing else in api.env).
+log "making sure the API's database login exists"
+run docker run --rm --name "hms-api-user-$tag" \
+  --env-file "$HMS_ENV_DIR/api.env" --env-file "$HMS_ENV_DIR/migrate.env" \
+  --read-only --cap-drop ALL --security-opt no-new-privileges:true \
+  "hms-api:$tag" node dist/cli/create-api-db-user.js
+sync_roles "$tag"
+
 # 6. Start the new release, or go back to the previous one.
 if ! activate_release "$tag"; then
   record_history deploy-failed "$tag" "$commit"
   if [[ -n "$previous" && "$previous" != "$tag" ]]; then
     log "$tag is unhealthy, starting $previous again"
-    activate_release "$previous" || die "rollback to $previous failed too: follow the manual steps in the runbook"
+    { sync_roles "$previous" && activate_release "$previous"; } || die "rollback to $previous failed too: follow the manual steps in the runbook"
     record_history auto-rollback "$previous"
     die "$tag was not deployed; $previous is running"
   fi
