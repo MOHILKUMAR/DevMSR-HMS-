@@ -21,7 +21,7 @@ Run it on the server or the developer's own machine, paste the output straight i
 | `SESSION_SECRET` | `api.env` | Forged CSRF tokens (sessions themselves are random tokens in the database) | Easy, below. Yearly, and on any suspicion |
 | `FIELD_ENCRYPTION_KEY` | `api.env` | Aadhaar and ABHA numbers readable by whoever also has the database | Needs an app feature, below. Never lose it |
 | Owner database password (`DIRECT_URL`) | `migrate.env` | Full database access from an allowed IP | Supabase dashboard, below. Yearly |
-| API database login password (`DATABASE_URL`) | `api.env` | Read and write app rows, never audit changes or schema | Change it in `api.env` and deploy: `deploy.sh` resets the login's password. Yearly |
+| API and jobs database login passwords (`DATABASE_URL`, `JOBS_DATABASE_URL`) | `api.env` | Read and write app rows, never audit changes or schema | Change it in `api.env` and deploy: `deploy.sh` resets the login's password. Yearly |
 | R2 keys (`R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`) | `api.env` | Files (logos, attachments) readable or deletable | New token, deploy, delete old. Yearly |
 | Backup bucket keys | backup env (backup runbook) | Backups deletable (they stay encrypted) | Same as R2 |
 | Backup age private key | Offline only: the vault and a printed copy in the hospital's safe | Backups readable | New key pair; old backups stay readable only with the old key, so keep it until they expire |

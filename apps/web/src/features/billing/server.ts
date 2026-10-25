@@ -1,4 +1,4 @@
-import type { Invoice, Receipt } from '@devmsr/validation';
+import type { CreditNote, Invoice, Receipt, Refund } from '@devmsr/validation';
 import { notFound, redirect } from 'next/navigation';
 import { serverApi, sessionCookieHeader } from '@/lib/api/server';
 
@@ -35,5 +35,27 @@ export async function getReceipt(id: string): Promise<Receipt> {
     cache: 'no-store',
   });
   if (data === undefined) check(response.status, '/receipts/:id');
+  return data;
+}
+
+/** A credit note for the print page. */
+export async function getCreditNote(id: string): Promise<CreditNote> {
+  const { data, response } = await serverApi.GET('/api/v1/credit-notes/{id}', {
+    params: { path: { id } },
+    headers: { cookie: await cookieOrLogin() },
+    cache: 'no-store',
+  });
+  if (data === undefined) check(response.status, '/credit-notes/:id');
+  return data;
+}
+
+/** A refund for the print page. */
+export async function getRefund(id: string): Promise<Refund> {
+  const { data, response } = await serverApi.GET('/api/v1/refunds/{id}', {
+    params: { path: { id } },
+    headers: { cookie: await cookieOrLogin() },
+    cache: 'no-store',
+  });
+  if (data === undefined) check(response.status, '/refunds/:id');
   return data;
 }
