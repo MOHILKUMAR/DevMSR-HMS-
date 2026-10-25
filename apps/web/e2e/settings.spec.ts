@@ -107,12 +107,12 @@ test('the hospital admin adds a staff user who can then sign in, and sets up a w
   await page.getByLabel('Password').fill(password);
   await page.getByRole('button', { name: 'Sign in' }).click();
   const choose = page.getByRole('form', { name: 'Choose your own password' });
-  await choose.getByLabel('New password').fill(password);
+  await choose.getByLabel('New password', { exact: true }).fill(password);
   await choose.getByLabel('Type the new password again').fill(password);
   await choose.getByRole('button', { name: 'Save and continue' }).click();
   await expect(choose.getByText('Choose a password different from the one you have now.')).toBeVisible();
   const ownPassword = randomUUID();
-  await choose.getByLabel('New password').fill(ownPassword);
+  await choose.getByLabel('New password', { exact: true }).fill(ownPassword);
   await choose.getByLabel('Type the new password again').fill(ownPassword);
   await choose.getByRole('button', { name: 'Save and continue' }).click();
   await expect(page.getByRole('heading', { name: 'Welcome, E2E Cashier' })).toBeVisible();
