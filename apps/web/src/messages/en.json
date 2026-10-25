@@ -42,6 +42,13 @@
     "NO_DEPOSIT_HELD": "No deposit is held for this patient now. Reload the page and check.",
     "BILL_NOT_ISSUED": "Only an issued bill can take a payment. Issue the bill first.",
     "SHIFT_CLOSED": "This shift is already closed. Reload the page to see it.",
+    "REQUEST_PENDING": "A request of this kind is already waiting for approval here. Wait for it to be decided.",
+    "REQUEST_DECIDED": "This request has already been decided. Reload the page to see the decision.",
+    "SELF_APPROVAL_NOT_ALLOWED": "You asked for this, so someone else must approve or reject it.",
+    "ABOVE_APPROVAL_LIMIT": "This discount is above the hospital's finance limit. Only the MD can approve it.",
+    "AMOUNT_TOO_LARGE": "This is more than the bill, line, deposit or overpayment allows. Check the amounts and try again.",
+    "RECEIPT_NOT_VOIDABLE": "This receipt cannot be voided: its shift is closed, it is void already, or its deposit has been used or refunded.",
+    "REFUND_NOT_READY": "This refund is not approved yet, or it has been paid already. Reload the page to check.",
     "network": "Could not reach the server. Check the connection and try again.",
     "unknown": "Something went wrong. Try again, and tell your admin if it keeps happening."
   },
@@ -62,6 +69,7 @@
     "beds": "Beds",
     "billing": "Billing",
     "payments": "Payments",
+    "approvals": "Approvals",
     "discharge": "Discharge",
     "reports": "Reports",
     "settings": "Settings"
@@ -523,7 +531,13 @@
       "issueTitle": "Issue this bill?",
       "issueBody": "The bill gets its number and is locked for good. Total {amount}. A correction after this needs a credit note.",
       "discardTitle": "Discard this draft?",
-      "discardBody": "Its charges go back to unbilled, ready for another bill. The draft stays in the records as discarded."
+      "discardBody": "Its charges go back to unbilled, ready for another bill. The draft stays in the records as discarded.",
+      "requestDiscount": "Request discount",
+      "requestCredit": "Request credit note",
+      "discountWaiting": "A discount of {amount} is waiting for approval. The bill cannot be issued or discarded until it is decided.",
+      "replacedByDiscount": "This draft was replaced when its discount was approved.",
+      "openNewDraft": "Open the new draft",
+      "requestsTitle": "Requests on this bill"
     },
     "document": {
       "gstin": "GSTIN: {gstin}",
@@ -565,7 +579,10 @@
       "amountReceived": "Received {amount}",
       "setAgainst": "{amount} set against bill {number}",
       "held": "{amount} of this deposit is still held",
-      "receivedBy": "Received by {name}"
+      "receivedBy": "Received by {name}",
+      "credited": "Credit notes",
+      "refunded": "Refunded",
+      "refundable": "Overpaid, to refund"
     },
     "print": {
       "print": "Print"
@@ -665,7 +682,13 @@
       "kindPayment": "Bill payment",
       "mode": "Mode",
       "amount": "Amount",
-      "noReceipts": "No receipts yet."
+      "noReceipts": "No receipts yet.",
+      "requestRefund": "Request refund",
+      "voided": "Void",
+      "askVoid": "Ask to void",
+      "askVoidFor": "Ask to void receipt {number}",
+      "requests": "Requests",
+      "noRequests": "No refund or void requests."
     },
     "receipt": {
       "loading": "Loading the receipt",
@@ -691,6 +714,169 @@
       "tallied": "Tallied",
       "difference": "Difference",
       "unknownCashier": "Not known"
+    }
+  },
+  "approvals": {
+    "kinds": {
+      "discount": "Discount",
+      "credit_note": "Credit note",
+      "refund": "Refund",
+      "receipt_void": "Receipt void"
+    },
+    "status": {
+      "pending": "Waiting",
+      "approved": "Approved",
+      "rejected": "Rejected"
+    },
+    "form": {
+      "reason": "Reason",
+      "reasonHint": "Say why, so the approver can decide.",
+      "reasonError": "Enter a reason of 3 to 500 characters.",
+      "amount": "Amount in rupees",
+      "amountError": "Enter an amount in rupees, such as 500 or 1250.50."
+    },
+    "discount": {
+      "title": "Request a discount",
+      "description": "Bill before discount: {subtotal}. Discounts come off before tax.",
+      "scope": "Discount on",
+      "billAmount": "Whole bill, amount",
+      "billPercent": "Whole bill, percentage",
+      "byLine": "Chosen lines",
+      "amount": "Discount in rupees",
+      "percent": "Discount percentage",
+      "percentError": "Enter a percentage from 0.01 to 100, such as 10 or 12.5.",
+      "line": "Line",
+      "lineAmount": "Amount",
+      "lineDiscount": "Discount in rupees",
+      "lineDiscountFor": "Discount in rupees on {name}",
+      "linesError": "Enter a discount on at least one line, in rupees, no more than the line amount.",
+      "approvalNote": "Finance approves up to the hospital's limit; above it, the MD. You cannot approve your own request."
+    },
+    "credit": {
+      "title": "Request a credit note for bill {number}",
+      "description": "An issued bill never changes. A credit note gives back part or all of it, with its tax.",
+      "scope": "Credit",
+      "chosenLines": "Chosen lines",
+      "wholeBill": "Whole bill (void)",
+      "wholeBillNote": "This cancels everything left on the bill. Finance or the MD approves it.",
+      "line": "Line",
+      "quantity": "Qty",
+      "taxable": "Taxable value",
+      "how": "Credit",
+      "howFor": "How to credit {name}",
+      "howNone": "Nothing",
+      "howQuantity": "Units",
+      "howAmount": "Amount",
+      "value": "Units or rupees",
+      "valueFor": "Units or rupees to credit on {name}",
+      "linesError": "Choose at least one line, with whole units or an amount in rupees."
+    },
+    "refund": {
+      "title": "Request a refund",
+      "description": "Money paid back to the patient. The MD approves every refund; then a cashier pays it out.",
+      "source": "Refund from",
+      "sourceError": "Choose where the refund comes from.",
+      "fromDeposit": "Deposit {number}, {amount} left",
+      "fromBill": "Bill {number}, {amount} overpaid",
+      "most": "Up to {amount}.",
+      "mode": "Pay back by",
+      "approvalNote": "The MD approves every refund. You cannot approve your own request."
+    },
+    "void": {
+      "title": "Ask to void receipt {number}",
+      "description": "For a receipt entered by mistake ({amount}). Finance or the MD approves. Its number stays, marked void."
+    },
+    "pay": {
+      "title": "Pay out a refund of {amount}",
+      "description": "By {mode}, to {name}, from your open shift.",
+      "cashNote": "Hand over the cash. It comes out of your drawer total."
+    },
+    "decide": {
+      "approveTitle": "Approve {kind}",
+      "rejectTitle": "Reject {kind}",
+      "description": "{name}, {amount}.",
+      "noteOptional": "Note (optional)",
+      "noteRequired": "Reason for rejecting",
+      "noteError": "Enter 3 to 500 characters."
+    },
+    "summary": {
+      "discountLine": "{name}: {amount} off",
+      "wholeBill": "The whole bill",
+      "creditAmount": "{name}: {amount}",
+      "creditUnits": "{name}: {count, plural, one {# unit} other {# units}}, {amount}",
+      "refundDeposit": "From deposit, by {mode}",
+      "refundBill": "From an overpaid bill, by {mode}",
+      "void": "Taken by {mode}"
+    },
+    "table": {
+      "kind": "Request",
+      "patient": "Patient",
+      "for": "For",
+      "amount": "Amount",
+      "reason": "Reason",
+      "askedBy": "Asked by",
+      "status": "Status",
+      "actions": "Actions",
+      "loading": "Loading requests",
+      "draftBill": "Draft bill",
+      "newDraft": "New draft",
+      "note": "Note: {note}",
+      "decidedBy": "by {name}",
+      "approve": "Approve",
+      "approveFor": "Approve {kind} for {name}",
+      "reject": "Reject",
+      "rejectFor": "Reject {kind} for {name}",
+      "ownRequest": "You asked for this",
+      "mdOnly": "Above the finance limit: MD only",
+      "payOut": "Pay out"
+    },
+    "inbox": {
+      "title": "Approvals",
+      "description": "Discounts, credit notes, refunds and receipt voids. Whoever asks can never approve their own request.",
+      "show": "Show requests",
+      "empty": {
+        "pending": "Nothing is waiting for a decision.",
+        "approved": "No approved requests yet.",
+        "rejected": "No rejected requests."
+      }
+    },
+    "document": {
+      "creditNoteTitle": "Credit note",
+      "creditNoteNumber": "Credit note number",
+      "date": "Date",
+      "againstBill": "Against bill",
+      "uhid": "UHID",
+      "patient": "Patient",
+      "mobile": "Mobile",
+      "description": "Description",
+      "units": "Units",
+      "taxable": "Taxable value",
+      "cgst": "CGST",
+      "sgst": "SGST",
+      "amount": "Amount",
+      "roundOff": "Round off",
+      "totalCredited": "Total credited",
+      "reason": "Reason: {reason}",
+      "approvedBy": "Approved by {name}",
+      "refundTitle": "Refund",
+      "refundNumber": "Refund number",
+      "fromDeposit": "From deposit",
+      "fromBill": "From bill",
+      "mode": "Paid by",
+      "reference": "Reference",
+      "bank": "Bank",
+      "amountRefunded": "Refunded {amount}",
+      "paidBy": "Paid by {name}",
+      "signature": "Patient's signature"
+    },
+    "view": {
+      "loading": "Loading",
+      "printA4": "Print A4",
+      "printThermal": "Print 80 mm slip",
+      "creditNoteHeading": "Credit note {number}",
+      "backToBill": "Back to the bill",
+      "refundHeading": "Refund {number}",
+      "backToPatient": "Back to patient"
     }
   }
 }

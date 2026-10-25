@@ -53,6 +53,14 @@ This file is the only source of hospital billing rules. Rates, discounts, taxes,
 - Every refund, such as excess deposit returned at discharge, is approved by the MD or owner. The person who requests it cannot approve it.
 - Issued bills are never edited. A mistake is corrected with a credit note, approved by finance. The person who requests it cannot approve it.
 
+### Voids, credit notes and refunds (2026-10-25, slice 3b)
+
+- A void can cancel a receipt entered by mistake (wrong patient, amount or mode) or a whole issued bill. Its number stays in the series, marked void. Finance or the MD approves; the person who asked cannot approve. Cancelling a whole bill is done as a full credit note.
+- A credit note can cover the whole bill or part of it: staff choose the lines and the amount or quantity to credit on each.
+- Refunds can be paid in cash, by UPI, by bank transfer or by cheque, with the same details as payments.
+- A cash refund is paid by the cashier from their open shift, and lowers the cash expected in that drawer.
+- To confirm: the system lets a receipt be voided only while its shift is still open (see `docs/decisions.md`).
+
 ### Payments and cash shifts (2026-10-25)
 
 - Payment modes: cash; UPI (with the UTR reference); card (with the approval code and the card's last 4 digits); bank transfer or cheque (with the reference or cheque number and the bank).

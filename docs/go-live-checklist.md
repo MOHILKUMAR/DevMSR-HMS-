@@ -54,7 +54,7 @@ Each one blocks a feature, and none can be guessed (`CLAUDE.md` section 2). Answ
 
 Each slice comes with its migration, API, screens, tests, seed data and docs. Details are in `docs/feature-checklist.md`.
 
-- [ ] Slice 3b: discounts, refunds, credit notes and voids, each approved by a second user. **Dev**
+- [x] Slice 3b: discounts, refunds, credit notes and voids, each approved by a second user. **Dev**
 - [ ] Slice 4, OPD: tokens, doctor queue, consultation fee, orders that post charges, follow-up dates. **Dev**
 - [ ] Slice 5, IPD and beds: admission with deposit, bed board, transfers, interim bills, room and nursing charges posted at midnight IST. The midnight job needs pg-boss, a new dependency to approve. **Dev**
 - [ ] Slice 6, discharge and reports: fit for discharge, final bill, refund of excess deposit, billing clearance, discharge summary, day-end collection report, Tally export. **Dev**

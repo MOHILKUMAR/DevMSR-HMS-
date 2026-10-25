@@ -70,6 +70,22 @@ export const Errors = {
   noDepositHeld: () => new AppError(422, 'NO_DEPOSIT_HELD', 'This patient does not have that much deposit left to set against the bill.'),
   billNotIssued: () => new AppError(422, 'BILL_NOT_ISSUED', 'Issue the bill before taking payment against it.'),
   shiftClosed: () => new AppError(409, 'SHIFT_CLOSED', 'This shift is already closed.'),
+  requestPending: () =>
+    new AppError(409, 'REQUEST_PENDING', 'A request of this kind is already waiting for approval here. Wait for it to be decided.'),
+  requestDecided: () => new AppError(409, 'REQUEST_DECIDED', 'This request has already been decided. Reload to see the decision.'),
+  selfApproval: () =>
+    new AppError(422, 'SELF_APPROVAL_NOT_ALLOWED', 'You asked for this, so someone else must approve or reject it.'),
+  aboveApprovalLimit: () =>
+    new AppError(422, 'ABOVE_APPROVAL_LIMIT', "This discount is above the hospital's finance limit. Only the MD can approve it."),
+  amountTooLarge: () =>
+    new AppError(422, 'AMOUNT_TOO_LARGE', 'This is more than the bill, line, deposit or overpayment allows. Check the amounts.'),
+  receiptNotVoidable: () =>
+    new AppError(
+      422,
+      'RECEIPT_NOT_VOIDABLE',
+      'This receipt cannot be voided: its shift is closed, it is void already, or its deposit has been used or refunded.',
+    ),
+  refundNotReady: () => new AppError(409, 'REFUND_NOT_READY', 'This refund is not approved, or it has been paid already.'),
   internal: () =>
     new AppError(500, 'INTERNAL_ERROR', 'Something went wrong on our side. Try again, and tell your admin if it keeps happening.'),
 };

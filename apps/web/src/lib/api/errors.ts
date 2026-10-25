@@ -28,6 +28,13 @@ const KNOWN_CODES = [
   'NO_DEPOSIT_HELD',
   'BILL_NOT_ISSUED',
   'SHIFT_CLOSED',
+  'REQUEST_PENDING',
+  'REQUEST_DECIDED',
+  'SELF_APPROVAL_NOT_ALLOWED',
+  'ABOVE_APPROVAL_LIMIT',
+  'AMOUNT_TOO_LARGE',
+  'RECEIPT_NOT_VOIDABLE',
+  'REFUND_NOT_READY',
 ] as const;
 
 export type ErrorMessageKey = (typeof KNOWN_CODES)[number] | 'network' | 'unknown';

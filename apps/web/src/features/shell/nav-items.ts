@@ -2,6 +2,7 @@ import type { LucideIcon } from 'lucide-react';
 import {
   BedDouble,
   ChartColumn,
+  ClipboardCheck,
   DoorOpen,
   Hospital,
   House,
@@ -12,7 +13,7 @@ import {
   Wallet,
 } from 'lucide-react';
 
-export type NavKey = 'home' | 'patients' | 'opd' | 'ipd' | 'beds' | 'billing' | 'payments' | 'discharge' | 'reports' | 'settings';
+export type NavKey = 'home' | 'patients' | 'opd' | 'ipd' | 'beds' | 'billing' | 'payments' | 'approvals' | 'discharge' | 'reports' | 'settings';
 
 export interface NavItem {
   key: NavKey;
@@ -55,6 +56,22 @@ export const NAV_ITEMS: readonly NavItem[] = [
       'billing.refund.request',
       // Finance reads every cashier's shifts there.
       'reports.collection.read',
+    ],
+  },
+  {
+    key: 'approvals',
+    href: '/approvals',
+    icon: ClipboardCheck,
+    // Approvers decide here; those who ask follow their requests.
+    anyOf: [
+      'billing.discount.approve',
+      'billing.credit-note.approve',
+      'billing.refund.approve',
+      'billing.void.approve',
+      'billing.discount.request',
+      'billing.credit-note.request',
+      'billing.refund.request',
+      'payments.receipt.void-request',
     ],
   },
   { key: 'discharge', href: '/discharge', icon: DoorOpen, anyOf: ['ipd.discharge.mark-fit', 'billing.invoice.issue'] },

@@ -1,0 +1,15 @@
+meta {
+  name: Requests waiting for a decision
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/approval-requests?status=pending&page=1&pageSize=50
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+}

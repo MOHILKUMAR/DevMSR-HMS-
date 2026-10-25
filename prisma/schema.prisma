@@ -47,6 +47,8 @@ enum NumberKind {
   uhid
   invoice
   receipt
+  credit_note
+  refund
 
   @@map("number_kind")
 }
@@ -76,6 +78,25 @@ enum PaymentMode {
   cheque
 
   @@map("payment_mode")
+}
+
+// What a second person must approve (CLAUDE.md section 7, docs/billing-rules.md).
+enum ApprovalKind {
+  discount
+  credit_note
+  refund
+  receipt_void
+
+  @@map("approval_kind")
+}
+
+// A request is decided once: approved or rejected, never changed afterwards.
+enum ApprovalStatus {
+  pending
+  approved
+  rejected
+
+  @@map("approval_status")
 }
 
 // Deposits are not revenue: they are held for the patient and set against bills later.
@@ -137,21 +158,23 @@ enum ServiceKind {
 }
 
 model Hospital {
-  id          String   @id @default(uuid(7)) @db.Uuid
-  code        String   @unique
-  name        String
+  id                         String   @id @default(uuid(7)) @db.Uuid
+  code                       String   @unique
+  name                       String
   // Printed on bills, receipts and discharge summaries.
-  addressLine String?  @map("address_line")
-  city        String?
-  state       String?
-  pincode     String?  @db.Char(6)
-  phone       String?
-  email       String?
+  addressLine                String?  @map("address_line")
+  city                       String?
+  state                      String?
+  pincode                    String?  @db.Char(6)
+  phone                      String?
+  email                      String?
   // Printed on bills. Checked against the GSTIN format; null until the hospital enters it.
-  gstin       String?  @db.Char(15)
-  isActive    Boolean  @default(true) @map("is_active")
-  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  gstin                      String?  @db.Char(15)
+  // Finance approves a bill's discount up to this amount; above it only the MD (docs/billing-rules.md).
+  discountApprovalLimitPaise BigInt   @default(100000) @map("discount_approval_limit_paise")
+  isActive                   Boolean  @default(true) @map("is_active")
+  createdAt                  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt                  DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   branches       Branch[]
   users          User[]
@@ -422,10 +445,13 @@ model Patient {
   createdAt             DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt             DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  hospital Hospital  @relation(fields: [hospitalId], references: [id], onDelete: Restrict)
-  charges  Charge[]
-  invoices Invoice[]
-  receipts Receipt[]
+  hospital         Hospital          @relation(fields: [hospitalId], references: [id], onDelete: Restrict)
+  charges          Charge[]
+  invoices         Invoice[]
+  receipts         Receipt[]
+  approvalRequests ApprovalRequest[]
+  creditNotes      CreditNote[]
+  refunds          Refund[]
 
   @@unique([hospitalId, uhid])
   @@unique([hospitalId, id])
@@ -628,10 +654,13 @@ model Invoice {
   discardedAt     DateTime?     @map("discarded_at") @db.Timestamptz(3)
   createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
 
-  patient     Patient             @relation(fields: [hospitalId, patientId], references: [hospitalId, id], onDelete: Restrict)
-  lines       InvoiceLine[]
-  charges     Charge[]
-  allocations ReceiptAllocation[]
+  patient          Patient             @relation(fields: [hospitalId, patientId], references: [hospitalId, id], onDelete: Restrict)
+  lines            InvoiceLine[]
+  charges          Charge[]
+  allocations      ReceiptAllocation[]
+  approvalRequests ApprovalRequest[]
+  creditNotes      CreditNote[]
+  refunds          Refund[]
 
   @@unique([hospitalId, id])
   @@unique([hospitalId, number])
@@ -682,6 +711,7 @@ model CashShift {
 
   hospital Hospital  @relation(fields: [hospitalId], references: [id], onDelete: Restrict)
   receipts Receipt[]
+  refunds  Refund[]
 
   @@unique([hospitalId, id])
   // A cashier has at most one open shift.
@@ -708,9 +738,12 @@ model Receipt {
   receivedById  String         @map("received_by_id") @db.Uuid
   createdAt     DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
 
-  patient     Patient             @relation(fields: [hospitalId, patientId], references: [hospitalId, id], onDelete: Restrict)
-  shift       CashShift           @relation(fields: [hospitalId, shiftId], references: [hospitalId, id], onDelete: Restrict)
-  allocations ReceiptAllocation[]
+  patient          Patient             @relation(fields: [hospitalId, patientId], references: [hospitalId, id], onDelete: Restrict)
+  shift            CashShift           @relation(fields: [hospitalId, shiftId], references: [hospitalId, id], onDelete: Restrict)
+  allocations      ReceiptAllocation[]
+  voidRecord       ReceiptVoid?
+  refunds          Refund[]
+  approvalRequests ApprovalRequest[]
 
   @@unique([hospitalId, id])
   @@unique([hospitalId, number])
@@ -735,4 +768,148 @@ model ReceiptAllocation {
   @@index([invoiceId])
   @@index([receiptId])
   @@map("receipt_allocations")
+}
+
+// A discount, credit note, refund or receipt void asked for by one user and decided by another
+// (maker-checker). `details` holds what was asked for, worked out when the request was made.
+model ApprovalRequest {
+  id              String         @id @default(uuid(7)) @db.Uuid
+  hospitalId      String         @map("hospital_id") @db.Uuid
+  kind            ApprovalKind
+  status          ApprovalStatus @default(pending)
+  patientId       String         @map("patient_id") @db.Uuid
+  // The bill a discount or credit note is for, or a refund of an overpaid bill.
+  invoiceId       String?        @map("invoice_id") @db.Uuid
+  // The receipt to void, or the deposit a refund comes from.
+  receiptId       String?        @map("receipt_id") @db.Uuid
+  amountPaise     BigInt         @map("amount_paise")
+  reason          String
+  details         Json
+  requestedById   String         @map("requested_by_id") @db.Uuid
+  requestedAt     DateTime       @default(now()) @map("requested_at") @db.Timestamptz(3)
+  decidedById     String?        @map("decided_by_id") @db.Uuid
+  decidedAt       DateTime?      @map("decided_at") @db.Timestamptz(3)
+  decisionNote    String?        @map("decision_note")
+  // For an approved discount: the new draft that carries it.
+  resultInvoiceId String?        @map("result_invoice_id") @db.Uuid
+
+  patient    Patient      @relation(fields: [hospitalId, patientId], references: [hospitalId, id], onDelete: Restrict)
+  invoice    Invoice?     @relation(fields: [hospitalId, invoiceId], references: [hospitalId, id], onDelete: Restrict)
+  receipt    Receipt?     @relation(fields: [hospitalId, receiptId], references: [hospitalId, id], onDelete: Restrict)
+  creditNote CreditNote?
+  refund     Refund?
+  voidRecord ReceiptVoid?
+
+  @@unique([hospitalId, id])
+  // One open request of a kind per bill and per receipt, so two cannot race each other.
+  @@unique([kind, invoiceId], map: "approval_requests_one_pending_per_bill", where: raw("status = 'pending' AND invoice_id IS NOT NULL"))
+  @@unique([kind, receiptId], map: "approval_requests_one_pending_per_receipt", where: raw("status = 'pending' AND receipt_id IS NOT NULL"))
+  @@index([hospitalId, status, requestedAt])
+  @@index([hospitalId, patientId])
+  @@map("approval_requests")
+}
+
+// Corrects an issued bill, which itself never changes (CLAUDE.md section 7). Numbered CN when approved.
+model CreditNote {
+  id                String   @id @default(uuid(7)) @db.Uuid
+  hospitalId        String   @map("hospital_id") @db.Uuid
+  invoiceId         String   @map("invoice_id") @db.Uuid
+  patientId         String   @map("patient_id") @db.Uuid
+  approvalRequestId String   @map("approval_request_id") @db.Uuid
+  number            String
+  financialYear     String   @map("financial_year")
+  wholeBill         Boolean  @map("whole_bill")
+  taxablePaise      BigInt   @map("taxable_paise")
+  cgstPaise         BigInt   @map("cgst_paise")
+  sgstPaise         BigInt   @map("sgst_paise")
+  roundOffPaise     BigInt   @map("round_off_paise")
+  totalPaise        BigInt   @map("total_paise")
+  approvedById      String   @map("approved_by_id") @db.Uuid
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  invoice         Invoice          @relation(fields: [hospitalId, invoiceId], references: [hospitalId, id], onDelete: Restrict)
+  patient         Patient          @relation(fields: [hospitalId, patientId], references: [hospitalId, id], onDelete: Restrict)
+  approvalRequest ApprovalRequest  @relation(fields: [hospitalId, approvalRequestId], references: [hospitalId, id], onDelete: Restrict)
+  lines           CreditNoteLine[]
+
+  @@unique([hospitalId, id])
+  @@unique([hospitalId, number])
+  @@unique([hospitalId, approvalRequestId])
+  @@index([invoiceId])
+  @@map("credit_notes")
+}
+
+// What a credit note gives back on one bill line. Tax is reversed at the line's own rate.
+model CreditNoteLine {
+  id           String @id @default(uuid(7)) @db.Uuid
+  hospitalId   String @map("hospital_id") @db.Uuid
+  creditNoteId String @map("credit_note_id") @db.Uuid
+  invoiceId    String @map("invoice_id") @db.Uuid
+  lineNo       Int    @map("line_no")
+  description  String
+  // Set when staff credited a number of units rather than an amount.
+  quantity     Int?
+  taxablePaise BigInt @map("taxable_paise")
+  cgstPaise    BigInt @map("cgst_paise")
+  sgstPaise    BigInt @map("sgst_paise")
+  totalPaise   BigInt @map("total_paise")
+
+  creditNote CreditNote @relation(fields: [hospitalId, creditNoteId], references: [hospitalId, id], onDelete: Restrict)
+
+  @@unique([creditNoteId, lineNo])
+  @@index([invoiceId, lineNo])
+  @@map("credit_note_lines")
+}
+
+// Money paid back to a patient after the MD approved it: excess deposit, or a bill paid beyond what
+// it now comes to. Numbered RF, paid by a cashier from their open shift.
+model Refund {
+  id                String      @id @default(uuid(7)) @db.Uuid
+  hospitalId        String      @map("hospital_id") @db.Uuid
+  patientId         String      @map("patient_id") @db.Uuid
+  approvalRequestId String      @map("approval_request_id") @db.Uuid
+  number            String
+  financialYear     String      @map("financial_year")
+  shiftId           String      @map("shift_id") @db.Uuid
+  // Exactly one source: the deposit receipt, or the overpaid bill.
+  receiptId         String?     @map("receipt_id") @db.Uuid
+  invoiceId         String?     @map("invoice_id") @db.Uuid
+  mode              PaymentMode
+  amountPaise       BigInt      @map("amount_paise")
+  reference         String?
+  bankName          String?     @map("bank_name")
+  paidById          String      @map("paid_by_id") @db.Uuid
+  createdAt         DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  patient         Patient         @relation(fields: [hospitalId, patientId], references: [hospitalId, id], onDelete: Restrict)
+  approvalRequest ApprovalRequest @relation(fields: [hospitalId, approvalRequestId], references: [hospitalId, id], onDelete: Restrict)
+  shift           CashShift       @relation(fields: [hospitalId, shiftId], references: [hospitalId, id], onDelete: Restrict)
+  receipt         Receipt?        @relation(fields: [hospitalId, receiptId], references: [hospitalId, id], onDelete: Restrict)
+  invoice         Invoice?        @relation(fields: [hospitalId, invoiceId], references: [hospitalId, id], onDelete: Restrict)
+
+  @@unique([hospitalId, id])
+  @@unique([hospitalId, number])
+  @@unique([hospitalId, approvalRequestId])
+  @@index([hospitalId, patientId])
+  @@index([shiftId])
+  @@index([receiptId])
+  @@index([invoiceId])
+  @@map("refunds")
+}
+
+// Marks a receipt entered by mistake as void. The receipt keeps its number; its money stops counting.
+model ReceiptVoid {
+  id                String   @id @default(uuid(7)) @db.Uuid
+  hospitalId        String   @map("hospital_id") @db.Uuid
+  receiptId         String   @map("receipt_id") @db.Uuid
+  approvalRequestId String   @map("approval_request_id") @db.Uuid
+  voidedById        String   @map("voided_by_id") @db.Uuid
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  receipt         Receipt         @relation(fields: [hospitalId, receiptId], references: [hospitalId, id], onDelete: Restrict)
+  approvalRequest ApprovalRequest @relation(fields: [hospitalId, approvalRequestId], references: [hospitalId, id], onDelete: Restrict)
+
+  @@unique([hospitalId, receiptId])
+  @@unique([hospitalId, approvalRequestId])
+  @@map("receipt_voids")
 }

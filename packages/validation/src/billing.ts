@@ -98,9 +98,16 @@ const invoiceTotals = {
   sgstPaise: z.number().int(),
   roundOffPaise: z.number().int(),
   totalPaise: z.number().int(),
-  /** Paid so far: payments and deposits set against this bill. */
+  /** Paid so far: payments and deposits set against this bill, leaving out void receipts. */
   paidPaise: z.number().int(),
+  /** Given back by credit notes. */
+  creditedPaise: z.number().int(),
+  /** Paid back to the patient from what was overpaid on this bill. */
+  refundedPaise: z.number().int(),
+  /** Still owed: total, less credit notes and payments, plus refunds. Never below nothing. */
   duePaise: z.number().int(),
+  /** Overpaid and not yet refunded: what a refund of this bill can pay back. */
+  refundablePaise: z.number().int(),
 };
 
 export const invoiceSummarySchema = z.object({
@@ -112,7 +119,10 @@ export const invoiceSummarySchema = z.object({
   patientName: z.string(),
   totalPaise: z.number().int(),
   paidPaise: z.number().int(),
+  creditedPaise: z.number().int(),
+  refundedPaise: z.number().int(),
   duePaise: z.number().int(),
+  refundablePaise: z.number().int(),
   issuedAt: z.iso.datetime().nullable(),
   createdAt: z.iso.datetime(),
 });
@@ -143,7 +153,7 @@ export type Invoice = z.infer<typeof invoiceSchema>;
 
 // Payments. What has to be noted depends on how the money came in (docs/billing-rules.md).
 
-const referenceSchema = z.string().trim().min(4).max(40).optional();
+export const referenceSchema = z.string().trim().min(4).max(40).optional();
 const paymentDetails = {
   mode: z.enum(PAYMENT_MODES),
   amountPaise: paiseSchema.refine((value) => value > 0, 'More than nothing'),
@@ -202,6 +212,8 @@ export const receiptSchema = z.object({
   /** Bills this money is set against. Whatever is left of a deposit is still held for the patient. */
   allocations: z.array(z.object({ invoiceId: z.uuid(), invoiceNumber: z.string(), amountPaise: z.number().int() })),
   heldPaise: z.number().int(),
+  /** Set when the receipt was voided as a mistake. Its money no longer counts. */
+  voidedAt: z.iso.datetime().nullable(),
 });
 export type Receipt = z.infer<typeof receiptSchema>;
 
@@ -220,11 +232,37 @@ export const patientAccountSchema = z.object({
       mode: z.enum(PAYMENT_MODES),
       amountPaise: z.number().int(),
       heldPaise: z.number().int(),
+      voided: z.boolean(),
+      /** The shift it was taken in is still open, so a void can be asked for. */
+      shiftOpen: z.boolean(),
+      createdAt: z.iso.datetime(),
+    }),
+  ),
+  creditNotes: z.array(
+    z.object({
+      id: z.uuid(),
+      requestId: z.uuid(),
+      number: z.string(),
+      invoiceId: z.uuid(),
+      invoiceNumber: z.string(),
+      totalPaise: z.number().int(),
+      createdAt: z.iso.datetime(),
+    }),
+  ),
+  refunds: z.array(
+    z.object({
+      id: z.uuid(),
+      requestId: z.uuid(),
+      number: z.string(),
+      mode: z.enum(PAYMENT_MODES),
+      amountPaise: z.number().int(),
       createdAt: z.iso.datetime(),
     }),
   ),
   depositHeldPaise: z.number().int(),
   totalDuePaise: z.number().int(),
+  /** Overpaid on bills and not yet refunded. */
+  refundablePaise: z.number().int(),
 });
 export type PatientAccount = z.infer<typeof patientAccountSchema>;
 
@@ -255,6 +293,9 @@ export const shiftSchema = z.object({
   byMode: z.array(z.object({ mode: z.enum(PAYMENT_MODES), count: z.number().int(), amountPaise: z.number().int() })),
   depositsPaise: z.number().int(),
   billPaymentsPaise: z.number().int(),
+  /** Refunds paid out in this shift, all modes, and the cash part of them (out of the drawer). */
+  refundsPaise: z.number().int(),
+  cashRefundsPaise: z.number().int(),
 });
 export type Shift = z.infer<typeof shiftSchema>;
 export const currentShiftSchema = z.object({ shift: shiftSchema.nullable() });

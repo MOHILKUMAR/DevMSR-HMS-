@@ -33,7 +33,7 @@ Everything else needed before real patients (hosting, backups, audits, paperwork
 - [ ] IPD and beds
 - [x] Billing (slice 3a): charges at the dated rate, draft bills, issue with gapless `INV` numbers per financial year, locked issued bills, discard, A4 and 80 mm print
 - [x] Payments and cash shifts (slice 3a): one open shift per cashier, payments by cash, UPI, card, bank transfer or cheque, deposits, deposits set against bills, gapless `RCT` numbers, shift close with counted cash and a reason for any difference, shift list for finance
-- [ ] Discounts, refunds, credit notes and voids with maker-checker approvals (slice 3b)
+- [x] Discounts, refunds, credit notes and voids with maker-checker approvals (slice 3b): requests on bills and receipts, an approvals inbox, the MD-only finance limit for discounts, CN and RF numbers, refunds paid from the cashier's shift, A4 and 80 mm credit notes and refunds
 - [ ] Day-end collection report and Tally export
 - [ ] Discharge
 - [ ] Basic reports

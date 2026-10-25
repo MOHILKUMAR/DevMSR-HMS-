@@ -50,6 +50,8 @@ At the front desk, sign in as `reception`: search patients from the top bar (pre
 
 To bill, sign in as `billing`: under **Billing**, find the patient, add charges, prepare a bill and issue it (it gets a number such as `DEMO/INV/2026-27/000001` and is locked). Then sign in as `cashier`: under **Payments**, open your shift with the cash in the drawer, find the patient, take a deposit or a payment, print the receipt on A4 or an 80 mm slip, and close the shift with a cash count. `accounts` sees every cashier's shifts.
 
+Discounts, credit notes, refunds and receipt voids need a second person. The billing clerk asks for a discount on a draft bill or a credit note on an issued one; the cashier asks for a refund or a receipt void. `accounts` approves discounts up to Rs 1,000, credit notes and voids under **Approvals**; `md` approves larger discounts and every refund. The cashier then pays the refund out from their shift.
+
 After pulling changes that add permissions, run `pnpm db:seed` again: it brings the seeded roles in line with `apps/api/src/auth/permission-matrix.ts` and keeps your data.
 
 ## Layout

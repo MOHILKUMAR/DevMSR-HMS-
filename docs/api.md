@@ -82,6 +82,32 @@ Money is in paise (integers). Rules are in `docs/billing-rules.md`. Routes marke
 | POST | `/invoices/:id/apply-deposit` | `payments.receipt.create` | Needs `Idempotency-Key`. Body `{ amountPaise }`. Sets held deposit against an issued bill, oldest deposit first. No money moves, so no shift is needed. 200. 422 `BILL_NOT_ISSUED`, `AMOUNT_EXCEEDS_DUE`, `NO_DEPOSIT_HELD`. |
 | GET | `/receipts/:id` | `billing.account.read` | The receipt with the hospital, the patient, what it was set against and, for a deposit, what is still held. |
 
+## Approvals: discounts, credit notes, refunds and receipt voids
+
+One user asks and another decides (maker-checker): the requester can never approve or reject their own request (422 `SELF_APPROVAL_NOT_ALLOWED`, also refused by the database). Each kind has its own routes, so the guard checks the right permission first. Approving needs an `Idempotency-Key`. A rejection needs a `note` of 3 to 500 characters. A second request of the same kind for the same bill or receipt while one waits is 409 `REQUEST_PENDING`; deciding twice is 409 `REQUEST_DECIDED`. Records of another hospital are 404.
+
+| Method | Path | Permission | Notes |
+| --- | --- | --- | --- |
+| POST | `/discount-requests` | `billing.discount.request` | Body `{ invoiceId, reason, discount }` on a draft bill. `discount` is `{ scope: 'bill_amount', amountPaise }`, `{ scope: 'bill_percent', percentBp }` or `{ scope: 'lines', lines: [{ lineNo, discountPaise }] }`. A whole-bill discount is shared across lines in proportion, leftover paisa to the largest line. While it waits the draft cannot be issued or discarded (409 `REQUEST_PENDING`). 409 `INVOICE_LOCKED` on an issued bill; 422 `AMOUNT_TOO_LARGE` above a line or the bill. |
+| POST | `/discount-requests/:id/approve` | `billing.discount.approve` | Replaces the draft with a new draft carrying the discount (taken off before tax); the old draft is discarded and the request's `resultInvoiceId` is the new one. Above the hospital's limit (`discount_approval_limit_paise`, Rs 1,000 by default) also needs `billing.discount.approve-above-limit` (MD), else 422 `ABOVE_APPROVAL_LIMIT`. |
+| POST | `/discount-requests/:id/reject` | `billing.discount.approve` | Body `{ note }`. |
+| POST | `/credit-note-requests` | `billing.credit-note.request` | Body `{ invoiceId, reason, credit }` on an issued bill. `credit` is `{ scope: 'whole_bill' }` (a bill void) or `{ scope: 'lines', lines: [{ lineNo, quantity } or { lineNo, amountPaise }] }` (taxable value). Tax is reversed at each line's rate. The total is rounded to the rupee; the note that clears the bill takes exactly what is left. 422 `BILL_NOT_ISSUED`, `AMOUNT_TOO_LARGE`. |
+| POST | `/credit-note-requests/:id/approve` | `billing.credit-note.approve` | Gives the next `<CODE>/CN/<FY>/<6 digits>` number. A whole-bill note also needs `billing.void.approve`. Lowers what the bill comes to; an already paid bill then shows `refundablePaise`. |
+| POST | `/credit-note-requests/:id/reject` | `billing.credit-note.approve` | Body `{ note }`. |
+| POST | `/refund-requests` | `billing.refund.request` | Body `{ reason, amountPaise, mode, source }`. `mode` is cash, upi, bank_transfer or cheque. `source` is `{ kind: 'deposit', receiptId }` (what is left on a deposit) or `{ kind: 'bill', invoiceId }` (what was overpaid). Refunds already asked for and not paid are spoken for. 422 `AMOUNT_TOO_LARGE`. |
+| POST | `/refund-requests/:id/approve` | `billing.refund.approve` | MD only. |
+| POST | `/refund-requests/:id/reject` | `billing.refund.approve` | Body `{ note }`. |
+| POST | `/refund-requests/:id/pay` | `payments.refund.pay` | Needs `Idempotency-Key`. Body `{ reference?, bankName? }`: none for cash, the UTR for UPI, reference and bank for a transfer or cheque. Paid from the cashier's open shift (422 `SHIFT_REQUIRED`); a cash refund lowers the cash expected in the drawer. Gives the next `<CODE>/RF/<FY>/<6 digits>` number. 201 with the refund. 409 `REFUND_NOT_READY` when not approved or already paid. |
+| POST | `/void-requests` | `payments.receipt.void-request` | Body `{ receiptId, reason }`, for a receipt entered by mistake. Only while the receipt's shift is open, and for a deposit only when none of it was used or refunded (422 `RECEIPT_NOT_VOIDABLE`). |
+| POST | `/void-requests/:id/approve` | `billing.void.approve` | The receipt keeps its number, marked void (`voidedAt`); its money stops counting on bills, deposits and the shift. |
+| POST | `/void-requests/:id/reject` | `billing.void.approve` | Body `{ note }`. |
+| GET | `/approval-requests` | `billing.account.read` | Paged requests, newest first. `?status=`, `?kind=`, `?patientId=`, `?invoiceId=`. Each has what was asked for (`details`), who asked and decided, and the credit note or refund it produced. `aboveLimit` marks discounts only the MD can approve. |
+| GET | `/approval-requests/:id` | `billing.account.read` | One request. |
+| GET | `/credit-notes/:id` | `billing.account.read` | A credit note for printing, with the hospital and patient as on the bill. Audited. |
+| GET | `/refunds/:id` | `billing.account.read` | A refund for printing. Audited. |
+
+Bills and bill lists now also return `creditedPaise`, `refundedPaise` and `refundablePaise`; `duePaise` is total, less credit notes and payments (void receipts left out), plus refunds. Receipts return `voidedAt`; shifts return `refundsPaise` and `cashRefundsPaise`; the patient account lists credit notes and refunds and returns `refundablePaise`.
+
 ## Error codes
 
 | Code | Status | When |
@@ -116,4 +142,11 @@ Money is in paise (integers). Rules are in `docs/billing-rules.md`. Routes marke
 | `AMOUNT_EXCEEDS_DUE` | 422 | A payment or deposit use larger than the bill's amount due. |
 | `NO_DEPOSIT_HELD` | 422 | Using more deposit than the patient has held. |
 | `BILL_NOT_ISSUED` | 422 | Paying a draft or discarded bill. |
+| `REQUEST_PENDING` | 409 | A request of the same kind already waits for this bill or receipt, or a draft with a discount waiting is issued or discarded. |
+| `REQUEST_DECIDED` | 409 | Deciding a request that was already approved or rejected. |
+| `SELF_APPROVAL_NOT_ALLOWED` | 422 | The requester tried to approve or reject their own request. |
+| `ABOVE_APPROVAL_LIMIT` | 422 | A discount above the hospital's finance limit, approved without `billing.discount.approve-above-limit`. |
+| `AMOUNT_TOO_LARGE` | 422 | A discount, credit note or refund larger than the line, bill, deposit or overpayment allows. |
+| `RECEIPT_NOT_VOIDABLE` | 422 | The receipt's shift is closed, it is void already, or its deposit was used or refunded. |
+| `REFUND_NOT_READY` | 409 | Paying out a refund that is not approved, or was paid already. |
 | `INTERNAL_ERROR` | 500 | Anything unexpected. Details are logged with the `X-Request-Id`, never returned. |
