@@ -49,6 +49,12 @@ const envSchema = z
     SMS_PROVIDER: z.enum(['mock']).default('mock'),
     EMAIL_PROVIDER: z.enum(['mock']).default('mock'),
     ABDM_MODE: z.enum(['off', 'mock']).default('off'),
+    // Background jobs (pg-boss), such as the midnight room and nursing charges. Off in API tests,
+    // which run the job's work directly.
+    JOBS_ENABLED: z.stringbool().default(true),
+    // pg-boss creates and changes its own tables, so in production it connects as a login that owns
+    // only its schema, never the API's restricted role. Defaults to DATABASE_URL in development.
+    JOBS_DATABASE_URL: optionalString.pipe(z.string().regex(/^postgres(ql)?:\/\//, 'Must be a postgresql:// URL').optional()),
   })
   .superRefine((env, ctx) => {
     if (env.NODE_ENV === 'production' && env.APP_ENV === undefined) {

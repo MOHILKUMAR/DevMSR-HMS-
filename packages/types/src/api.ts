@@ -41,6 +41,9 @@ export const API_ERROR_CODES = [
   'REFUND_NOT_READY',
   'VISIT_STATE',
   'TOKEN_EXISTS',
+  'BED_TAKEN',
+  'ALREADY_ADMITTED',
+  'ADMISSION_STATE',
 ] as const;
 
 export type ApiErrorCode = (typeof API_ERROR_CODES)[number];

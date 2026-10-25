@@ -29,7 +29,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { key: 'home', href: '/', icon: House, anyOf: [] },
   { key: 'patients', href: '/patients', icon: Users, anyOf: ['patients.patient.read'] },
   { key: 'opd', href: '/opd', icon: Stethoscope, anyOf: ['opd.appointment.manage', 'opd.queue.read-own'] },
-  { key: 'ipd', href: '/ipd', icon: Hospital, anyOf: ['ipd.admission.create', 'ipd.discharge.mark-fit'] },
+  { key: 'ipd', href: '/ipd', icon: Hospital, anyOf: ['ipd.admission.create', 'ipd.admission.read', 'ipd.discharge.mark-fit'] },
   { key: 'beds', href: '/beds', icon: BedDouble, anyOf: ['beds.bed.read'] },
   {
     key: 'billing',

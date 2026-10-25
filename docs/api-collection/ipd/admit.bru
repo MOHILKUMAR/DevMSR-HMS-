@@ -1,0 +1,42 @@
+meta {
+  name: Admit a patient
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/admissions
+  body: json
+  auth: none
+}
+
+headers {
+  X-CSRF-Token: {{csrfToken}}
+  Idempotency-Key: {{idempotencyKey}}
+}
+
+body:json {
+  {
+    "patientId": "{{patientId}}",
+    "doctorId": "{{doctorId}}",
+    "bedId": "{{bedId}}",
+    "reason": "Fake reason for a demo admission"
+  }
+}
+
+docs {
+  Needs patientId (patients folder, a patient who is not admitted) and doctorId (settings folder). advanceShort in the response is true when the deposit held is below the minimum advance. 409 BED_TAKEN when the bed is not free, 409 ALREADY_ADMITTED for a patient already in.
+}
+
+script:pre-request {
+  // A new key each run. Send the request again without this script to see the stored response.
+  bru.setVar("idempotencyKey", require("crypto").randomUUID());
+}
+
+script:post-response {
+  bru.setVar("admissionId", res.body.id);
+}
+
+assert {
+  res.status: eq 201
+}

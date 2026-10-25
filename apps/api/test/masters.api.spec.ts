@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { as, createHospital, createUser, signIn, unique, type SignedInBrowser, type TestHospital } from './support/fixtures.js';
+import { as, createHospital, createUser, fillBed, signIn, unique, type SignedInBrowser, type TestHospital, type TestUser } from './support/fixtures.js';
 import { createTestApp, type TestApp } from './support/test-app.js';
 
 interface ErrorBody {
@@ -16,6 +16,7 @@ describe('hospital profile and masters', () => {
   let t: TestApp;
   let hospital: TestHospital;
   let otherHospital: TestHospital;
+  let adminUser: TestUser;
   let admin: SignedInBrowser;
   let nurse: SignedInBrowser;
   let otherAdmin: SignedInBrowser;
@@ -24,7 +25,8 @@ describe('hospital profile and masters', () => {
     t = await createTestApp();
     hospital = await createHospital(t.prisma);
     otherHospital = await createHospital(t.prisma);
-    admin = await signIn(t, await createUser(t.prisma, hospital, 'hospital_admin'));
+    adminUser = await createUser(t.prisma, hospital, 'hospital_admin');
+    admin = await signIn(t, adminUser);
     nurse = await signIn(t, await createUser(t.prisma, hospital, 'nurse'));
     otherAdmin = await signIn(t, await createUser(t.prisma, otherHospital, 'hospital_admin'));
   });
@@ -156,8 +158,7 @@ describe('hospital profile and masters', () => {
       const wardId = (ward.body as { id: string }).id;
       const bed = await as(request(t.http).post(`/api/v1/wards/${wardId}/beds`), admin).send({ code: 'OC-01' });
       const bedId = (bed.body as { id: string }).id;
-      // Admission arrives with the IPD slice; until then a patient is placed directly.
-      await t.prisma.bed.update({ where: { id: bedId }, data: { status: 'occupied' } });
+      await fillBed(t.prisma, t.prisma, hospital.id, bedId, adminUser.id);
 
       const retireBed = await as(request(t.http).patch(`/api/v1/beds/${bedId}`), admin).send({ isActive: false });
       expect(retireBed.status).toBe(422);
@@ -185,7 +186,7 @@ describe('hospital profile and masters', () => {
       const admission = t.prisma.$transaction(
         async (tx) => {
           await tx.$queryRaw`SELECT id FROM beds WHERE id = ${bedId}::uuid FOR UPDATE`;
-          await tx.bed.update({ where: { id: bedId }, data: { status: 'occupied' } });
+          await fillBed(t.prisma, tx, hospital.id, bedId, adminUser.id);
           lockTaken();
           await held;
         },

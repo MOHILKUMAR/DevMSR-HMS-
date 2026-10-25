@@ -88,6 +88,9 @@ export const Errors = {
   refundNotReady: () => new AppError(409, 'REFUND_NOT_READY', 'This refund is not approved, or it has been paid already.'),
   visitState: () => new AppError(409, 'VISIT_STATE', 'This visit has moved on. Reload to see where it is now.'),
   tokenExists: () => new AppError(409, 'TOKEN_EXISTS', 'This patient already has an open token for this doctor today.'),
+  bedTaken: () => new AppError(409, 'BED_TAKEN', 'This bed is no longer free. Choose another bed.'),
+  alreadyAdmitted: () => new AppError(409, 'ALREADY_ADMITTED', 'This patient is already admitted. Open the current admission.'),
+  admissionState: () => new AppError(409, 'ADMISSION_STATE', 'This admission has moved on. Reload to see where it is now.'),
   internal: () =>
     new AppError(500, 'INTERNAL_ERROR', 'Something went wrong on our side. Try again, and tell your admin if it keeps happening.'),
 };

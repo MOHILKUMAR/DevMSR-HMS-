@@ -14,12 +14,13 @@ function isMock(value: string): boolean {
   return value === 'mock';
 }
 
-function databasePassword(url: string | undefined): string {
-  if (url === undefined || url === '') return '';
+function databaseLogin(url: string | undefined): { user: string; password: string } {
+  if (url === undefined || url === '') return { user: '', password: '' };
   try {
-    return decodeURIComponent(new URL(url).password);
+    const parsed = new URL(url);
+    return { user: decodeURIComponent(parsed.username), password: decodeURIComponent(parsed.password) };
   } catch {
-    return '';
+    return { user: '', password: '' };
   }
 }
 
@@ -40,8 +41,13 @@ export function productionProblems(env: Env, source: Record<string, string | und
   if (env.SESSION_SECRET === env.FIELD_ENCRYPTION_KEY) problems.push('SESSION_SECRET and FIELD_ENCRYPTION_KEY are the same value');
   if (looksLikePlaceholder(env.SESSION_SECRET)) problems.push('SESSION_SECRET looks like a placeholder, not random bytes');
   if (looksLikePlaceholder(env.FIELD_ENCRYPTION_KEY)) problems.push('FIELD_ENCRYPTION_KEY looks like a placeholder, not random bytes');
-  for (const key of ['DATABASE_URL', 'DIRECT_URL'] as const) {
-    if (DEMO_DATABASE_PASSWORD.test(databasePassword(source[key]))) problems.push(`${key} uses the local or CI demo password`);
+  if (env.JOBS_ENABLED && env.JOBS_DATABASE_URL === undefined) {
+    problems.push('JOBS_DATABASE_URL is not set: background jobs need their own login, not the API role');
+  } else if (env.JOBS_ENABLED && databaseLogin(env.JOBS_DATABASE_URL).user === databaseLogin(env.DATABASE_URL).user) {
+    problems.push('JOBS_DATABASE_URL uses the API login: background jobs need their own login, not the API role');
+  }
+  for (const key of ['DATABASE_URL', 'DIRECT_URL', 'JOBS_DATABASE_URL'] as const) {
+    if (DEMO_DATABASE_PASSWORD.test(databaseLogin(source[key]).password)) problems.push(`${key} uses the local or CI demo password`);
   }
   if ((source['SEED_USER_PASSWORD'] ?? '') !== '') problems.push('SEED_USER_PASSWORD is set: demo users must never exist in production');
 
