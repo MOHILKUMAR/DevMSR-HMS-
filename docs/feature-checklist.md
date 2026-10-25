@@ -2,6 +2,8 @@
 
 Progress against `CLAUDE.md`, section 11. Later phases need the developer's approval before they start.
 
+Everything else needed before real patients (hosting, backups, audits, paperwork, cutover) is in `docs/go-live-checklist.md`, with the order to do it in.
+
 ## Foundation (first task)
 
 - [x] pnpm monorepo: `apps/web`, `apps/api`, `packages/validation`, `packages/types`, `packages/config`
