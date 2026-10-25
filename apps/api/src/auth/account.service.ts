@@ -36,12 +36,12 @@ export class AccountService {
 
   /** Needs the current password, so a session left open on a counter cannot be taken over. Other sessions end. */
   async changePassword(auth: AuthContext, input: ChangeOwnPassword, meta: RequestMeta, now: Date = new Date()): Promise<void> {
-    const user = await this.auth.findCandidateById(auth.userId, auth.hospitalId);
+    const user = await this.auth.findCandidateById(auth.userId, auth.userHospitalId);
     if (user === null) throw Errors.unauthenticated();
     if (!(await verifyPassword(user.passwordHash, input.currentPassword))) {
       await this.audit.record({
         action: 'auth.password.change-refused',
-        hospitalId: auth.hospitalId,
+        hospitalId: auth.userHospitalId,
         actorUserId: auth.userId,
         entityType: 'user',
         entityId: auth.userId,
@@ -53,12 +53,12 @@ export class AccountService {
     const passwordHash = await hashPassword(input.newPassword);
 
     await this.transactions.run(async (tx) => {
-      await this.auth.setOwnPassword(auth.userId, auth.hospitalId, passwordHash, now, tx);
+      await this.auth.setOwnPassword(auth.userId, auth.userHospitalId, passwordHash, now, tx);
       const ended = await this.sessions.endOwn(this.owner(auth), { exceptId: auth.sessionId }, 'credentials_changed', now, tx);
       await this.audit.record(
         {
           action: 'auth.password.changed',
-          hospitalId: auth.hospitalId,
+          hospitalId: auth.userHospitalId,
           actorUserId: auth.userId,
           entityType: 'user',
           entityId: auth.userId,
@@ -116,7 +116,7 @@ export class AccountService {
   async startTwoFactorSetup(auth: AuthContext): Promise<TotpSetupResponse> {
     const state = await this.twoFactorState(auth);
     if (state.totpEnabledAt !== null) throw Errors.twoFactorState('Two-factor sign-in is already on. Reload the page.');
-    const user = await this.auth.findCandidateById(auth.userId, auth.hospitalId);
+    const user = await this.auth.findCandidateById(auth.userId, auth.userHospitalId);
     if (user === null) throw Errors.unauthenticated();
     return this.twoFactor.setup(await this.twoFactor.freshPendingSecret(this.owner(auth)), totpAccountLabel(user));
   }
@@ -185,13 +185,13 @@ export class AccountService {
 
   private async recordTwoFactor(auth: AuthContext, action: string, meta: RequestMeta, tx?: Tx, details?: AuditDetails): Promise<void> {
     await this.audit.record(
-      { action, hospitalId: auth.hospitalId, actorUserId: auth.userId, entityType: 'user', entityId: auth.userId, meta, ...(details === undefined ? {} : { details }) },
+      { action, hospitalId: auth.userHospitalId, actorUserId: auth.userId, entityType: 'user', entityId: auth.userId, meta, ...(details === undefined ? {} : { details }) },
       tx,
     );
   }
 
   private owner(auth: AuthContext): { userId: string; hospitalId: string | null } {
-    return { userId: auth.userId, hospitalId: auth.hospitalId };
+    return { userId: auth.userId, hospitalId: auth.userHospitalId };
   }
 
   private async recordEnded(auth: AuthContext, sessionIds: readonly string[], meta: RequestMeta, tx: Tx): Promise<void> {
@@ -199,7 +199,7 @@ export class AccountService {
       await this.audit.record(
         {
           action: 'auth.session.ended',
-          hospitalId: auth.hospitalId,
+          hospitalId: auth.userHospitalId,
           actorUserId: auth.userId,
           entityType: 'session',
           entityId: id,

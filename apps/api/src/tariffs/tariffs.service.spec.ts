@@ -7,7 +7,7 @@ import type { ServiceItemRow, TariffRateRow, TariffsRepository } from './tariffs
 import { TariffsService } from './tariffs.service.js';
 
 const META = { requestId: 'r', ipAddress: null, userAgent: null };
-const FINANCE: AuthContext = { sessionId: 's', userId: 'f1', hospitalId: 'h1', kind: 'staff', permissions: new Set(), expiresAt: new Date() };
+const FINANCE: AuthContext = { sessionId: 's', userId: 'f1', hospitalId: 'h1', kind: 'staff', permissions: new Set(), expiresAt: new Date(), userHospitalId: 'h1', breakGlass: null };
 // 25 Oct 2026, 10:00 IST.
 const NOW = new Date('2026-10-25T04:30:00Z');
 

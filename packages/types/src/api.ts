@@ -39,6 +39,7 @@ export const API_ERROR_CODES = [
   'TOTP_INVALID',
   'TWO_FACTOR_REQUIRED',
   'TWO_FACTOR_STATE',
+  'BREAK_GLASS_ACTIVE',
 ] as const;
 
 export type ApiErrorCode = (typeof API_ERROR_CODES)[number];

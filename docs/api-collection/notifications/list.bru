@@ -1,0 +1,15 @@
+meta {
+  name: List notifications
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/notifications?page=1&pageSize=50
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+}

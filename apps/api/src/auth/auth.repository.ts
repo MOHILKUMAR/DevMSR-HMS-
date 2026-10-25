@@ -100,6 +100,10 @@ export class AuthRepository {
     });
   }
 
+  hospitalSummary(hospitalId: string): Promise<{ id: string; code: string; name: string } | null> {
+    return this.prisma.hospital.findUnique({ where: { id: hospitalId }, select: { id: true, code: true, name: true } });
+  }
+
   /** Counts a failed attempt atomically. The attempt that reaches the limit locks the account and resets the count. */
   async recordFailure(userId: string, now: Date, maxAttempts: number, lockMs: number): Promise<{ locked: boolean }> {
     const { failedLoginCount } = await this.prisma.user.update({

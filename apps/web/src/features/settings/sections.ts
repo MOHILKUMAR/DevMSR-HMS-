@@ -1,4 +1,4 @@
-export type SettingsSectionKey = 'hospital' | 'users' | 'departments' | 'doctors' | 'wards' | 'rates';
+export type SettingsSectionKey = 'hospital' | 'users' | 'departments' | 'doctors' | 'wards' | 'rates' | 'breakGlass';
 
 export interface SettingsSection {
   key: SettingsSectionKey;
@@ -17,6 +17,8 @@ export const SETTINGS_SECTIONS: readonly SettingsSection[] = [
   { key: 'wards', href: '/settings/wards', view: 'masters.data.read', manage: 'masters.data.manage' },
   { key: 'rates', href: '/settings/rates', view: 'tariffs.tariff.read', manage: 'tariffs.tariff.manage' },
   { key: 'hospital', href: '/settings/hospital', view: 'masters.data.read', manage: 'settings.hospital.manage' },
+  // Read only: the history of DevMSR break-glass access to this hospital.
+  { key: 'breakGlass', href: '/settings/break-glass', view: 'audit.event.read', manage: 'audit.event.read' },
 ];
 
 export function visibleSettingsSections(permissions: readonly string[]): SettingsSection[] {

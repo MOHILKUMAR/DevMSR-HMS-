@@ -14,7 +14,7 @@ Every POST, PUT, PATCH and DELETE needs the `X-CSRF-Token` header matching the `
 | GET | `/auth/login/totp/setup` | Public (challenge cookie) | The `totp_setup` step: `{ secret, otpauthUri, qrCode }` (an SVG data URL). Asking again shows the same secret. |
 | POST | `/auth/login/totp/setup` | Public (challenge cookie) | Body `{ code }` (6 digits, spaces ignored). Switches two-factor on and answers like `/auth/login`, with `recoveryCodes` (10, shown once). 422 `TOTP_INVALID` counts toward the lockout. Login limit per challenge. |
 | POST | `/auth/login/totp` | Public (challenge cookie) | The `totp_verify` step. Body `{ code }` or `{ recoveryCode }`, exactly one. A code is accepted once (its 30 second step is recorded); a recovery code works once. 422 `TOTP_INVALID` counts toward the lockout: 5 wrong codes lock the account for 15 minutes. Login limit per challenge. |
-| GET | `/auth/me` | `auth.session.manage-own` | The signed-in user, hospital, permission codes and session expiry. |
+| GET | `/auth/me` | `auth.session.manage-own` | The signed-in user, hospital, permission codes and session expiry, and `breakGlass` (`{ grantId, expiresAt }` or null). During break-glass `hospital` is the hospital opened. |
 | POST | `/auth/password` | `auth.session.manage-own` | Body `{ currentPassword, newPassword }`. Ends your other sessions and keeps this one. 422 `CURRENT_PASSWORD_WRONG` (audited) or `PASSWORD_REUSED`. Limited to 3 per hour per session. 204. |
 | GET | `/auth/sessions` | `auth.session.manage-own` | `{ data }`: your open sessions (not ended, idle or expired) with created, last seen, expiry, IP address, user agent and `current`. |
 | POST | `/auth/sessions/:id/end` | `auth.session.manage-own` | Ends one of your other sessions. 422 `CURRENT_SESSION` for the one in use (sign out instead); 404 for another user's or an ended session. 204. |
@@ -24,6 +24,26 @@ Every POST, PUT, PATCH and DELETE needs the `X-CSRF-Token` header matching the `
 | POST | `/auth/two-factor/recovery-codes` | `auth.session.manage-own` | Body `{ code }`. New `{ recoveryCodes }`; the unused ones stop working. |
 | POST | `/auth/two-factor/disable` | `auth.session.manage-own` | Body `{ code }`. 422 `TWO_FACTOR_REQUIRED` when the user's permissions need it. 204. |
 | POST | `/auth/sessions/end-others` | `auth.session.manage-own` | Ends all your sessions except this one. `{ ended }`. |
+
+## Notifications
+
+| Method | Path | Permission | Notes |
+| --- | --- | --- | --- |
+| GET | `/notifications` | `notifications.notification.read-own` | Your own notifications, newest first: `{ id, kind, details, createdAt, readAt }`. `?unread=true` for unread only. Kinds: `break_glass_started` (`details`: `grantId`, `byName`, `expiresAt`) and `failed_logins` (`failures`, `windowMinutes`, `scope`: `hospital` or `platform`). |
+| GET | `/notifications/unread-count` | `notifications.notification.read-own` | `{ unread }`, for the top bar. |
+| POST | `/notifications/:id/read` | `notifications.notification.read-own` | 204, also when already read. 404 for someone else's. |
+| POST | `/notifications/read-all` | `notifications.notification.read-own` | `{ updated }`. |
+
+## Break-glass access
+
+A DevMSR super admin's read-only access to one hospital, tied to their session, for 1 hour. While it is open the session reaches that hospital with `BREAK_GLASS_PERMISSIONS` (patients, billing account, masters, rates, beds and audit, all read only), and every audit event of the session carries `breakGlassId`. It ends early with `POST /break-glass/current/end` or at sign-out.
+
+| Method | Path | Permission | Notes |
+| --- | --- | --- | --- |
+| GET | `/break-glass/hospitals` | `platform.break-glass.use` | `{ data }`: active hospitals `{ id, code, name }`. |
+| POST | `/break-glass` | `platform.break-glass.use` | Body `{ hospitalId, reason }` (reason 20 to 500 characters). 201 with the grant. Audited in that hospital (`platform.break-glass.started`), and every user there holding `users.user.manage` is notified. 404 for an unknown or inactive hospital; 409 `BREAK_GLASS_ACTIVE` when the session already has one. |
+| POST | `/break-glass/current/end` | `platform.break-glass.use` | Ends this session's access. 204; 404 when none is open. |
+| GET | `/break-glass` | `audit.event.read` | This hospital's break-glass history, newest first: `{ id, hospital, user, reason, createdAt, expiresAt, endedAt, active }`. |
 
 ## Admin setup
 
@@ -137,4 +157,5 @@ Money is in paise (integers). Rules are in `docs/billing-rules.md`. Routes marke
 | `TOTP_INVALID` | 422 | A wrong, old or already used two-factor code, or an unknown or used recovery code. |
 | `TWO_FACTOR_REQUIRED` | 422 | Switching two-factor off when your permissions need it. |
 | `TWO_FACTOR_STATE` | 409 | Two-factor setup that does not match its state: already on, or not started. |
+| `BREAK_GLASS_ACTIVE` | 409 | Starting break-glass access in a session that already has one open. |
 | `INTERNAL_ERROR` | 500 | Anything unexpected. Details are logged with the `X-Request-Id`, never returned. |

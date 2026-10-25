@@ -4,6 +4,7 @@ import { randomToken, sha256Hex } from '../common/crypto/tokens.js';
 import type { RequestMeta } from '../common/http/app-request.js';
 import type { Tx } from '../common/prisma/tx.js';
 import type { AuthContext } from './auth-context.js';
+import { BREAK_GLASS_PERMISSIONS } from './permission-matrix.js';
 import { SessionsRepository } from './sessions.repository.js';
 
 /** CLAUDE.md section 9: 15 minute idle timeout, 12 hour maximum. */
@@ -59,19 +60,26 @@ export class SessionsService {
       return { status: 'invalid' };
     }
 
-    const permissions = await this.sessions.permissionCodes(session.userId, session.user.hospitalId);
+    const permissions = new Set(await this.sessions.permissionCodes(session.userId, session.user.hospitalId));
     if (now.getTime() - session.lastSeenAt.getTime() >= TOUCH_INTERVAL_MS) {
       await this.sessions.touch(session.id, now);
+    }
+    // Break-glass gives a platform user one hospital, read only, for this session until it expires.
+    const grant = session.user.kind === 'platform' ? await this.sessions.findActiveBreakGlass(session.id, now) : null;
+    if (grant !== null) {
+      for (const code of BREAK_GLASS_PERMISSIONS) permissions.add(code);
     }
     return {
       status: 'valid',
       auth: {
         sessionId: session.id,
         userId: session.userId,
-        hospitalId: session.user.hospitalId,
+        hospitalId: grant?.hospitalId ?? session.user.hospitalId,
+        userHospitalId: session.user.hospitalId,
         kind: session.user.kind,
-        permissions: new Set(permissions),
+        permissions,
         expiresAt: session.expiresAt,
+        breakGlass: grant === null ? null : { grantId: grant.id, hospitalId: grant.hospitalId, expiresAt: grant.expiresAt },
       },
     };
   }
@@ -80,8 +88,10 @@ export class SessionsService {
     return this.sessions.permissionCodes(userId, hospitalId, tx);
   }
 
-  async end(sessionId: string, reason: SessionEndReason, now: Date, tx?: Tx): Promise<void> {
+  /** Ends a session and any break-glass access tied to it. */
+  async end(sessionId: string, reason: SessionEndReason, now: Date, tx: Tx): Promise<void> {
     await this.sessions.end({ id: sessionId }, reason, now, tx);
+    await this.sessions.endBreakGlass(sessionId, now, tx);
   }
 
   /** Ends every open session of a user, for example when an admin deactivates them or sets a new password. */

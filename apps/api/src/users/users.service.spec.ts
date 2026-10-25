@@ -9,7 +9,7 @@ import type { StaffUserRow, UsersRepository } from './users.repository.js';
 import { UsersService } from './users.service.js';
 
 const META = { requestId: 'r', ipAddress: null, userAgent: null };
-const ADMIN: AuthContext = { sessionId: 's', userId: 'admin-1', hospitalId: 'h1', kind: 'staff', permissions: new Set(), expiresAt: new Date() };
+const ADMIN: AuthContext = { sessionId: 's', userId: 'admin-1', hospitalId: 'h1', kind: 'staff', permissions: new Set(), expiresAt: new Date(), userHospitalId: 'h1', breakGlass: null };
 
 const ROW: StaffUserRow = {
   id: 'u1',

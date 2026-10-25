@@ -32,6 +32,13 @@ export const meResponseSchema = z.object({
     expiresAt: z.iso.datetime(),
     idleTimeoutSeconds: z.number().int().positive(),
   }),
+  /** A super admin's open break-glass access; `hospital` is then the hospital opened. */
+  breakGlass: z
+    .object({
+      grantId: z.uuid(),
+      expiresAt: z.iso.datetime(),
+    })
+    .nullable(),
 });
 
 export type MeResponse = z.infer<typeof meResponseSchema>;
