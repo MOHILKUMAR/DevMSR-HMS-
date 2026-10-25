@@ -24,6 +24,8 @@ export const staffUserSchema = z.object({
   locked: z.boolean(),
   /** An admin set the password, and the user has not yet chosen their own at sign-in. */
   mustChangePassword: z.boolean(),
+  /** Two-factor sign-in is set up; an admin can reset it when a phone is lost. */
+  twoFactorEnabled: z.boolean(),
   roles: z.array(roleSummarySchema),
   lastLoginAt: z.iso.datetime().nullable(),
   createdAt: z.iso.datetime(),

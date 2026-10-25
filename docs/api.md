@@ -8,13 +8,21 @@ Every POST, PUT, PATCH and DELETE needs the `X-CSRF-Token` header matching the `
 | --- | --- | --- | --- |
 | GET | `/health` | Public | Liveness and database check. 200 `{ "status": "ok" }`, 500 when the database does not answer. |
 | GET | `/auth/csrf` | Public | Issues a CSRF token (bound to the current session, if any) and sets the CSRF cookie. The login screen calls it first. |
-| POST | `/auth/login` | Public | Body `{ username, password }`. Either `{ status: "signed_in", ...profile, csrfToken }` with the session and CSRF cookies set, or `{ status: "challenge", step, expiresAt }` with an httpOnly `hms_login` cookie (path `/api/v1/auth/login`, 10 minutes) when the user owes another step first: `change_password` after an admin set the password. Every failure is 401 `LOGIN_FAILED`. Limited to 5 per minute per username and IP. |
+| POST | `/auth/login` | Public | Body `{ username, password }`. Either `{ status: "signed_in", ...profile, csrfToken }` with the session and CSRF cookies set, or `{ status: "challenge", step, expiresAt }` with an httpOnly `hms_login` cookie (path `/api/v1/auth/login`, 10 minutes) when the user owes another step first: `change_password` after an admin set the password, then `totp_setup` (two-factor required by the user's permissions and not on yet) or `totp_verify` (two-factor on). Every failure is 401 `LOGIN_FAILED`. Limited to 5 per minute per username and IP. |
 | POST | `/auth/login/password` | Public (challenge cookie) | The `change_password` step. Body `{ newPassword }` (10 or more characters, not the current one: 422 `PASSWORD_REUSED`). Answers like `/auth/login`. 401 `LOGIN_CHALLENGE_INVALID` for a missing, used, expired or outdated challenge. Limited to 3 per hour per challenge. |
 | POST | `/auth/logout` | `auth.session.manage-own` | Ends the session and clears both cookies. 204. |
+| GET | `/auth/login/totp/setup` | Public (challenge cookie) | The `totp_setup` step: `{ secret, otpauthUri, qrCode }` (an SVG data URL). Asking again shows the same secret. |
+| POST | `/auth/login/totp/setup` | Public (challenge cookie) | Body `{ code }` (6 digits, spaces ignored). Switches two-factor on and answers like `/auth/login`, with `recoveryCodes` (10, shown once). 422 `TOTP_INVALID` counts toward the lockout. Login limit per challenge. |
+| POST | `/auth/login/totp` | Public (challenge cookie) | The `totp_verify` step. Body `{ code }` or `{ recoveryCode }`, exactly one. A code is accepted once (its 30 second step is recorded); a recovery code works once. 422 `TOTP_INVALID` counts toward the lockout: 5 wrong codes lock the account for 15 minutes. Login limit per challenge. |
 | GET | `/auth/me` | `auth.session.manage-own` | The signed-in user, hospital, permission codes and session expiry. |
 | POST | `/auth/password` | `auth.session.manage-own` | Body `{ currentPassword, newPassword }`. Ends your other sessions and keeps this one. 422 `CURRENT_PASSWORD_WRONG` (audited) or `PASSWORD_REUSED`. Limited to 3 per hour per session. 204. |
 | GET | `/auth/sessions` | `auth.session.manage-own` | `{ data }`: your open sessions (not ended, idle or expired) with created, last seen, expiry, IP address, user agent and `current`. |
 | POST | `/auth/sessions/:id/end` | `auth.session.manage-own` | Ends one of your other sessions. 422 `CURRENT_SESSION` for the one in use (sign out instead); 404 for another user's or an ended session. 204. |
+| GET | `/auth/two-factor` | `auth.session.manage-own` | `{ enabled, required, recoveryCodesLeft }`. Required when the user holds `platform.hospital.manage`, `users.user.manage` or `tariffs.tariff.manage`. |
+| POST | `/auth/two-factor/setup` | `auth.session.manage-own` | A new pending secret: `{ secret, otpauthUri, qrCode }`. 409 `TWO_FACTOR_STATE` when already on. |
+| POST | `/auth/two-factor/enable` | `auth.session.manage-own` | Body `{ code }`. Switches it on and returns `{ recoveryCodes }` once. 422 `TOTP_INVALID` (audited). Login limit per session. |
+| POST | `/auth/two-factor/recovery-codes` | `auth.session.manage-own` | Body `{ code }`. New `{ recoveryCodes }`; the unused ones stop working. |
+| POST | `/auth/two-factor/disable` | `auth.session.manage-own` | Body `{ code }`. 422 `TWO_FACTOR_REQUIRED` when the user's permissions need it. 204. |
 | POST | `/auth/sessions/end-others` | `auth.session.manage-own` | Ends all your sessions except this one. `{ ended }`. |
 
 ## Admin setup
@@ -26,6 +34,7 @@ Lists take `?page=1&pageSize=50&q=text&includeInactive=true` and return `{ data,
 | GET | `/users` | `users.user.manage` | Staff users of the hospital with their roles, lock state, `mustChangePassword` and last sign-in. `?permission=opd.queue.read-own` lists only users holding that permission. Never lists platform users. |
 | POST | `/users` | `users.user.manage` | Body `{ username, displayName, password, roleCodes }`. 409 if the username is taken, 422 `ROLE_NOT_ASSIGNABLE` for a role outside the hospital. |
 | PATCH | `/users/:id` | `users.user.manage` | Any of `{ displayName, isActive, roleCodes }`. Deactivating ends the user's sessions. 422 `SELF_CHANGE_NOT_ALLOWED` for your own roles or status. |
+| POST | `/users/:id/two-factor/reset` | `users.user.manage` | For a lost phone: switches the user's two-factor off, revokes their recovery codes and ends their sessions. They set it up again at the next sign-in if their role needs it. 204. Not for your own account. |
 | POST | `/users/:id/password` | `users.user.manage` | Body `{ password }` (10 or more characters). The user must replace it at the next sign-in. Unlocks the account and ends its sessions. 204. Not for your own account. Limited to 3 per hour per account. |
 | GET | `/roles` | `users.user.manage` | The hospital's roles with their permission codes. |
 | GET | `/hospital-profile` | `masters.data.read` | Name, code, address, PIN code, phone and email, as printed on bills. |
@@ -125,4 +134,7 @@ Money is in paise (integers). Rules are in `docs/billing-rules.md`. Routes marke
 | `PASSWORD_REUSED` | 422 | A new password the same as the current one. |
 | `CURRENT_PASSWORD_WRONG` | 422 | Changing your own password with a wrong current password. |
 | `CURRENT_SESSION` | 422 | Ending the session you are using through `/auth/sessions/:id/end`. |
+| `TOTP_INVALID` | 422 | A wrong, old or already used two-factor code, or an unknown or used recovery code. |
+| `TWO_FACTOR_REQUIRED` | 422 | Switching two-factor off when your permissions need it. |
+| `TWO_FACTOR_STATE` | 409 | Two-factor setup that does not match its state: already on, or not started. |
 | `INTERNAL_ERROR` | 500 | Anything unexpected. Details are logged with the `X-Request-Id`, never returned. |

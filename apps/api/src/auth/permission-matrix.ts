@@ -210,8 +210,16 @@ export const ROLES = {
 
 export type RoleCode = keyof typeof ROLES;
 
-/** Roles that must use two-factor login (CLAUDE.md section 9). Enforced in the auth slice that adds TOTP. */
-export const ROLES_REQUIRING_TOTP: readonly RoleCode[] = ['super_admin', 'hospital_admin', 'accountant'];
+/**
+ * Holding any of these makes two-factor sign-in compulsory (CLAUDE.md section 9: super admin, hospital
+ * admin and finance). Checked by permission code, never role name, so a custom role that can manage
+ * users or rates needs two-factor too.
+ */
+export const TWO_FACTOR_PERMISSIONS: readonly PermissionCode[] = ['platform.hospital.manage', 'users.user.manage', 'tariffs.tariff.manage'];
+
+export function requiresTwoFactor(permissions: Iterable<string>): boolean {
+  return [...permissions].some((code) => (TWO_FACTOR_PERMISSIONS as readonly string[]).includes(code));
+}
 
 export function isPermissionCode(value: string): value is PermissionCode {
   return Object.hasOwn(PERMISSIONS, value);

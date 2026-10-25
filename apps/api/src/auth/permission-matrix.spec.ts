@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { PERMISSIONS, ROLES, isPermissionCode, type PermissionCode } from './permission-matrix.js';
+import { PERMISSIONS, ROLES, isPermissionCode, type PermissionCode, requiresTwoFactor } from './permission-matrix.js';
 
 const roles = Object.entries(ROLES);
 const PLATFORM_ONLY: PermissionCode[] = ['platform.hospital.manage'];
@@ -65,5 +65,10 @@ describe('permission matrix', () => {
     for (const code of ['doctor', 'nurse'] as const) {
       expect(ROLES[code].permissions.some((p: string) => p.startsWith('billing.') || p.startsWith('payments.'))).toBe(false);
     }
+  });
+
+  it('makes two-factor compulsory for exactly the super admin, hospital admin and finance (CLAUDE.md section 9)', () => {
+    const required = roles.filter(([, role]) => requiresTwoFactor(role.permissions)).map(([code]) => code);
+    expect(required.sort()).toEqual(['accountant', 'hospital_admin', 'super_admin']);
   });
 });

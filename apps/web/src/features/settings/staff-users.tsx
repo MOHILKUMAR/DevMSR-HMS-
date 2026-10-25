@@ -9,7 +9,7 @@ import {
   type StaffUser,
   type UpdateStaffUser,
 } from '@devmsr/validation';
-import { KeyRound, Lock, Pencil, UserPlus } from 'lucide-react';
+import { KeyRound, Lock, Pencil, ShieldCheck, ShieldOff, UserPlus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { useForm, type UseFormRegisterReturn } from 'react-hook-form';
@@ -36,6 +36,7 @@ export function StaffUsers({ currentUserId }: { currentUserId: string }) {
   const users = useStaffUsers(list.params);
   const [editing, setEditing] = useState<StaffUser | 'new' | null>(null);
   const [passwordFor, setPasswordFor] = useState<StaffUser | null>(null);
+  const [twoFactorFor, setTwoFactorFor] = useState<StaffUser | null>(null);
   const rows = users.data?.data ?? [];
 
   return (
@@ -92,6 +93,7 @@ export function StaffUsers({ currentUserId }: { currentUserId: string }) {
                   <ActiveBadge active={user.isActive} />
                   {user.locked && <StatusBadge tone="warning" icon={Lock} label={t('locked')} />}
                   {user.mustChangePassword && <StatusBadge tone="info" icon={KeyRound} label={t('mustChange')} />}
+                  {user.twoFactorEnabled && <StatusBadge tone="success" icon={ShieldCheck} label={t('twoFactorOn')} />}
                 </span>
               </Td>
               <Td className="tabular-nums">{user.lastLoginAt === null ? t('never') : formatDateTime(user.lastLoginAt)}</Td>
@@ -118,6 +120,19 @@ export function StaffUsers({ currentUserId }: { currentUserId: string }) {
                   >
                     <KeyRound aria-hidden />
                     {t('setPassword')}
+                  </Button>
+                )}
+                {user.id !== currentUserId && user.twoFactorEnabled && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    aria-label={t('resetTwoFactorNamed', { name: user.displayName })}
+                    onClick={() => {
+                      setTwoFactorFor(user);
+                    }}
+                  >
+                    <ShieldOff aria-hidden />
+                    {t('resetTwoFactor')}
                   </Button>
                 )}
               </Td>
@@ -163,6 +178,22 @@ export function StaffUsers({ currentUserId }: { currentUserId: string }) {
             user={passwordFor}
             onDone={() => {
               setPasswordFor(null);
+            }}
+          />
+        )}
+      </Dialog>
+
+      <Dialog
+        open={twoFactorFor !== null}
+        onOpenChange={(open) => {
+          if (!open) setTwoFactorFor(null);
+        }}
+      >
+        {twoFactorFor !== null && (
+          <ResetTwoFactorDialog
+            user={twoFactorFor}
+            onDone={() => {
+              setTwoFactorFor(null);
             }}
           />
         )}
@@ -367,3 +398,37 @@ function PasswordDialog({ user, onDone }: { user: StaffUser; onDone: () => void 
   );
 }
 
+/** For a lost phone. Nothing to type: the dialog states the effect and asks to confirm. */
+function ResetTwoFactorDialog({ user, onDone }: { user: StaffUser; onDone: () => void }) {
+  const t = useTranslations('settings.users');
+  const tc = useTranslations('common');
+  const reset = useSave(
+    async () => {
+      unwrap(await api.POST('/api/v1/users/{id}/two-factor/reset', { params: { header: csrfHeader(), path: { id: user.id } } }));
+    },
+    { invalidate: [USERS], onSaved: onDone },
+  );
+
+  return (
+    <DialogContent title={t('resetTwoFactorTitle', { name: user.displayName })} description={t('resetTwoFactorDescription')} closeLabel={tc('close')}>
+      <div className="space-y-4">
+        {reset.error !== null && <ErrorAlert error={reset.error} />}
+        <div className="flex justify-end gap-2 pt-2">
+          <Button type="button" variant="outline" onClick={onDone}>
+            {tc('cancel')}
+          </Button>
+          <Button
+            type="button"
+            variant="danger"
+            disabled={reset.isPending}
+            onClick={() => {
+              reset.mutate(undefined);
+            }}
+          >
+            {t('resetTwoFactorConfirm')}
+          </Button>
+        </div>
+      </div>
+    </DialogContent>
+  );
+}

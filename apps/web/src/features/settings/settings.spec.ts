@@ -34,6 +34,7 @@ const USER: StaffUser = {
   isActive: true,
   locked: false,
   mustChangePassword: false,
+  twoFactorEnabled: false,
   roles: [
     { code: 'cashier', name: 'Cashier' },
     { code: 'receptionist', name: 'Receptionist' },

@@ -104,6 +104,8 @@ enum LoginOutcome {
   inactive
   // The password was right, and the user must finish another step (login_challenges) before a session starts.
   challenge_started
+  // The password was right but the two-factor or recovery code was not.
+  wrong_totp
 
   @@map("login_outcome")
 }
@@ -126,6 +128,10 @@ enum SessionEndReason {
 enum LoginStep {
   // An admin created the account or set its password, so the user chooses their own.
   change_password
+  // Two-factor is required for this user (CLAUDE.md section 9) and not set up yet.
+  totp_setup
+  // Two-factor is on: a code from the authenticator app, or a recovery code.
+  totp_verify
 
   @@map("login_step")
 }
@@ -323,8 +329,11 @@ model User {
   passwordHash        String    @map("password_hash")
   failedLoginCount    Int       @default(0) @map("failed_login_count")
   lockedUntil         DateTime? @map("locked_until") @db.Timestamptz(3)
+  // Sealed with FIELD_ENCRYPTION_KEY. Set but not yet enabled while the user is setting it up.
   totpSecretEncrypted String?   @map("totp_secret_encrypted")
   totpEnabledAt       DateTime? @map("totp_enabled_at") @db.Timestamptz(3)
+  // The 30 second step of the last code accepted, so a code is never accepted twice.
+  totpLastTimeStep    Int?      @map("totp_last_time_step")
   passwordChangedAt   DateTime  @default(now()) @map("password_changed_at") @db.Timestamptz(3)
   // Set when an admin creates the account or sets its password; cleared when the user chooses one.
   mustChangePassword  Boolean   @default(false) @map("must_change_password")
@@ -338,6 +347,7 @@ model User {
   sessions        Session[]
   loginEvents     LoginEvent[]
   loginChallenges LoginChallenge[]
+  recoveryCodes   RecoveryCode[]
   auditEvents     AuditEvent[]
   doctor          Doctor?
 
@@ -545,6 +555,24 @@ model LoginChallenge {
 
   @@index([userId])
   @@map("login_challenges")
+}
+
+// One-time codes for signing in without the authenticator app. Only a keyed hash is stored. A code
+// is used or revoked once (a trigger enforces it) and never deleted.
+model RecoveryCode {
+  id         String    @id @default(uuid(7)) @db.Uuid
+  userId     String    @map("user_id") @db.Uuid
+  hospitalId String?   @map("hospital_id") @db.Uuid
+  codeHash   String    @map("code_hash")
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  usedAt     DateTime? @map("used_at") @db.Timestamptz(3)
+  // New codes were made, or two-factor was switched off or reset.
+  revokedAt  DateTime? @map("revoked_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@unique([userId, codeHash])
+  @@map("recovery_codes")
 }
 
 model LoginEvent {

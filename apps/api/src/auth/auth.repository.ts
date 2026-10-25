@@ -12,6 +12,9 @@ export interface LoginCandidate {
   passwordHash: string;
   passwordChangedAt: Date;
   mustChangePassword: boolean;
+  totpSecretEncrypted: string | null;
+  totpEnabledAt: Date | null;
+  totpLastTimeStep: number | null;
   lockedUntil: Date | null;
   isActive: boolean;
   hospital: { id: string; code: string; name: string; isActive: boolean } | null;
@@ -65,6 +68,9 @@ const LOGIN_CANDIDATE_SELECT = {
   passwordHash: true,
   passwordChangedAt: true,
   mustChangePassword: true,
+  totpSecretEncrypted: true,
+  totpEnabledAt: true,
+  totpLastTimeStep: true,
   lockedUntil: true,
   isActive: true,
   hospital: { select: { id: true, code: true, name: true, isActive: true } },

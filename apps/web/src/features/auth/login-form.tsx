@@ -14,6 +14,7 @@ import { api, csrfHeader, refreshCsrfToken } from '@/lib/api/client';
 import { errorMessageKey, unwrap } from '@/lib/api/errors';
 import { zodResolver } from '@/lib/forms';
 import { NewPasswordForm } from './new-password-form';
+import { TotpSetupStep, TotpVerifyStep } from './totp-steps';
 
 export function LoginForm({ next }: { next: string }) {
   const t = useTranslations('login');
@@ -52,18 +53,16 @@ export function LoginForm({ next }: { next: string }) {
     router.refresh();
   }
 
-  if (step === 'change_password') {
-    return (
-      <NewPasswordForm
-        onSignedIn={finish}
-        onRestart={() => {
-          setStep(null);
-          signIn.reset();
-          reset();
-        }}
-      />
-    );
+  function restart(): void {
+    setStep(null);
+    signIn.reset();
+    reset();
   }
+
+  // Each step remounts, so a step that follows another starts with an empty form.
+  if (step === 'change_password') return <NewPasswordForm key={step} onSignedIn={finish} onRestart={restart} />;
+  if (step === 'totp_setup') return <TotpSetupStep key={step} onSignedIn={finish} onRestart={restart} />;
+  if (step === 'totp_verify') return <TotpVerifyStep key={step} onSignedIn={finish} onRestart={restart} />;
 
   return (
     <form

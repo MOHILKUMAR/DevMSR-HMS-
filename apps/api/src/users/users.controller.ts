@@ -70,6 +70,14 @@ export class UsersController {
   ): Promise<void> {
     return this.users.setPassword(auth, params.id, body, meta);
   }
+
+  @Post(':id/two-factor/reset')
+  @RequirePermission('users.user.manage')
+  @HttpCode(204)
+  @ApiContract({ summary: 'Switch off a staff user\'s two-factor sign-in after a lost phone, and end their sessions', params: idParamsSchema })
+  resetTwoFactor(@CurrentAuth() auth: AuthContext, @ValidParams() params: { id: string }, @ReqMeta() meta: RequestMeta): Promise<void> {
+    return this.users.resetTwoFactor(auth, params.id, meta);
+  }
 }
 
 @Controller('roles')

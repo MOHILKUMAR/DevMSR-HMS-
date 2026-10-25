@@ -10,6 +10,15 @@ import { createTestApp, type TestApp } from './support/test-app.js';
 /** Statuses that mean the pipeline let the caller through to validation or the handler. */
 const BLOCKED = [401, 403, 429, 500];
 
+/**
+ * A public sign-in step without its challenge cookie is refused by the handler itself, with
+ * LOGIN_CHALLENGE_INVALID: the pipeline let the request through.
+ */
+function reachedHandler(response: request.Response): boolean {
+  const code = (response.body as { error?: { code?: string } }).error?.code;
+  return !BLOCKED.includes(response.status) || code === 'LOGIN_CHALLENGE_INVALID';
+}
+
 function call(t: TestApp, route: RouteInfo, browser: Browser | undefined): request.Test {
   const path = route.path.replace(/:[A-Za-z]+/g, () => randomUUID());
   const method = route.method.toLowerCase() as 'get' | 'post' | 'put' | 'patch' | 'delete';
@@ -39,6 +48,14 @@ describe('permission matrix: every route as every role', () => {
         'GET /api/v1/auth/csrf public',
         'POST /api/v1/auth/login public',
         'POST /api/v1/auth/login/password public',
+        'GET /api/v1/auth/login/totp/setup public',
+        'POST /api/v1/auth/login/totp/setup public',
+        'POST /api/v1/auth/login/totp public',
+        'GET /api/v1/auth/two-factor auth.session.manage-own',
+        'POST /api/v1/auth/two-factor/setup auth.session.manage-own',
+        'POST /api/v1/auth/two-factor/enable auth.session.manage-own',
+        'POST /api/v1/auth/two-factor/recovery-codes auth.session.manage-own',
+        'POST /api/v1/auth/two-factor/disable auth.session.manage-own',
         'POST /api/v1/auth/password auth.session.manage-own',
         'GET /api/v1/auth/sessions auth.session.manage-own',
         'POST /api/v1/auth/sessions/end-others auth.session.manage-own',
@@ -90,6 +107,7 @@ describe('permission matrix: every route as every role', () => {
         'POST /api/v1/users users.user.manage',
         'PATCH /api/v1/users/:id users.user.manage',
         'POST /api/v1/users/:id/password users.user.manage',
+        'POST /api/v1/users/:id/two-factor/reset users.user.manage',
         'GET /api/v1/wards masters.data.read',
         'POST /api/v1/wards masters.data.manage',
         'PATCH /api/v1/wards/:id masters.data.manage',
@@ -109,12 +127,12 @@ describe('permission matrix: every route as every role', () => {
   it('anonymous: public routes open, every other route 401', async () => {
     for (const route of routes) {
       const browser = route.method === 'GET' ? undefined : await anonymousBrowser(t.http);
-      const status = (await call(t, route, browser)).status;
+      const response = await call(t, route, browser);
       const label = `anonymous ${route.method} ${route.path}`;
       if (route.isPublic) {
-        expect(BLOCKED, label).not.toContain(status);
+        expect(reachedHandler(response), `${label}: ${response.status}`).toBe(true);
       } else {
-        expect(status, label).toBe(401);
+        expect(response.status, label).toBe(401);
       }
     }
   });
@@ -126,12 +144,12 @@ describe('permission matrix: every route as every role', () => {
       for (const route of routes) {
         // A fresh session per call, because one of the routes is logout.
         const browser = await signIn(t, user);
-        const status = (await call(t, route, browser)).status;
+        const response = await call(t, route, browser);
         const label = `${role} ${route.method} ${route.path}`;
         if (route.isPublic || (route.permission !== undefined && granted.includes(route.permission))) {
-          expect(BLOCKED, label).not.toContain(status);
+          expect(reachedHandler(response), `${label}: ${response.status}`).toBe(true);
         } else {
-          expect(status, label).toBe(403);
+          expect(response.status, label).toBe(403);
         }
       }
     });

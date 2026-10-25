@@ -24,7 +24,8 @@ function marked(ctx: ExecutionContext, key: string): boolean {
  * Pipeline step 3. Three limits, starting values in env:
  * - api: per signed-in session (one per user in practice), else per IP. Counted across all routes, so a
  *   hospital behind one NAT address is not limited as a whole.
- * - login: per username and IP, on routes marked `@LoginRateLimit()`.
+ * - login: per username and IP, on routes marked `@LoginRateLimit()`. Two-factor code routes send no
+ *   username, so they count per login challenge, or per session in My account.
  * - password: per account whose password is set or changed, on routes marked `@PasswordRateLimit()`.
  *   The rate limiter runs before the session is read, so the account is the route's `:id` when an
  *   admin sets it, else the session or login challenge cookie it came from.
@@ -51,8 +52,9 @@ export function rateLimitOptions(env: Env, cookies: AuthCookieNames): ThrottlerM
         skipIf: (ctx: ExecutionContext) => !marked(ctx, LOGIN_RATE_LIMIT),
         getTracker: (req) => {
           const body = req['body'] as Record<string, unknown> | undefined;
-          const username = typeof body?.['username'] === 'string' ? body['username'].trim().toLowerCase() : '';
-          return `${String(req['ip'])}|${username}`;
+          if (typeof body?.['username'] === 'string') return `${String(req['ip'])}|${body['username'].trim().toLowerCase()}`;
+          const token = readCookie(req, cookies.challenge) ?? readCookie(req, cookies.session);
+          return token === undefined ? `${String(req['ip'])}|` : `token:${token}`;
         },
         generateKey: (_ctx, tracker, name) => `${name}:${sha256Hex(tracker)}`,
       },

@@ -1,5 +1,6 @@
 import { randomBytes, randomUUID } from 'node:crypto';
 import type { Server } from 'node:http';
+import { generate } from 'otplib';
 import request from 'supertest';
 import { AuthCookies } from '../../src/auth/auth-cookies.js';
 import { CsrfService } from '../../src/auth/csrf.service.js';
@@ -7,6 +8,8 @@ import { hashPassword } from '../../src/auth/password.js';
 import { ROLES, type RoleCode } from '../../src/auth/permission-matrix.js';
 import { syncHospitalRoles, syncPermissions, syncPlatformRoles } from '../../src/auth/role-sync.js';
 import { SessionsService } from '../../src/auth/sessions.service.js';
+import { newTotpSecret } from '../../src/auth/two-factor.js';
+import { FieldEncryptionService } from '../../src/common/crypto/field-encryption.service.js';
 import type { PrismaService } from '../../src/common/prisma/prisma.service.js';
 import type { TestApp } from './test-app.js';
 
@@ -122,6 +125,30 @@ export async function anonymousBrowser(http: Server): Promise<Browser> {
 /** Adds a browser's cookies and CSRF header to a request. */
 export function as<T extends request.Test>(req: T, browser: Browser): T {
   return req.set('Cookie', browser.cookie).set('X-CSRF-Token', browser.csrfToken);
+}
+
+/** Switches two-factor on for a user, as if they had set it up. Returns the base32 secret. */
+export async function enableTwoFactor(testApp: TestApp, user: TestUser): Promise<string> {
+  const secret = newTotpSecret();
+  await testApp.prisma.user.update({
+    where: { id: user.id },
+    data: { totpSecretEncrypted: testApp.app.get(FieldEncryptionService).seal('totp_secret', secret), totpEnabledAt: new Date() },
+  });
+  return secret;
+}
+
+/** The app's code for now, or `steps` 30 second steps later (a code is accepted once, so tests move on). */
+export function totpCode(secret: string, steps = 0): Promise<string> {
+  return generate({ secret, epoch: Math.floor(Date.now() / 1000) + steps * 30 });
+}
+
+/**
+ * Waits out the last 5 seconds of a 30 second step, so a test that uses the codes of neighbouring
+ * steps does not see the step change half way through.
+ */
+export async function awaitFreshStep(): Promise<void> {
+  const intoStep = Date.now() % 30_000;
+  if (intoStep > 25_000) await new Promise((resolve) => setTimeout(resolve, 30_000 - intoStep + 100));
 }
 
 /** The browser after a login answered with a challenge: it now also holds the challenge cookie. */

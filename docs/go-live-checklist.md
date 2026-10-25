@@ -68,7 +68,7 @@ Each slice comes with its migration, API, screens, tests, seed data and docs. De
 From `CLAUDE.md` section 9.
 
 - [x] Argon2id passwords, lockout after 5 failed attempts, server-side sessions with idle and maximum timeouts, CSRF tokens, rate limits, security headers, permission guards on every route, idempotency keys, an audit log protected by append-only triggers, field encryption for Aadhaar and ABHA, patient fields redacted from logs.
-- [ ] Two-factor login (TOTP) for super admin, hospital admin and finance roles. Needs otplib, already named in `CLAUDE.md`. **Dev**
+- [x] Two-factor login (TOTP) for super admin, hospital admin and finance roles, decided by permission code, with recovery codes and an admin reset for lost phones. **Dev**
 - [x] Password reset (limited to 3 per hour), and a forced password change at first sign-in for accounts the admin creates. Reset is admin-issued: the admin sets a temporary password, the user must choose their own at the next sign-in. Self-service reset by email or SMS waits for staff contact details and the outbox. **Dev**
 - [x] Staff can see and end their own sessions (My account), and change their own password. **Dev**
 - [ ] Break-glass access: written reason, 1 hour expiry, audit event, hospital admin notified. **Dev**
