@@ -5,6 +5,7 @@
 #
 # Usage:   deploy/deploy.sh v1.4.0
 # Options: DRY_RUN=1 prints every command instead of running it.
+#          SKIP_BACKUP=1 skips the backup before migrations (only before backup.env exists).
 #          HMS_HOME (default /opt/hms), KEEP_RELEASES (default 3).
 #          HMS_REHEARSAL=1 skips the fetch and the release branch check (CI rehearsal only).
 # Runbook: docs/runbooks/deploy-and-rollback.md
@@ -68,8 +69,18 @@ build hms-web apps/web/Dockerfile \
   --build-arg "NEXT_PUBLIC_APP_ENV=${NEXT_PUBLIC_APP_ENV:-production}" \
   --build-arg "NEXT_PUBLIC_SENTRY_DSN=${NEXT_PUBLIC_SENTRY_DSN:-}"
 build hms-migrate deploy/migrate.Dockerfile
+build hms-backup deploy/backup/Dockerfile
 
-# 4. Apply migrations while the current release is still serving. Migrations must keep the previous
+# 4. Back up first, so a migration that goes wrong can be undone by a restore. SKIP_BACKUP=1 only for
+#    a server without backup.env yet (the first staging deploy).
+if [[ -f "$HMS_ENV_DIR/backup.env" && "${SKIP_BACKUP:-0}" != 1 ]]; then
+  log "backing up before migrations"
+  BACKUP_TAG="$tag" "$script_dir/backup.sh" || die "backup failed, nothing was changed: fix it or set SKIP_BACKUP=1 knowingly"
+else
+  log "warning: no backup before migrations (backup.env missing or SKIP_BACKUP=1)"
+fi
+
+# 5. Apply migrations while the current release is still serving. Migrations must keep the previous
 #    release working (expand first, contract in a later release), because a rollback never undoes them.
 log "applying migrations"
 run docker run --rm --name "hms-migrate-$tag" \
@@ -77,7 +88,7 @@ run docker run --rm --name "hms-migrate-$tag" \
   --cap-drop ALL --security-opt no-new-privileges:true \
   "hms-migrate:$tag"
 
-# 5. Start the new release, or go back to the previous one.
+# 6. Start the new release, or go back to the previous one.
 if ! activate_release "$tag"; then
   record_history deploy-failed "$tag" "$commit"
   if [[ -n "$previous" && "$previous" != "$tag" ]]; then

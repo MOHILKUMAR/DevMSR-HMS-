@@ -29,8 +29,13 @@ expect "$out" 'docker compose --project-name hms --file .*/releases/v9\.9\.9-dry
 expect "$out" 'would check https://api\.hms\.test/api/v1/health'
 expect "$out" 'would check https://app\.hms\.test/login'
 expect "$out" 'would set current=v9\.9\.9-dryrun'
-# Migrations run before the new containers start.
-[[ "$(grep -n 'hms-migrate:v9' <<<"$out" | tail -n 1 | cut -d: -f1)" -lt "$(grep -n 'up --detach' <<<"$out" | head -n 1 | cut -d: -f1)" ]] ||
+expect "$out" 'docker build .*--file .*/deploy/backup/Dockerfile --tag hms-backup:v9\.9\.9-dryrun'
+expect "$out" 'docker run --rm .*--env-file .*/env/backup\.env hms-backup:v9\.9\.9-dryrun backup'
+line_of() { grep -n -- "$1" <<<"$out" | head -n 1 | cut -d: -f1; }
+# Backup, then migrations, then the new containers.
+[[ "$(line_of 'hms-backup:v9.9.9-dryrun backup')" -lt "$(line_of 'docker run .*hms-migrate:v9.9.9-dryrun$')" ]] ||
+  { echo "the backup must run before migrations" >&2; exit 1; }
+[[ "$(line_of 'docker run .*hms-migrate:v9.9.9-dryrun$')" -lt "$(line_of 'up --detach')" ]] ||
   { echo "migrations must run before the containers start" >&2; exit 1; }
 
 echo "deploy.sh rejects a bad tag"
@@ -51,6 +56,20 @@ echo "restart.sh"
 out="$("$repo/deploy/restart.sh" api 2>&1)"
 expect "$out" 'releases/v1\.0\.1/compose\.prod\.yml .* up --detach --wait .*--force-recreate api'
 expect "$out" 'would check https://api\.hms\.test/api/v1/health'
+
+echo "backup.sh"
+out="$("$repo/deploy/backup.sh" 2>&1)"
+expect "$out" 'docker run --rm .*--user [0-9]+:[0-9]+ --read-only .*--volume .*/backup-work:/work --volume .*/local-store/store/backups:/store/backups .*hms-backup:v1\.0\.1 backup'
+
+echo "restore-drill.sh"
+out="$(AGE_IDENTITY_FILE=/dev/null "$repo/deploy/restore-drill.sh" 2>&1)"
+expect "$out" 'docker run --detach --rm --name hms-drill-[0-9]+-db .*TZ=Asia/Kolkata'
+expect "$out" 'hms-backup:v1\.0\.1 restore'
+expect "$out" 'docker run --detach --rm --name hms-drill-[0-9]+-api .*--read-only .*hms-api:v1\.0\.1'
+
+echo "logs-export.sh"
+out="$("$repo/deploy/logs-export.sh" 2026-10-24 2>&1)"
+expect "$out" "journalctl --utc --since '2026-10-24 00:00:00' --until '2026-10-25 00:00:00'.*hms-backup put journal-.*-2026-10-24\.json\.gz\.age"
 
 echo "setup-firewall.sh"
 out="$(SSH_ALLOW_FROM='203.0.113.7/32' EXT_IF=eth0 "$repo/deploy/server/setup-firewall.sh" 2>&1)"

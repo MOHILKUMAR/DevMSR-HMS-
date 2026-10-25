@@ -40,7 +40,18 @@
 		-Server
 		-Via
 	}
-	log
+	# Access log. Query strings and the Referer header are dropped, as in the API's own log, because
+	# a query could carry a search term (CLAUDE.md section 7).
+	log {
+		output stdout
+		format filter {
+			wrap json
+			fields {
+				request>uri regexp "[?].*$" "?[query removed]"
+				request>headers>Referer delete
+			}
+		}
+	}
 }
 
 {$APP_HOST} {

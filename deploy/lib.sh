@@ -158,7 +158,7 @@ prune_releases() {
     if [[ " ${keep[*]} " != *" $tag "* ]]; then
       docker image rm "$ref" >/dev/null && log "removed image $ref"
     fi
-  done < <(docker image ls --format '{{.Repository}}:{{.Tag}}' | grep -E '^hms-(api|web|migrate):' || true)
+  done < <(docker image ls --format '{{.Repository}}:{{.Tag}}' | grep -E '^hms-(api|web|migrate|backup):' || true)
   for dir in "$HMS_RELEASES_DIR"/*/; do
     [[ -d "$dir" ]] || continue
     tag="$(basename "$dir")"
@@ -167,4 +167,22 @@ prune_releases() {
     fi
   done
   docker image prune --force >/dev/null
+}
+
+# Options shared by every hms-backup container: the server user's uid (so it can write the work
+# folder), read-only, no capabilities, and a private work folder. A local folder store (tests and
+# rehearsals only) is mounted from $HMS_HOME/local-store at the same path.
+backup_container_opts=()
+prepare_backup_container() {
+  local env_file="$1" work="$HMS_HOME/backup-work" store
+  run mkdir -p "$work"
+  dry_run || chmod 700 "$work"
+  backup_container_opts=(--user "$(id -u):$(id -g)" --read-only --tmpfs /tmp --cap-drop ALL
+    --security-opt no-new-privileges:true --volume "$work:/work")
+  for store in $(sed -n 's/^\(BACKUP_STORE\|LOG_STORE\)=//p' "$env_file"); do
+    if [[ "$store" == /* ]]; then
+      run mkdir -p "$HMS_HOME/local-store$store"
+      backup_container_opts+=(--volume "$HMS_HOME/local-store$store:$store")
+    fi
+  done
 }

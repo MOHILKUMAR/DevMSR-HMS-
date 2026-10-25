@@ -59,18 +59,34 @@ jobs:
       LOCAL_DATABASE_URL: postgresql://hms:hms_ci_only@localhost:5432/hms_infra
     steps:
       - uses: actions/checkout@v7
+      - name: Install age (backup encryption) and the PostgreSQL client
+        run: |
+          sudo apt-get update --quiet
+          sudo apt-get install --yes --quiet age postgresql-client
       - name: Prepare a throwaway server folder
         run: |
           echo "HMS_HOME=$RUNNER_TEMP/hms" >> "$GITHUB_ENV"
           deploy/test/make-rehearsal-home.sh "$RUNNER_TEMP/hms" >> "$GITHUB_ENV"
-          command -v psql || sudo apt-get install --yes postgresql-client
       - name: Tag two releases of this commit
         run: |
           git tag v0.0.1-ci
           git tag v0.0.2-ci
-      - name: Deploy v0.0.1-ci
+      - name: Deploy v0.0.1-ci (backs up the empty database first)
         run: deploy/deploy.sh v0.0.1-ci
-      - name: Deploy v0.0.2-ci
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - name: Load the fake demo hospital, encrypted with the rehearsal's field key
+        run: |
+          pnpm install --frozen-lockfile
+          set -a
+          . "$HMS_HOME/env/api.env"
+          set +a
+          echo "::add-mask::$FIELD_ENCRYPTION_KEY"
+          DATABASE_URL="$LOCAL_DATABASE_URL" DIRECT_URL="$LOCAL_DATABASE_URL" SEED_USER_PASSWORD=ci-only-Passw0rd pnpm db:seed
+      - name: Deploy v0.0.2-ci (backs up the seeded database first)
         run: deploy/deploy.sh v0.0.2-ci
       - run: deploy/test/check-rehearsal.sh v0.0.2-ci v0.0.1-ci
       - name: Roll back to v0.0.1-ci
@@ -78,6 +94,29 @@ jobs:
       - run: deploy/test/check-rehearsal.sh v0.0.1-ci v0.0.2-ci
       - name: Restart the API, as after a secret rotation
         run: deploy/restart.sh api
+      - name: Restore drill on the newest backup
+        run: |
+          AGE_IDENTITY_FILE="$HMS_HOME/client/backup-key.txt" deploy/restore-drill.sh | tee "$RUNNER_TEMP/drill.txt"
+          grep -q '^checks=passed$' "$RUNNER_TEMP/drill.txt"
+          grep -q '^api_on_restored_copy=healthy$' "$RUNNER_TEMP/drill.txt"
+          grep -q '^field_key_check=passed$' "$RUNNER_TEMP/drill.txt"
+          grep -q '^latest_migration=2' "$RUNNER_TEMP/drill.txt"
+      - name: Export today's logs, then decrypt them and find the containers' lines
+        run: |
+          # A query string must never reach a log.
+          curl --silent --output /dev/null --resolve app.hms.test:443:127.0.0.1 $HEALTH_CHECK_CURL_OPTS \
+            "https://app.hms.test/login?probe=query-must-not-be-logged"
+          sleep 2
+          sudo --preserve-env=HMS_HOME deploy/logs-export.sh "$(date -u +%Y-%m-%d)"
+          export_file="$(sudo find "$HMS_HOME/local-store/store/logs" -name 'journal-*.json.gz.age' | head -n 1)"
+          sudo cat "$export_file" | age --decrypt --identity "$HMS_HOME/client/backup-key.txt" | gunzip > "$RUNNER_TEMP/journal.json"
+          for tag in hms-api-1 hms-web-1 hms-caddy-1; do
+            grep -q "\"CONTAINER_TAG\":\"$tag\"" "$RUNNER_TEMP/journal.json" || { echo "no $tag lines in the export"; exit 1; }
+          done
+          grep -q 'query removed' "$RUNNER_TEMP/journal.json" || { echo "Caddy did not log the probe request"; exit 1; }
+          if grep -q 'query-must-not-be-logged' "$RUNNER_TEMP/journal.json"; then echo "a query string reached the logs"; exit 1; fi
+      - name: Host check
+        run: DISK_ALERT_PERCENT=97 deploy/check-host.sh
       - name: Check the database connection rules
         run: DATABASE_URL="$LOCAL_DATABASE_URL" deploy/check-database.sh
       - name: Run the Supabase lockdown against stand-in roles
