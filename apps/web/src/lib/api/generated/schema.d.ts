@@ -4,6 +4,40 @@
  */
 
 export interface paths {
+    "/api/v1/approval-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Approval requests, newest first. Filter by status, kind, patient or bill */
+        get: operations["approvalRequestsList"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/approval-requests/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One approval request */
+        get: operations["approvalRequestsGet"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/csrf": {
         parameters: {
             query?: never;
@@ -141,6 +175,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/credit-note-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ask for a credit note on an issued bill: chosen lines, or the whole bill */
+        post: operations["creditNoteRequestsRequest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/credit-note-requests/{id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve a credit note: it gets the next CN number. A whole bill also needs billing.void.approve */
+        post: operations["creditNoteRequestsApprove"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/credit-note-requests/{id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reject a credit note, with a reason */
+        post: operations["creditNoteRequestsReject"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/credit-notes/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A credit note, for printing (audited) */
+        get: operations["adjustmentDocumentsCreditNote"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/departments": {
         parameters: {
             query?: never;
@@ -187,6 +289,57 @@ export interface paths {
         put?: never;
         /** Take an advance deposit, held for the patient */
         post: operations["paymentsDeposit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/discount-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ask for a discount on a draft bill, for someone else to approve */
+        post: operations["discountRequestsRequest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/discount-requests/{id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve a discount: the draft is replaced by one with the discount. Above the finance limit, MD only */
+        post: operations["discountRequestsApprove"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/discount-requests/{id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reject a discount, with a reason */
+        post: operations["discountRequestsReject"];
         delete?: never;
         options?: never;
         head?: never;
@@ -487,6 +640,91 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/refund-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ask for a refund of excess deposit or of an overpaid bill */
+        post: operations["refundRequestsRequest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/refund-requests/{id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve a refund (MD only). A cashier then pays it out */
+        post: operations["refundRequestsApprove"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/refund-requests/{id}/pay": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Pay out an approved refund from your open shift: gives the next RF number */
+        post: operations["refundRequestsPay"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/refund-requests/{id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reject a refund, with a reason */
+        post: operations["refundRequestsReject"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/refunds/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A refund, for printing (audited) */
+        get: operations["adjustmentDocumentsRefund"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/roles": {
         parameters: {
             query?: never;
@@ -661,6 +899,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/void-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ask for a receipt entered by mistake to be voided, while its shift is open */
+        post: operations["voidRequestsRequest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/void-requests/{id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve a receipt void: its money stops counting */
+        post: operations["voidRequestsApprove"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/void-requests/{id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reject a receipt void, with a reason */
+        post: operations["voidRequestsReject"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/wards": {
         parameters: {
             query?: never;
@@ -724,6 +1013,179 @@ export interface components {
                 message: string;
                 details?: unknown;
             };
+        };
+        ApprovalRequestsListResponse: {
+            data: {
+                /** Format: uuid */
+                id: string;
+                /** @enum {string} */
+                kind: "discount" | "credit_note" | "refund" | "receipt_void";
+                /** @enum {string} */
+                status: "pending" | "approved" | "rejected";
+                patient: {
+                    /** Format: uuid */
+                    id: string;
+                    uhid: string;
+                    fullName: string;
+                };
+                invoiceId: string | null;
+                invoiceNumber: string | null;
+                receiptId: string | null;
+                receiptNumber: string | null;
+                amountPaise: number;
+                reason: string;
+                details: {
+                    /** @constant */
+                    kind: "discount";
+                    /** @enum {string} */
+                    scope: "bill_amount" | "bill_percent" | "lines";
+                    percentBp: number | null;
+                    lines: {
+                        lineNo: number;
+                        description: string;
+                        amountPaise: number;
+                        discountPaise: number;
+                    }[];
+                } | {
+                    /** @constant */
+                    kind: "credit_note";
+                    wholeBill: boolean;
+                    lines: {
+                        lineNo: number;
+                        description: string;
+                        quantity: number | null;
+                        amountPaise: number | null;
+                        taxablePaise: number;
+                        cgstPaise: number;
+                        sgstPaise: number;
+                        totalPaise: number;
+                    }[];
+                } | {
+                    /** @constant */
+                    kind: "refund";
+                    /** @enum {string} */
+                    source: "deposit" | "bill";
+                    /** @enum {string} */
+                    mode: "cash" | "upi" | "bank_transfer" | "cheque";
+                } | {
+                    /** @constant */
+                    kind: "receipt_void";
+                    /** @enum {string} */
+                    purpose: "bill_payment" | "deposit";
+                    /** @enum {string} */
+                    mode: "cash" | "upi" | "card" | "bank_transfer" | "cheque";
+                };
+                /** Format: uuid */
+                requestedById: string;
+                requestedByName: string | null;
+                /** Format: date-time */
+                requestedAt: string;
+                decidedByName: string | null;
+                decidedAt: string | null;
+                decisionNote: string | null;
+                resultInvoiceId: string | null;
+                creditNote: {
+                    /** Format: uuid */
+                    id: string;
+                    number: string;
+                    totalPaise: number;
+                } | null;
+                refund: {
+                    /** Format: uuid */
+                    id: string;
+                    number: string;
+                    /** Format: date-time */
+                    createdAt: string;
+                } | null;
+                aboveLimit: boolean;
+            }[];
+            page: number;
+            pageSize: number;
+            total: number;
+        };
+        ApprovalRequestsGetResponse: {
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            kind: "discount" | "credit_note" | "refund" | "receipt_void";
+            /** @enum {string} */
+            status: "pending" | "approved" | "rejected";
+            patient: {
+                /** Format: uuid */
+                id: string;
+                uhid: string;
+                fullName: string;
+            };
+            invoiceId: string | null;
+            invoiceNumber: string | null;
+            receiptId: string | null;
+            receiptNumber: string | null;
+            amountPaise: number;
+            reason: string;
+            details: {
+                /** @constant */
+                kind: "discount";
+                /** @enum {string} */
+                scope: "bill_amount" | "bill_percent" | "lines";
+                percentBp: number | null;
+                lines: {
+                    lineNo: number;
+                    description: string;
+                    amountPaise: number;
+                    discountPaise: number;
+                }[];
+            } | {
+                /** @constant */
+                kind: "credit_note";
+                wholeBill: boolean;
+                lines: {
+                    lineNo: number;
+                    description: string;
+                    quantity: number | null;
+                    amountPaise: number | null;
+                    taxablePaise: number;
+                    cgstPaise: number;
+                    sgstPaise: number;
+                    totalPaise: number;
+                }[];
+            } | {
+                /** @constant */
+                kind: "refund";
+                /** @enum {string} */
+                source: "deposit" | "bill";
+                /** @enum {string} */
+                mode: "cash" | "upi" | "bank_transfer" | "cheque";
+            } | {
+                /** @constant */
+                kind: "receipt_void";
+                /** @enum {string} */
+                purpose: "bill_payment" | "deposit";
+                /** @enum {string} */
+                mode: "cash" | "upi" | "card" | "bank_transfer" | "cheque";
+            };
+            /** Format: uuid */
+            requestedById: string;
+            requestedByName: string | null;
+            /** Format: date-time */
+            requestedAt: string;
+            decidedByName: string | null;
+            decidedAt: string | null;
+            decisionNote: string | null;
+            resultInvoiceId: string | null;
+            creditNote: {
+                /** Format: uuid */
+                id: string;
+                number: string;
+                totalPaise: number;
+            } | null;
+            refund: {
+                /** Format: uuid */
+                id: string;
+                number: string;
+                /** Format: date-time */
+                createdAt: string;
+            } | null;
+            aboveLimit: boolean;
         };
         AuthCsrfResponse: {
             csrfToken: string;
@@ -811,6 +1273,8 @@ export interface components {
                 }[];
                 depositsPaise: number;
                 billPaymentsPaise: number;
+                refundsPaise: number;
+                cashRefundsPaise: number;
             }[];
             page: number;
             pageSize: number;
@@ -839,6 +1303,8 @@ export interface components {
             }[];
             depositsPaise: number;
             billPaymentsPaise: number;
+            refundsPaise: number;
+            cashRefundsPaise: number;
         };
         CashShiftsCloseRequest: {
             countedCashPaise: number;
@@ -864,6 +1330,8 @@ export interface components {
             }[];
             depositsPaise: number;
             billPaymentsPaise: number;
+            refundsPaise: number;
+            cashRefundsPaise: number;
         };
         CashShiftsCurrentResponse: {
             shift: {
@@ -886,7 +1354,337 @@ export interface components {
                 }[];
                 depositsPaise: number;
                 billPaymentsPaise: number;
+                refundsPaise: number;
+                cashRefundsPaise: number;
             } | null;
+        };
+        CreditNoteRequestsRequestRequest: {
+            /** Format: uuid */
+            invoiceId: string;
+            reason: string;
+            credit: {
+                /** @constant */
+                scope: "whole_bill";
+            } | {
+                /** @constant */
+                scope: "lines";
+                lines: ({
+                    lineNo: number;
+                    quantity: number;
+                } | {
+                    lineNo: number;
+                    amountPaise: number;
+                })[];
+            };
+        };
+        CreditNoteRequestsRequestResponse: {
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            kind: "discount" | "credit_note" | "refund" | "receipt_void";
+            /** @enum {string} */
+            status: "pending" | "approved" | "rejected";
+            patient: {
+                /** Format: uuid */
+                id: string;
+                uhid: string;
+                fullName: string;
+            };
+            invoiceId: string | null;
+            invoiceNumber: string | null;
+            receiptId: string | null;
+            receiptNumber: string | null;
+            amountPaise: number;
+            reason: string;
+            details: {
+                /** @constant */
+                kind: "discount";
+                /** @enum {string} */
+                scope: "bill_amount" | "bill_percent" | "lines";
+                percentBp: number | null;
+                lines: {
+                    lineNo: number;
+                    description: string;
+                    amountPaise: number;
+                    discountPaise: number;
+                }[];
+            } | {
+                /** @constant */
+                kind: "credit_note";
+                wholeBill: boolean;
+                lines: {
+                    lineNo: number;
+                    description: string;
+                    quantity: number | null;
+                    amountPaise: number | null;
+                    taxablePaise: number;
+                    cgstPaise: number;
+                    sgstPaise: number;
+                    totalPaise: number;
+                }[];
+            } | {
+                /** @constant */
+                kind: "refund";
+                /** @enum {string} */
+                source: "deposit" | "bill";
+                /** @enum {string} */
+                mode: "cash" | "upi" | "bank_transfer" | "cheque";
+            } | {
+                /** @constant */
+                kind: "receipt_void";
+                /** @enum {string} */
+                purpose: "bill_payment" | "deposit";
+                /** @enum {string} */
+                mode: "cash" | "upi" | "card" | "bank_transfer" | "cheque";
+            };
+            /** Format: uuid */
+            requestedById: string;
+            requestedByName: string | null;
+            /** Format: date-time */
+            requestedAt: string;
+            decidedByName: string | null;
+            decidedAt: string | null;
+            decisionNote: string | null;
+            resultInvoiceId: string | null;
+            creditNote: {
+                /** Format: uuid */
+                id: string;
+                number: string;
+                totalPaise: number;
+            } | null;
+            refund: {
+                /** Format: uuid */
+                id: string;
+                number: string;
+                /** Format: date-time */
+                createdAt: string;
+            } | null;
+            aboveLimit: boolean;
+        };
+        CreditNoteRequestsApproveRequest: {
+            note?: string;
+        };
+        CreditNoteRequestsApproveResponse: {
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            kind: "discount" | "credit_note" | "refund" | "receipt_void";
+            /** @enum {string} */
+            status: "pending" | "approved" | "rejected";
+            patient: {
+                /** Format: uuid */
+                id: string;
+                uhid: string;
+                fullName: string;
+            };
+            invoiceId: string | null;
+            invoiceNumber: string | null;
+            receiptId: string | null;
+            receiptNumber: string | null;
+            amountPaise: number;
+            reason: string;
+            details: {
+                /** @constant */
+                kind: "discount";
+                /** @enum {string} */
+                scope: "bill_amount" | "bill_percent" | "lines";
+                percentBp: number | null;
+                lines: {
+                    lineNo: number;
+                    description: string;
+                    amountPaise: number;
+                    discountPaise: number;
+                }[];
+            } | {
+                /** @constant */
+                kind: "credit_note";
+                wholeBill: boolean;
+                lines: {
+                    lineNo: number;
+                    description: string;
+                    quantity: number | null;
+                    amountPaise: number | null;
+                    taxablePaise: number;
+                    cgstPaise: number;
+                    sgstPaise: number;
+                    totalPaise: number;
+                }[];
+            } | {
+                /** @constant */
+                kind: "refund";
+                /** @enum {string} */
+                source: "deposit" | "bill";
+                /** @enum {string} */
+                mode: "cash" | "upi" | "bank_transfer" | "cheque";
+            } | {
+                /** @constant */
+                kind: "receipt_void";
+                /** @enum {string} */
+                purpose: "bill_payment" | "deposit";
+                /** @enum {string} */
+                mode: "cash" | "upi" | "card" | "bank_transfer" | "cheque";
+            };
+            /** Format: uuid */
+            requestedById: string;
+            requestedByName: string | null;
+            /** Format: date-time */
+            requestedAt: string;
+            decidedByName: string | null;
+            decidedAt: string | null;
+            decisionNote: string | null;
+            resultInvoiceId: string | null;
+            creditNote: {
+                /** Format: uuid */
+                id: string;
+                number: string;
+                totalPaise: number;
+            } | null;
+            refund: {
+                /** Format: uuid */
+                id: string;
+                number: string;
+                /** Format: date-time */
+                createdAt: string;
+            } | null;
+            aboveLimit: boolean;
+        };
+        CreditNoteRequestsRejectRequest: {
+            note: string;
+        };
+        CreditNoteRequestsRejectResponse: {
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            kind: "discount" | "credit_note" | "refund" | "receipt_void";
+            /** @enum {string} */
+            status: "pending" | "approved" | "rejected";
+            patient: {
+                /** Format: uuid */
+                id: string;
+                uhid: string;
+                fullName: string;
+            };
+            invoiceId: string | null;
+            invoiceNumber: string | null;
+            receiptId: string | null;
+            receiptNumber: string | null;
+            amountPaise: number;
+            reason: string;
+            details: {
+                /** @constant */
+                kind: "discount";
+                /** @enum {string} */
+                scope: "bill_amount" | "bill_percent" | "lines";
+                percentBp: number | null;
+                lines: {
+                    lineNo: number;
+                    description: string;
+                    amountPaise: number;
+                    discountPaise: number;
+                }[];
+            } | {
+                /** @constant */
+                kind: "credit_note";
+                wholeBill: boolean;
+                lines: {
+                    lineNo: number;
+                    description: string;
+                    quantity: number | null;
+                    amountPaise: number | null;
+                    taxablePaise: number;
+                    cgstPaise: number;
+                    sgstPaise: number;
+                    totalPaise: number;
+                }[];
+            } | {
+                /** @constant */
+                kind: "refund";
+                /** @enum {string} */
+                source: "deposit" | "bill";
+                /** @enum {string} */
+                mode: "cash" | "upi" | "bank_transfer" | "cheque";
+            } | {
+                /** @constant */
+                kind: "receipt_void";
+                /** @enum {string} */
+                purpose: "bill_payment" | "deposit";
+                /** @enum {string} */
+                mode: "cash" | "upi" | "card" | "bank_transfer" | "cheque";
+            };
+            /** Format: uuid */
+            requestedById: string;
+            requestedByName: string | null;
+            /** Format: date-time */
+            requestedAt: string;
+            decidedByName: string | null;
+            decidedAt: string | null;
+            decisionNote: string | null;
+            resultInvoiceId: string | null;
+            creditNote: {
+                /** Format: uuid */
+                id: string;
+                number: string;
+                totalPaise: number;
+            } | null;
+            refund: {
+                /** Format: uuid */
+                id: string;
+                number: string;
+                /** Format: date-time */
+                createdAt: string;
+            } | null;
+            aboveLimit: boolean;
+        };
+        AdjustmentDocumentsCreditNoteResponse: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            requestId: string;
+            number: string;
+            /** Format: uuid */
+            invoiceId: string;
+            invoiceNumber: string;
+            wholeBill: boolean;
+            issuer: {
+                name: string;
+                addressLine: string | null;
+                city: string | null;
+                state: string | null;
+                pincode: string | null;
+                phone: string | null;
+                email: string | null;
+                gstin: string | null;
+            };
+            patient: {
+                /** Format: uuid */
+                id: string;
+                uhid: string;
+                fullName: string;
+                /** @enum {string} */
+                sex: "male" | "female" | "other" | "unknown";
+                dateOfBirth: string | null;
+                phone: string | null;
+                address: string | null;
+            };
+            lines: {
+                lineNo: number;
+                description: string;
+                quantity: number | null;
+                taxablePaise: number;
+                cgstPaise: number;
+                sgstPaise: number;
+                totalPaise: number;
+            }[];
+            taxablePaise: number;
+            cgstPaise: number;
+            sgstPaise: number;
+            roundOffPaise: number;
+            totalPaise: number;
+            reason: string;
+            requestedByName: string | null;
+            approvedByName: string | null;
+            /** Format: date-time */
+            createdAt: string;
         };
         DepartmentsListResponse: {
             data: {
@@ -975,6 +1773,286 @@ export interface components {
                 amountPaise: number;
             }[];
             heldPaise: number;
+            voidedAt: string | null;
+        };
+        DiscountRequestsRequestRequest: {
+            /** Format: uuid */
+            invoiceId: string;
+            reason: string;
+            discount: {
+                /** @constant */
+                scope: "bill_amount";
+                amountPaise: number;
+            } | {
+                /** @constant */
+                scope: "bill_percent";
+                percentBp: number;
+            } | {
+                /** @constant */
+                scope: "lines";
+                lines: {
+                    lineNo: number;
+                    discountPaise: number;
+                }[];
+            };
+        };
+        DiscountRequestsRequestResponse: {
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            kind: "discount" | "credit_note" | "refund" | "receipt_void";
+            /** @enum {string} */
+            status: "pending" | "approved" | "rejected";
+            patient: {
+                /** Format: uuid */
+                id: string;
+                uhid: string;
+                fullName: string;
+            };
+            invoiceId: string | null;
+            invoiceNumber: string | null;
+            receiptId: string | null;
+            receiptNumber: string | null;
+            amountPaise: number;
+            reason: string;
+            details: {
+                /** @constant */
+                kind: "discount";
+                /** @enum {string} */
+                scope: "bill_amount" | "bill_percent" | "lines";
+                percentBp: number | null;
+                lines: {
+                    lineNo: number;
+                    description: string;
+                    amountPaise: number;
+                    discountPaise: number;
+                }[];
+            } | {
+                /** @constant */
+                kind: "credit_note";
+                wholeBill: boolean;
+                lines: {
+                    lineNo: number;
+                    description: string;
+                    quantity: number | null;
+                    amountPaise: number | null;
+                    taxablePaise: number;
+                    cgstPaise: number;
+                    sgstPaise: number;
+                    totalPaise: number;
+                }[];
+            } | {
+                /** @constant */
+                kind: "refund";
+                /** @enum {string} */
+                source: "deposit" | "bill";
+                /** @enum {string} */
+                mode: "cash" | "upi" | "bank_transfer" | "cheque";
+            } | {
+                /** @constant */
+                kind: "receipt_void";
+                /** @enum {string} */
+                purpose: "bill_payment" | "deposit";
+                /** @enum {string} */
+                mode: "cash" | "upi" | "card" | "bank_transfer" | "cheque";
+            };
+            /** Format: uuid */
+            requestedById: string;
+            requestedByName: string | null;
+            /** Format: date-time */
+            requestedAt: string;
+            decidedByName: string | null;
+            decidedAt: string | null;
+            decisionNote: string | null;
+            resultInvoiceId: string | null;
+            creditNote: {
+                /** Format: uuid */
+                id: string;
+                number: string;
+                totalPaise: number;
+            } | null;
+            refund: {
+                /** Format: uuid */
+                id: string;
+                number: string;
+                /** Format: date-time */
+                createdAt: string;
+            } | null;
+            aboveLimit: boolean;
+        };
+        DiscountRequestsApproveRequest: {
+            note?: string;
+        };
+        DiscountRequestsApproveResponse: {
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            kind: "discount" | "credit_note" | "refund" | "receipt_void";
+            /** @enum {string} */
+            status: "pending" | "approved" | "rejected";
+            patient: {
+                /** Format: uuid */
+                id: string;
+                uhid: string;
+                fullName: string;
+            };
+            invoiceId: string | null;
+            invoiceNumber: string | null;
+            receiptId: string | null;
+            receiptNumber: string | null;
+            amountPaise: number;
+            reason: string;
+            details: {
+                /** @constant */
+                kind: "discount";
+                /** @enum {string} */
+                scope: "bill_amount" | "bill_percent" | "lines";
+                percentBp: number | null;
+                lines: {
+                    lineNo: number;
+                    description: string;
+                    amountPaise: number;
+                    discountPaise: number;
+                }[];
+            } | {
+                /** @constant */
+                kind: "credit_note";
+                wholeBill: boolean;
+                lines: {
+                    lineNo: number;
+                    description: string;
+                    quantity: number | null;
+                    amountPaise: number | null;
+                    taxablePaise: number;
+                    cgstPaise: number;
+                    sgstPaise: number;
+                    totalPaise: number;
+                }[];
+            } | {
+                /** @constant */
+                kind: "refund";
+                /** @enum {string} */
+                source: "deposit" | "bill";
+                /** @enum {string} */
+                mode: "cash" | "upi" | "bank_transfer" | "cheque";
+            } | {
+                /** @constant */
+                kind: "receipt_void";
+                /** @enum {string} */
+                purpose: "bill_payment" | "deposit";
+                /** @enum {string} */
+                mode: "cash" | "upi" | "card" | "bank_transfer" | "cheque";
+            };
+            /** Format: uuid */
+            requestedById: string;
+            requestedByName: string | null;
+            /** Format: date-time */
+            requestedAt: string;
+            decidedByName: string | null;
+            decidedAt: string | null;
+            decisionNote: string | null;
+            resultInvoiceId: string | null;
+            creditNote: {
+                /** Format: uuid */
+                id: string;
+                number: string;
+                totalPaise: number;
+            } | null;
+            refund: {
+                /** Format: uuid */
+                id: string;
+                number: string;
+                /** Format: date-time */
+                createdAt: string;
+            } | null;
+            aboveLimit: boolean;
+        };
+        DiscountRequestsRejectRequest: {
+            note: string;
+        };
+        DiscountRequestsRejectResponse: {
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            kind: "discount" | "credit_note" | "refund" | "receipt_void";
+            /** @enum {string} */
+            status: "pending" | "approved" | "rejected";
+            patient: {
+                /** Format: uuid */
+                id: string;
+                uhid: string;
+                fullName: string;
+            };
+            invoiceId: string | null;
+            invoiceNumber: string | null;
+            receiptId: string | null;
+            receiptNumber: string | null;
+            amountPaise: number;
+            reason: string;
+            details: {
+                /** @constant */
+                kind: "discount";
+                /** @enum {string} */
+                scope: "bill_amount" | "bill_percent" | "lines";
+                percentBp: number | null;
+                lines: {
+                    lineNo: number;
+                    description: string;
+                    amountPaise: number;
+                    discountPaise: number;
+                }[];
+            } | {
+                /** @constant */
+                kind: "credit_note";
+                wholeBill: boolean;
+                lines: {
+                    lineNo: number;
+                    description: string;
+                    quantity: number | null;
+                    amountPaise: number | null;
+                    taxablePaise: number;
+                    cgstPaise: number;
+                    sgstPaise: number;
+                    totalPaise: number;
+                }[];
+            } | {
+                /** @constant */
+                kind: "refund";
+                /** @enum {string} */
+                source: "deposit" | "bill";
+                /** @enum {string} */
+                mode: "cash" | "upi" | "bank_transfer" | "cheque";
+            } | {
+                /** @constant */
+                kind: "receipt_void";
+                /** @enum {string} */
+                purpose: "bill_payment" | "deposit";
+                /** @enum {string} */
+                mode: "cash" | "upi" | "card" | "bank_transfer" | "cheque";
+            };
+            /** Format: uuid */
+            requestedById: string;
+            requestedByName: string | null;
+            /** Format: date-time */
+            requestedAt: string;
+            decidedByName: string | null;
+            decidedAt: string | null;
+            decisionNote: string | null;
+            resultInvoiceId: string | null;
+            creditNote: {
+                /** Format: uuid */
+                id: string;
+                number: string;
+                totalPaise: number;
+            } | null;
+            refund: {
+                /** Format: uuid */
+                id: string;
+                number: string;
+                /** Format: date-time */
+                createdAt: string;
+            } | null;
+            aboveLimit: boolean;
         };
         DoctorsListResponse: {
             data: {
@@ -1092,7 +2170,10 @@ export interface components {
                 patientName: string;
                 totalPaise: number;
                 paidPaise: number;
+                creditedPaise: number;
+                refundedPaise: number;
                 duePaise: number;
+                refundablePaise: number;
                 issuedAt: string | null;
                 /** Format: date-time */
                 createdAt: string;
@@ -1121,7 +2202,10 @@ export interface components {
             roundOffPaise: number;
             totalPaise: number;
             paidPaise: number;
+            creditedPaise: number;
+            refundedPaise: number;
             duePaise: number;
+            refundablePaise: number;
             issuer: {
                 name: string;
                 addressLine: string | null;
@@ -1179,7 +2263,10 @@ export interface components {
             roundOffPaise: number;
             totalPaise: number;
             paidPaise: number;
+            creditedPaise: number;
+            refundedPaise: number;
             duePaise: number;
+            refundablePaise: number;
             issuer: {
                 name: string;
                 addressLine: string | null;
@@ -1240,7 +2327,10 @@ export interface components {
             roundOffPaise: number;
             totalPaise: number;
             paidPaise: number;
+            creditedPaise: number;
+            refundedPaise: number;
             duePaise: number;
+            refundablePaise: number;
             issuer: {
                 name: string;
                 addressLine: string | null;
@@ -1298,7 +2388,10 @@ export interface components {
             roundOffPaise: number;
             totalPaise: number;
             paidPaise: number;
+            creditedPaise: number;
+            refundedPaise: number;
             duePaise: number;
+            refundablePaise: number;
             issuer: {
                 name: string;
                 addressLine: string | null;
@@ -1356,7 +2449,10 @@ export interface components {
             roundOffPaise: number;
             totalPaise: number;
             paidPaise: number;
+            creditedPaise: number;
+            refundedPaise: number;
             duePaise: number;
+            refundablePaise: number;
             issuer: {
                 name: string;
                 addressLine: string | null;
@@ -1546,7 +2642,10 @@ export interface components {
                 patientName: string;
                 totalPaise: number;
                 paidPaise: number;
+                creditedPaise: number;
+                refundedPaise: number;
                 duePaise: number;
+                refundablePaise: number;
                 issuedAt: string | null;
                 /** Format: date-time */
                 createdAt: string;
@@ -1561,11 +2660,39 @@ export interface components {
                 mode: "cash" | "upi" | "card" | "bank_transfer" | "cheque";
                 amountPaise: number;
                 heldPaise: number;
+                voided: boolean;
+                shiftOpen: boolean;
+                /** Format: date-time */
+                createdAt: string;
+            }[];
+            creditNotes: {
+                /** Format: uuid */
+                id: string;
+                /** Format: uuid */
+                requestId: string;
+                number: string;
+                /** Format: uuid */
+                invoiceId: string;
+                invoiceNumber: string;
+                totalPaise: number;
+                /** Format: date-time */
+                createdAt: string;
+            }[];
+            refunds: {
+                /** Format: uuid */
+                id: string;
+                /** Format: uuid */
+                requestId: string;
+                number: string;
+                /** @enum {string} */
+                mode: "cash" | "upi" | "card" | "bank_transfer" | "cheque";
+                amountPaise: number;
                 /** Format: date-time */
                 createdAt: string;
             }[];
             depositHeldPaise: number;
             totalDuePaise: number;
+            refundablePaise: number;
         };
         PatientBillingListChargesResponse: {
             data: {
@@ -1724,6 +2851,7 @@ export interface components {
                 amountPaise: number;
             }[];
             heldPaise: number;
+            voidedAt: string | null;
         };
         PaymentsReceiptResponse: {
             /** Format: uuid */
@@ -1768,6 +2896,368 @@ export interface components {
                 amountPaise: number;
             }[];
             heldPaise: number;
+            voidedAt: string | null;
+        };
+        RefundRequestsRequestRequest: {
+            reason: string;
+            amountPaise: number;
+            /** @enum {string} */
+            mode: "cash" | "upi" | "bank_transfer" | "cheque";
+            source: {
+                /** @constant */
+                kind: "deposit";
+                /** Format: uuid */
+                receiptId: string;
+            } | {
+                /** @constant */
+                kind: "bill";
+                /** Format: uuid */
+                invoiceId: string;
+            };
+        };
+        RefundRequestsRequestResponse: {
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            kind: "discount" | "credit_note" | "refund" | "receipt_void";
+            /** @enum {string} */
+            status: "pending" | "approved" | "rejected";
+            patient: {
+                /** Format: uuid */
+                id: string;
+                uhid: string;
+                fullName: string;
+            };
+            invoiceId: string | null;
+            invoiceNumber: string | null;
+            receiptId: string | null;
+            receiptNumber: string | null;
+            amountPaise: number;
+            reason: string;
+            details: {
+                /** @constant */
+                kind: "discount";
+                /** @enum {string} */
+                scope: "bill_amount" | "bill_percent" | "lines";
+                percentBp: number | null;
+                lines: {
+                    lineNo: number;
+                    description: string;
+                    amountPaise: number;
+                    discountPaise: number;
+                }[];
+            } | {
+                /** @constant */
+                kind: "credit_note";
+                wholeBill: boolean;
+                lines: {
+                    lineNo: number;
+                    description: string;
+                    quantity: number | null;
+                    amountPaise: number | null;
+                    taxablePaise: number;
+                    cgstPaise: number;
+                    sgstPaise: number;
+                    totalPaise: number;
+                }[];
+            } | {
+                /** @constant */
+                kind: "refund";
+                /** @enum {string} */
+                source: "deposit" | "bill";
+                /** @enum {string} */
+                mode: "cash" | "upi" | "bank_transfer" | "cheque";
+            } | {
+                /** @constant */
+                kind: "receipt_void";
+                /** @enum {string} */
+                purpose: "bill_payment" | "deposit";
+                /** @enum {string} */
+                mode: "cash" | "upi" | "card" | "bank_transfer" | "cheque";
+            };
+            /** Format: uuid */
+            requestedById: string;
+            requestedByName: string | null;
+            /** Format: date-time */
+            requestedAt: string;
+            decidedByName: string | null;
+            decidedAt: string | null;
+            decisionNote: string | null;
+            resultInvoiceId: string | null;
+            creditNote: {
+                /** Format: uuid */
+                id: string;
+                number: string;
+                totalPaise: number;
+            } | null;
+            refund: {
+                /** Format: uuid */
+                id: string;
+                number: string;
+                /** Format: date-time */
+                createdAt: string;
+            } | null;
+            aboveLimit: boolean;
+        };
+        RefundRequestsApproveRequest: {
+            note?: string;
+        };
+        RefundRequestsApproveResponse: {
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            kind: "discount" | "credit_note" | "refund" | "receipt_void";
+            /** @enum {string} */
+            status: "pending" | "approved" | "rejected";
+            patient: {
+                /** Format: uuid */
+                id: string;
+                uhid: string;
+                fullName: string;
+            };
+            invoiceId: string | null;
+            invoiceNumber: string | null;
+            receiptId: string | null;
+            receiptNumber: string | null;
+            amountPaise: number;
+            reason: string;
+            details: {
+                /** @constant */
+                kind: "discount";
+                /** @enum {string} */
+                scope: "bill_amount" | "bill_percent" | "lines";
+                percentBp: number | null;
+                lines: {
+                    lineNo: number;
+                    description: string;
+                    amountPaise: number;
+                    discountPaise: number;
+                }[];
+            } | {
+                /** @constant */
+                kind: "credit_note";
+                wholeBill: boolean;
+                lines: {
+                    lineNo: number;
+                    description: string;
+                    quantity: number | null;
+                    amountPaise: number | null;
+                    taxablePaise: number;
+                    cgstPaise: number;
+                    sgstPaise: number;
+                    totalPaise: number;
+                }[];
+            } | {
+                /** @constant */
+                kind: "refund";
+                /** @enum {string} */
+                source: "deposit" | "bill";
+                /** @enum {string} */
+                mode: "cash" | "upi" | "bank_transfer" | "cheque";
+            } | {
+                /** @constant */
+                kind: "receipt_void";
+                /** @enum {string} */
+                purpose: "bill_payment" | "deposit";
+                /** @enum {string} */
+                mode: "cash" | "upi" | "card" | "bank_transfer" | "cheque";
+            };
+            /** Format: uuid */
+            requestedById: string;
+            requestedByName: string | null;
+            /** Format: date-time */
+            requestedAt: string;
+            decidedByName: string | null;
+            decidedAt: string | null;
+            decisionNote: string | null;
+            resultInvoiceId: string | null;
+            creditNote: {
+                /** Format: uuid */
+                id: string;
+                number: string;
+                totalPaise: number;
+            } | null;
+            refund: {
+                /** Format: uuid */
+                id: string;
+                number: string;
+                /** Format: date-time */
+                createdAt: string;
+            } | null;
+            aboveLimit: boolean;
+        };
+        RefundRequestsPayRequest: {
+            reference?: string;
+            bankName?: string;
+        };
+        RefundRequestsPayResponse: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            requestId: string;
+            number: string;
+            /** @enum {string} */
+            mode: "cash" | "upi" | "card" | "bank_transfer" | "cheque";
+            amountPaise: number;
+            reference: string | null;
+            bankName: string | null;
+            /** @enum {string} */
+            source: "deposit" | "bill";
+            sourceNumber: string;
+            issuer: {
+                name: string;
+                addressLine: string | null;
+                city: string | null;
+                state: string | null;
+                pincode: string | null;
+                phone: string | null;
+                email: string | null;
+                gstin: string | null;
+            };
+            patient: {
+                /** Format: uuid */
+                id: string;
+                uhid: string;
+                fullName: string;
+                /** @enum {string} */
+                sex: "male" | "female" | "other" | "unknown";
+                dateOfBirth: string | null;
+                phone: string | null;
+                address: string | null;
+            };
+            reason: string;
+            paidByName: string | null;
+            approvedByName: string | null;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        RefundRequestsRejectRequest: {
+            note: string;
+        };
+        RefundRequestsRejectResponse: {
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            kind: "discount" | "credit_note" | "refund" | "receipt_void";
+            /** @enum {string} */
+            status: "pending" | "approved" | "rejected";
+            patient: {
+                /** Format: uuid */
+                id: string;
+                uhid: string;
+                fullName: string;
+            };
+            invoiceId: string | null;
+            invoiceNumber: string | null;
+            receiptId: string | null;
+            receiptNumber: string | null;
+            amountPaise: number;
+            reason: string;
+            details: {
+                /** @constant */
+                kind: "discount";
+                /** @enum {string} */
+                scope: "bill_amount" | "bill_percent" | "lines";
+                percentBp: number | null;
+                lines: {
+                    lineNo: number;
+                    description: string;
+                    amountPaise: number;
+                    discountPaise: number;
+                }[];
+            } | {
+                /** @constant */
+                kind: "credit_note";
+                wholeBill: boolean;
+                lines: {
+                    lineNo: number;
+                    description: string;
+                    quantity: number | null;
+                    amountPaise: number | null;
+                    taxablePaise: number;
+                    cgstPaise: number;
+                    sgstPaise: number;
+                    totalPaise: number;
+                }[];
+            } | {
+                /** @constant */
+                kind: "refund";
+                /** @enum {string} */
+                source: "deposit" | "bill";
+                /** @enum {string} */
+                mode: "cash" | "upi" | "bank_transfer" | "cheque";
+            } | {
+                /** @constant */
+                kind: "receipt_void";
+                /** @enum {string} */
+                purpose: "bill_payment" | "deposit";
+                /** @enum {string} */
+                mode: "cash" | "upi" | "card" | "bank_transfer" | "cheque";
+            };
+            /** Format: uuid */
+            requestedById: string;
+            requestedByName: string | null;
+            /** Format: date-time */
+            requestedAt: string;
+            decidedByName: string | null;
+            decidedAt: string | null;
+            decisionNote: string | null;
+            resultInvoiceId: string | null;
+            creditNote: {
+                /** Format: uuid */
+                id: string;
+                number: string;
+                totalPaise: number;
+            } | null;
+            refund: {
+                /** Format: uuid */
+                id: string;
+                number: string;
+                /** Format: date-time */
+                createdAt: string;
+            } | null;
+            aboveLimit: boolean;
+        };
+        AdjustmentDocumentsRefundResponse: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            requestId: string;
+            number: string;
+            /** @enum {string} */
+            mode: "cash" | "upi" | "card" | "bank_transfer" | "cheque";
+            amountPaise: number;
+            reference: string | null;
+            bankName: string | null;
+            /** @enum {string} */
+            source: "deposit" | "bill";
+            sourceNumber: string;
+            issuer: {
+                name: string;
+                addressLine: string | null;
+                city: string | null;
+                state: string | null;
+                pincode: string | null;
+                phone: string | null;
+                email: string | null;
+                gstin: string | null;
+            };
+            patient: {
+                /** Format: uuid */
+                id: string;
+                uhid: string;
+                fullName: string;
+                /** @enum {string} */
+                sex: "male" | "female" | "other" | "unknown";
+                dateOfBirth: string | null;
+                phone: string | null;
+                address: string | null;
+            };
+            reason: string;
+            paidByName: string | null;
+            approvedByName: string | null;
+            /** Format: date-time */
+            createdAt: string;
         };
         RolesListResponse: {
             data: {
@@ -2001,6 +3491,269 @@ export interface components {
         UsersSetPasswordRequest: {
             password: string;
         };
+        VoidRequestsRequestRequest: {
+            /** Format: uuid */
+            receiptId: string;
+            reason: string;
+        };
+        VoidRequestsRequestResponse: {
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            kind: "discount" | "credit_note" | "refund" | "receipt_void";
+            /** @enum {string} */
+            status: "pending" | "approved" | "rejected";
+            patient: {
+                /** Format: uuid */
+                id: string;
+                uhid: string;
+                fullName: string;
+            };
+            invoiceId: string | null;
+            invoiceNumber: string | null;
+            receiptId: string | null;
+            receiptNumber: string | null;
+            amountPaise: number;
+            reason: string;
+            details: {
+                /** @constant */
+                kind: "discount";
+                /** @enum {string} */
+                scope: "bill_amount" | "bill_percent" | "lines";
+                percentBp: number | null;
+                lines: {
+                    lineNo: number;
+                    description: string;
+                    amountPaise: number;
+                    discountPaise: number;
+                }[];
+            } | {
+                /** @constant */
+                kind: "credit_note";
+                wholeBill: boolean;
+                lines: {
+                    lineNo: number;
+                    description: string;
+                    quantity: number | null;
+                    amountPaise: number | null;
+                    taxablePaise: number;
+                    cgstPaise: number;
+                    sgstPaise: number;
+                    totalPaise: number;
+                }[];
+            } | {
+                /** @constant */
+                kind: "refund";
+                /** @enum {string} */
+                source: "deposit" | "bill";
+                /** @enum {string} */
+                mode: "cash" | "upi" | "bank_transfer" | "cheque";
+            } | {
+                /** @constant */
+                kind: "receipt_void";
+                /** @enum {string} */
+                purpose: "bill_payment" | "deposit";
+                /** @enum {string} */
+                mode: "cash" | "upi" | "card" | "bank_transfer" | "cheque";
+            };
+            /** Format: uuid */
+            requestedById: string;
+            requestedByName: string | null;
+            /** Format: date-time */
+            requestedAt: string;
+            decidedByName: string | null;
+            decidedAt: string | null;
+            decisionNote: string | null;
+            resultInvoiceId: string | null;
+            creditNote: {
+                /** Format: uuid */
+                id: string;
+                number: string;
+                totalPaise: number;
+            } | null;
+            refund: {
+                /** Format: uuid */
+                id: string;
+                number: string;
+                /** Format: date-time */
+                createdAt: string;
+            } | null;
+            aboveLimit: boolean;
+        };
+        VoidRequestsApproveRequest: {
+            note?: string;
+        };
+        VoidRequestsApproveResponse: {
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            kind: "discount" | "credit_note" | "refund" | "receipt_void";
+            /** @enum {string} */
+            status: "pending" | "approved" | "rejected";
+            patient: {
+                /** Format: uuid */
+                id: string;
+                uhid: string;
+                fullName: string;
+            };
+            invoiceId: string | null;
+            invoiceNumber: string | null;
+            receiptId: string | null;
+            receiptNumber: string | null;
+            amountPaise: number;
+            reason: string;
+            details: {
+                /** @constant */
+                kind: "discount";
+                /** @enum {string} */
+                scope: "bill_amount" | "bill_percent" | "lines";
+                percentBp: number | null;
+                lines: {
+                    lineNo: number;
+                    description: string;
+                    amountPaise: number;
+                    discountPaise: number;
+                }[];
+            } | {
+                /** @constant */
+                kind: "credit_note";
+                wholeBill: boolean;
+                lines: {
+                    lineNo: number;
+                    description: string;
+                    quantity: number | null;
+                    amountPaise: number | null;
+                    taxablePaise: number;
+                    cgstPaise: number;
+                    sgstPaise: number;
+                    totalPaise: number;
+                }[];
+            } | {
+                /** @constant */
+                kind: "refund";
+                /** @enum {string} */
+                source: "deposit" | "bill";
+                /** @enum {string} */
+                mode: "cash" | "upi" | "bank_transfer" | "cheque";
+            } | {
+                /** @constant */
+                kind: "receipt_void";
+                /** @enum {string} */
+                purpose: "bill_payment" | "deposit";
+                /** @enum {string} */
+                mode: "cash" | "upi" | "card" | "bank_transfer" | "cheque";
+            };
+            /** Format: uuid */
+            requestedById: string;
+            requestedByName: string | null;
+            /** Format: date-time */
+            requestedAt: string;
+            decidedByName: string | null;
+            decidedAt: string | null;
+            decisionNote: string | null;
+            resultInvoiceId: string | null;
+            creditNote: {
+                /** Format: uuid */
+                id: string;
+                number: string;
+                totalPaise: number;
+            } | null;
+            refund: {
+                /** Format: uuid */
+                id: string;
+                number: string;
+                /** Format: date-time */
+                createdAt: string;
+            } | null;
+            aboveLimit: boolean;
+        };
+        VoidRequestsRejectRequest: {
+            note: string;
+        };
+        VoidRequestsRejectResponse: {
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            kind: "discount" | "credit_note" | "refund" | "receipt_void";
+            /** @enum {string} */
+            status: "pending" | "approved" | "rejected";
+            patient: {
+                /** Format: uuid */
+                id: string;
+                uhid: string;
+                fullName: string;
+            };
+            invoiceId: string | null;
+            invoiceNumber: string | null;
+            receiptId: string | null;
+            receiptNumber: string | null;
+            amountPaise: number;
+            reason: string;
+            details: {
+                /** @constant */
+                kind: "discount";
+                /** @enum {string} */
+                scope: "bill_amount" | "bill_percent" | "lines";
+                percentBp: number | null;
+                lines: {
+                    lineNo: number;
+                    description: string;
+                    amountPaise: number;
+                    discountPaise: number;
+                }[];
+            } | {
+                /** @constant */
+                kind: "credit_note";
+                wholeBill: boolean;
+                lines: {
+                    lineNo: number;
+                    description: string;
+                    quantity: number | null;
+                    amountPaise: number | null;
+                    taxablePaise: number;
+                    cgstPaise: number;
+                    sgstPaise: number;
+                    totalPaise: number;
+                }[];
+            } | {
+                /** @constant */
+                kind: "refund";
+                /** @enum {string} */
+                source: "deposit" | "bill";
+                /** @enum {string} */
+                mode: "cash" | "upi" | "bank_transfer" | "cheque";
+            } | {
+                /** @constant */
+                kind: "receipt_void";
+                /** @enum {string} */
+                purpose: "bill_payment" | "deposit";
+                /** @enum {string} */
+                mode: "cash" | "upi" | "card" | "bank_transfer" | "cheque";
+            };
+            /** Format: uuid */
+            requestedById: string;
+            requestedByName: string | null;
+            /** Format: date-time */
+            requestedAt: string;
+            decidedByName: string | null;
+            decidedAt: string | null;
+            decisionNote: string | null;
+            resultInvoiceId: string | null;
+            creditNote: {
+                /** Format: uuid */
+                id: string;
+                number: string;
+                totalPaise: number;
+            } | null;
+            refund: {
+                /** Format: uuid */
+                id: string;
+                number: string;
+                /** Format: date-time */
+                createdAt: string;
+            } | null;
+            aboveLimit: boolean;
+        };
         WardsListResponse: {
             data: {
                 /** Format: uuid */
@@ -2080,6 +3833,74 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    approvalRequestsList: {
+        parameters: {
+            query?: {
+                page?: number;
+                pageSize?: number;
+                sort?: string;
+                status?: "pending" | "approved" | "rejected";
+                kind?: "discount" | "credit_note" | "refund" | "receipt_void";
+                patientId?: string;
+                invoiceId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApprovalRequestsListResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    approvalRequestsGet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApprovalRequestsGetResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
     authCsrf: {
         parameters: {
             query?: never;
@@ -2378,6 +4199,151 @@ export interface operations {
             };
         };
     };
+    creditNoteRequestsRequest: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Value of the CSRF cookie */
+                "X-CSRF-Token": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreditNoteRequestsRequestRequest"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreditNoteRequestsRequestResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    creditNoteRequestsApprove: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Value of the CSRF cookie */
+                "X-CSRF-Token": string;
+                /** @description Unique per financial request. A repeat returns the stored response. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreditNoteRequestsApproveRequest"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreditNoteRequestsApproveResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    creditNoteRequestsReject: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Value of the CSRF cookie */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreditNoteRequestsRejectRequest"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreditNoteRequestsRejectResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    adjustmentDocumentsCreditNote: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdjustmentDocumentsCreditNoteResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
     departmentsList: {
         parameters: {
             query?: {
@@ -2512,6 +4478,120 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PaymentsDepositResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    discountRequestsRequest: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Value of the CSRF cookie */
+                "X-CSRF-Token": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DiscountRequestsRequestRequest"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DiscountRequestsRequestResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    discountRequestsApprove: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Value of the CSRF cookie */
+                "X-CSRF-Token": string;
+                /** @description Unique per financial request. A repeat returns the stored response. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DiscountRequestsApproveRequest"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DiscountRequestsApproveResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    discountRequestsReject: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Value of the CSRF cookie */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DiscountRequestsRejectRequest"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DiscountRequestsRejectResponse"];
                 };
             };
             /** @description Error */
@@ -3295,6 +5375,191 @@ export interface operations {
             };
         };
     };
+    refundRequestsRequest: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Value of the CSRF cookie */
+                "X-CSRF-Token": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RefundRequestsRequestRequest"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RefundRequestsRequestResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    refundRequestsApprove: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Value of the CSRF cookie */
+                "X-CSRF-Token": string;
+                /** @description Unique per financial request. A repeat returns the stored response. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RefundRequestsApproveRequest"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RefundRequestsApproveResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    refundRequestsPay: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Value of the CSRF cookie */
+                "X-CSRF-Token": string;
+                /** @description Unique per financial request. A repeat returns the stored response. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RefundRequestsPayRequest"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RefundRequestsPayResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    refundRequestsReject: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Value of the CSRF cookie */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RefundRequestsRejectRequest"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RefundRequestsRejectResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    adjustmentDocumentsRefund: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdjustmentDocumentsRefundResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
     rolesList: {
         parameters: {
             query?: never;
@@ -3786,6 +6051,120 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    voidRequestsRequest: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Value of the CSRF cookie */
+                "X-CSRF-Token": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VoidRequestsRequestRequest"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VoidRequestsRequestResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    voidRequestsApprove: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Value of the CSRF cookie */
+                "X-CSRF-Token": string;
+                /** @description Unique per financial request. A repeat returns the stored response. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VoidRequestsApproveRequest"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VoidRequestsApproveResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    voidRequestsReject: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Value of the CSRF cookie */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VoidRequestsRejectRequest"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VoidRequestsRejectResponse"];
+                };
             };
             /** @description Error */
             default: {

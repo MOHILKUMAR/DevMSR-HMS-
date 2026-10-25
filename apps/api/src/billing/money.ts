@@ -75,3 +75,101 @@ export function billAmounts(inputs: readonly LineInput[]): BillAmounts {
     totalPaise: roundedPaise,
   };
 }
+
+/** A percentage in basis points (1000 is 10%) of an amount, rounded half up to the paisa. */
+export function percentOf(amountPaise: bigint, bp: number): bigint {
+  return (amountPaise * BigInt(bp) + 5_000n) / 10_000n;
+}
+
+/**
+ * A whole-bill discount shared across lines in proportion to their amounts (docs/billing-rules.md).
+ * Each share is rounded down and the paise left over go to the largest line. Only when that line has
+ * no room left (tiny lines) does the rest move on to the next largest.
+ */
+export function spreadDiscount(amounts: readonly bigint[], discountPaise: bigint): bigint[] {
+  const total = amounts.reduce((sum, amount) => sum + amount, 0n);
+  if (discountPaise < 0n || discountPaise > total) throw new Error('A discount is between nothing and the whole bill');
+  if (total === 0n) return amounts.map(() => 0n);
+  const shares = amounts.map((amount) => (amount * discountPaise) / total);
+  let left = discountPaise - shares.reduce((sum, share) => sum + share, 0n);
+  const byAmount = amounts
+    .map((amount, index) => ({ amount, index }))
+    .sort((a, b) => (b.amount > a.amount ? 1 : b.amount < a.amount ? -1 : a.index - b.index));
+  for (const { amount, index } of byAmount) {
+    if (left === 0n) break;
+    const share = shares[index] ?? 0n;
+    const room = amount - share;
+    const take = room < left ? room : left;
+    shares[index] = share + take;
+    left -= take;
+  }
+  return shares;
+}
+
+export interface CreditableLine {
+  quantity: number;
+  taxRateBp: number;
+  taxablePaise: bigint;
+  cgstPaise: bigint;
+  sgstPaise: bigint;
+  /** What earlier credit notes already gave back on this line. */
+  creditedTaxablePaise: bigint;
+  creditedCgstPaise: bigint;
+  creditedSgstPaise: bigint;
+}
+
+export interface CreditAmounts {
+  taxablePaise: bigint;
+  cgstPaise: bigint;
+  sgstPaise: bigint;
+  totalPaise: bigint;
+}
+
+/**
+ * What a credit note gives back on one bill line, for a number of units or a taxable amount. Tax is
+ * reversed at the line's own rate. Crediting all that is left of a line gives back all its tax that
+ * is left, so a line credited in parts never gains or loses a paisa. Null when the ask is more than
+ * is left on the line.
+ */
+export function creditLine(line: CreditableLine, ask: { quantity: number } | { amountPaise: bigint }): CreditAmounts | null {
+  const leftTaxable = line.taxablePaise - line.creditedTaxablePaise;
+  let taxablePaise: bigint;
+  if ('quantity' in ask) {
+    if (ask.quantity <= 0 || ask.quantity > line.quantity) return null;
+    const units = BigInt(line.quantity);
+    // The line's taxable value for that many units, rounded half up.
+    taxablePaise = (2n * line.taxablePaise * BigInt(ask.quantity) + units) / (2n * units);
+    if (taxablePaise > leftTaxable) taxablePaise = leftTaxable;
+  } else {
+    taxablePaise = ask.amountPaise;
+  }
+  if (taxablePaise <= 0n || taxablePaise > leftTaxable) return null;
+  const leftCgst = line.cgstPaise - line.creditedCgstPaise;
+  const leftSgst = line.sgstPaise - line.creditedSgstPaise;
+  let cgstPaise = leftCgst;
+  let sgstPaise = leftSgst;
+  if (taxablePaise < leftTaxable) {
+    const split = splitGst(taxPaise(taxablePaise, line.taxRateBp));
+    cgstPaise = split.cgstPaise < leftCgst ? split.cgstPaise : leftCgst;
+    sgstPaise = split.sgstPaise < leftSgst ? split.sgstPaise : leftSgst;
+  }
+  return { taxablePaise, cgstPaise, sgstPaise, totalPaise: taxablePaise + cgstPaise + sgstPaise };
+}
+
+/**
+ * A credit note's total, rounded to the rupee like a bill. The note that clears the bill takes
+ * exactly what is left of the bill total, so all of a bill's credit notes add up to it. Null when
+ * the note would round to nothing.
+ */
+export function creditNoteTotal(
+  exactPaise: bigint,
+  billTotalPaise: bigint,
+  creditedBeforePaise: bigint,
+  clearsBill: boolean,
+): { totalPaise: bigint; roundOffPaise: bigint } | null {
+  const left = billTotalPaise - creditedBeforePaise;
+  let totalPaise = clearsBill ? left : roundToRupee(exactPaise).roundedPaise;
+  if (totalPaise > left) totalPaise = left;
+  if (totalPaise <= 0n) return null;
+  return { totalPaise, roundOffPaise: totalPaise - exactPaise };
+}

@@ -57,6 +57,14 @@ describe('permission matrix', () => {
     expect(approvers).toEqual(['md']);
   });
 
+  it('keeps discounts above the finance limit for the MD; finance approves credit notes and voids (docs/billing-rules.md)', () => {
+    const holders = (code: string) => roles.filter(([, role]) => (role.permissions as readonly string[]).includes(code)).map(([name]) => name);
+    expect(holders('billing.discount.approve-above-limit')).toEqual(['md']);
+    expect(holders('billing.credit-note.approve').sort()).toEqual(['accountant', 'md']);
+    expect(holders('billing.void.approve').sort()).toEqual(['accountant', 'md']);
+    expect(holders('billing.discount.approve').sort()).toEqual(['accountant', 'md']);
+  });
+
   it('matches the role table: clerks and cashiers cannot approve, doctors and nurses cannot bill', () => {
     const approvals = (code: keyof typeof ROLES) => ROLES[code].permissions.filter((p: string) => p.endsWith('.approve'));
     expect(approvals('billing_clerk')).toEqual([]);

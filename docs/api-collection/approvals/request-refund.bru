@@ -1,0 +1,36 @@
+meta {
+  name: Ask for a cash refund from a deposit
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/refund-requests
+  body: json
+  auth: none
+}
+
+headers {
+  X-CSRF-Token: {{csrfToken}}
+}
+
+body:json {
+  {
+    "reason": "Discharged early",
+    "amountPaise": 10000,
+    "mode": "cash",
+    "source": { "kind": "deposit", "receiptId": "{{receiptId}}" }
+  }
+}
+
+docs {
+  As the cashier, with receiptId set to a deposit receipt. The MD approves it; the cashier then pays it out.
+}
+
+script:post-response {
+  bru.setVar("refundRequestId", res.body.id);
+}
+
+assert {
+  res.status: eq 201
+}
