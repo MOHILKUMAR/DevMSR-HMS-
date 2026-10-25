@@ -88,10 +88,10 @@ From `CLAUDE.md` section 9.
 A copy of production with fake data, used for UAT, printer checks and the VAPT.
 
 - [x] A production Docker Compose file and a Caddyfile (`app.` and `api.` subdomains): `deploy/compose.prod.yml` and `deploy/Caddyfile`, rehearsed in CI (`.github/workflows/deploy-rehearsal.yml`). **Dev**
-- [ ] Oracle Cloud VM with Docker, the two images, Caddy, and Cloudflare in front. Partly: the web and API images build in CI and run as the non-root `node` user with health checks, and the setup steps are in `docs/runbooks/` (server hardening, Cloudflare, deploy). **Dev**
+- [ ] Oracle Cloud VM with Docker, the two images, Caddy, and Cloudflare in front, on a separate staging domain. Partly: the images build and deploy in CI, and [`docs/runbooks/staging-oracle-cloud.md`](runbooks/staging-oracle-cloud.md) walks through the server, domain and accounts step by step. The first real run is the developer's. **Dev**
 - [ ] Its own Supabase project and R2 bucket, sharing nothing with production. **Dev**
 - [x] A deploy script the developer runs: build images from a tagged commit, run `pnpm db:deploy`, start the containers, check `/health`, and keep the previous images for rollback. `deploy/deploy.sh`, `deploy/rollback.sh` and `deploy/restart.sh`, rehearsed in CI; first real run on staging still to come. **Dev**
-- [ ] Load the fake demo hospital, then rehearse entering the hospital's real masters (tariffs, staff names, wards). No real patients on staging. **Dev + Hospital**
+- [ ] Load the fake demo hospital, then rehearse entering the hospital's real masters (tariffs, staff names, wards). No real patients on staging. Partly: `deploy/seed-staging.sh` loads it on the server (staging only, rehearsed in CI). **Dev + Hospital**
 
 ## Stage 6: Production infrastructure and operations
 

@@ -4,6 +4,7 @@ Steps the developer follows on servers and accounts. Claude Code writes and test
 
 | Runbook | Covers |
 | --- | --- |
+| [staging-oracle-cloud.md](staging-oracle-cloud.md) | Staging from nothing: the separate domain, the Oracle Cloud server, Supabase and Cloudflare for staging, the first release and the demo hospital |
 | [server-hardening.md](server-hardening.md) | SSH by key only, firewalls, NTP, automatic updates, Docker settings |
 | [cloudflare.md](cloudflare.md) | DNS, TLS, origin certificate, authenticated origin pulls, real client IPs |
 | [supabase.md](supabase.md) | Mumbai region, Data API off, network restrictions, which connection string, the connection check |
@@ -16,6 +17,6 @@ Steps the developer follows on servers and accounts. Claude Code writes and test
 | [load-test.md](load-test.md) | k6 billing counter load test and the number series check |
 | [zap-scan.md](zap-scan.md) | OWASP ZAP baseline scan against staging |
 
-Order for a new server: hardening, Cloudflare, Supabase, secrets, the first deploy, then backups, monitoring and log retention.
+Order for a new server: hardening, Cloudflare, Supabase, secrets, the first deploy, then backups, monitoring and log retention. For staging, [staging-oracle-cloud.md](staging-oracle-cloud.md) walks through all of it in order.
 
 The summary for the hospital is [../security-practices.md](../security-practices.md).

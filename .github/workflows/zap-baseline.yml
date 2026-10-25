@@ -8,10 +8,10 @@ on:
   workflow_dispatch:
     inputs:
       web_url:
-        description: Staging web app URL, for example https://app.staging.example.in
+        description: Staging web app URL, for example https://app.myhospital-staging.in
         required: true
       api_url:
-        description: Staging API health URL, for example https://api.staging.example.in/api/v1/health
+        description: Staging API health URL, for example https://api.myhospital-staging.in/api/v1/health
         required: true
   pull_request:
     paths:

@@ -6,7 +6,7 @@
 //
 // Fake demo hospital only (pnpm db:seed): never run it against production.
 //
-//   k6 run -e BASE_URL=https://api.staging.example.in -e PASSWORD=... tests/load/billing-counter.js
+//   k6 run -e BASE_URL=https://api.myhospital-staging.in -e PASSWORD=... tests/load/billing-counter.js
 //
 // Settings (-e NAME=value):
 //   BASE_URL       API origin, without /api/v1 (default http://localhost:4000)

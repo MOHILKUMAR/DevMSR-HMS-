@@ -28,7 +28,7 @@ Before go-live, after feature freeze, on the staging server that matches product
 
    ```bash
    docker run --rm -v "$PWD/tests/load:/scripts:ro" grafana/k6:2.2.0 run \
-     -e BASE_URL=https://api.staging.example.in -e PASSWORD='<staging demo password>' \
+     -e BASE_URL=https://api.myhospital-staging.in -e PASSWORD='<staging demo password>' \
      -e COUNTERS=10 -e DURATION=10m -e THINK_SECONDS=5 /scripts/billing-counter.js
    ```
 

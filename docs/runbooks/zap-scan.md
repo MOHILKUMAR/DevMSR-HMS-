@@ -4,7 +4,7 @@ A passive scan for missing security headers and common web flaws (`CLAUDE.md` se
 
 ## Running it
 
-- **Against staging:** Actions, "OWASP ZAP baseline", Run workflow, with the staging web URL (for example `https://app.staging.example.in`) and the API health URL (`https://api.staging.example.in/api/v1/health`). The workflow runs only from `main`, so this works once it is merged.
+- **Against staging:** Actions, "OWASP ZAP baseline", Run workflow, with the staging web URL (for example `https://app.myhospital-staging.in`) and the API health URL (`https://api.myhospital-staging.in/api/v1/health`). The workflow runs only from `main`, so this works once it is merged.
 - **On pull requests** that change the scan itself, it builds the app and scans it on the runner over plain HTTP, so HSTS is not checked there.
 - Once staging is up, add a weekly `schedule` to the workflow with the staging URLs.
 
