@@ -61,7 +61,7 @@ After pulling changes that add permissions, run `pnpm db:seed` again: it brings 
 | `packages/validation` | Zod schemas shared by web and api. |
 | `packages/types` | Shared TypeScript types. |
 | `packages/config` | Shared ESLint and tsconfig. |
-| `docs/` | Billing rules, decisions, API list, feature checklist, Bruno collection. |
+| `docs/` | Billing rules, decisions, API list, feature checklist, go-live checklist, Bruno collection. |
 
 ## Commands
 
