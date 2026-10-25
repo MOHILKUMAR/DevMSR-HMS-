@@ -101,7 +101,7 @@ After editing an env file or replacing a certificate: `deploy/restart.sh api` (o
    HMS_TAG=v1.3.2 HMS_HOME=/opt/hms docker compose --project-name hms --env-file /opt/hms/env/deploy.env -f compose.prod.yml up -d --wait
    ```
 
-3. Read the logs: `journalctl CONTAINER_TAG=hms-api --since "30 min ago"` (also `hms-web`, `hms-caddy`).
+3. Read the logs: `journalctl -t hms-api-1 --since "30 min ago"` (also `hms-web-1`, `hms-caddy-1`).
 4. If the database itself is damaged, follow the restore runbook and tell the hospital to switch to the paper downtime procedure.
 
 ## Rehearsal in CI
