@@ -34,6 +34,12 @@ docker compose up -d
 pnpm db:migrate
 ```
 
+Create the API's own database login (the user in `DATABASE_URL`). It belongs to the restricted `hms_api` role, which cannot change the schema or audit rows; migrations keep using the owner in `DIRECT_URL`.
+
+```bash
+pnpm db:api-user
+```
+
 ```bash
 pnpm db:seed
 ```
@@ -52,7 +58,7 @@ To bill, sign in as `billing`: under **Billing**, find the patient, add charges,
 
 Discounts, credit notes, refunds and receipt voids need a second person. The billing clerk asks for a discount on a draft bill or a credit note on an issued one; the cashier asks for a refund or a receipt void. `accounts` approves discounts up to Rs 1,000, credit notes and voids under **Approvals**; `md` approves larger discounts and every refund. The cashier then pays the refund out from their shift.
 
-After pulling changes that add permissions, run `pnpm db:seed` again: it brings the seeded roles in line with `apps/api/src/auth/permission-matrix.ts` and keeps your data.
+After pulling changes that add permissions, run `pnpm db:sync-roles --apply`: it brings every hospital's seeded roles in line with `apps/api/src/auth/permission-matrix.ts` and keeps your data (`pnpm db:seed` does the same for the demo hospital). The API logs a warning at start-up while they differ.
 
 ## Layout
 
@@ -79,6 +85,8 @@ After pulling changes that add permissions, run `pnpm db:seed` again: it brings 
 | `pnpm db:seed` | Loads the fake demo hospital |
 | `pnpm db:reset` | Drops the development database and reapplies every migration |
 | `pnpm db:deploy` | Applies pending migrations (staging and production) |
+| `pnpm db:api-user` | Creates the API's database login from `DATABASE_URL`, or resets its password (once per environment) |
+| `pnpm db:sync-roles` | Shows how seeded roles differ from the permission matrix; `--apply` fixes them in every hospital, with audit events (every deploy) |
 | `pnpm api:spec` | Regenerates `docs/openapi.json` and the web app's API types |
 | `pnpm test:e2e` | Playwright tests against the seeded demo hospital, reusing a running `pnpm dev` |
 

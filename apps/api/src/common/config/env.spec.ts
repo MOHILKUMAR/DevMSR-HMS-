@@ -40,6 +40,24 @@ describe('loadEnv', () => {
     );
   });
 
+  it('defaults to the development deployment with mock adapters', () => {
+    expect(loadEnv(required)).toMatchObject({
+      APP_ENV: 'development',
+      PAYMENTS_PROVIDER: 'mock',
+      WHATSAPP_PROVIDER: 'mock',
+      SMS_PROVIDER: 'mock',
+      EMAIL_PROVIDER: 'mock',
+      ABDM_MODE: 'off',
+    });
+    expect(loadEnv({ ...required, SENTRY_DSN: '' }).SENTRY_DSN).toBeUndefined();
+  });
+
+  it('needs APP_ENV for a production build, so staging and production are never confused', () => {
+    expect(() => loadEnv({ ...required, NODE_ENV: 'production' })).toThrow('Invalid environment variables: APP_ENV');
+    expect(loadEnv({ ...required, NODE_ENV: 'production', APP_ENV: 'staging' }).APP_ENV).toBe('staging');
+    expect(() => loadEnv({ ...required, APP_ENV: 'production' })).toThrow('Invalid environment variables: NODE_ENV');
+  });
+
   it('names the invalid keys without echoing their values', () => {
     expect(() => loadEnv({ ...required, PORT: 'not-a-port', LOG_LEVEL: 'loud' })).toThrow(
       'Invalid environment variables: PORT, LOG_LEVEL',

@@ -20,6 +20,7 @@ import { IdempotencyModule } from './common/idempotency/idempotency.module.js';
 import { loggerOptions } from './common/logging/logger-options.js';
 import { PrismaModule } from './common/prisma/prisma.module.js';
 import { RouteGuardrailsModule } from './common/routes/route-guardrails.js';
+import { StartupChecksModule } from './common/startup/startup-checks.js';
 import { ApprovalsModule } from './approvals/approvals.module.js';
 import { BedsModule } from './beds/beds.module.js';
 import { BillingModule } from './billing/billing.module.js';
@@ -44,6 +45,7 @@ export class AppModule {
         AuditModule,
         IdempotencyModule,
         RouteGuardrailsModule,
+        StartupChecksModule,
         AuthModule,
         HealthModule,
         UsersModule,

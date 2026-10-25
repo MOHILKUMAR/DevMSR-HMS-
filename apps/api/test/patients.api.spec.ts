@@ -108,7 +108,7 @@ describe('patient registration and search', () => {
     });
     const key = { hospitalId_kind_period: { hospitalId: counter.hospitalId, kind: counter.kind, period: counter.period } };
     await expect(t.prisma.numberCounter.update({ where: key, data: { lastValue: counter.lastValue + 5 } })).rejects.toThrow(/only moves up by one/);
-    await expect(t.prisma.numberCounter.delete({ where: key })).rejects.toThrow(/not allowed/);
+    await expect(t.owner.numberCounter.delete({ where: key })).rejects.toThrow(/not allowed/);
 
     const patient = (await register(newPatient())).body as PatientBody;
     await expect(t.prisma.patient.update({ where: { id: patient.id }, data: { uhid: 'CHANGED-2026-000001' } })).rejects.toThrow(/never change/);

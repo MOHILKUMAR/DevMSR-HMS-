@@ -75,10 +75,10 @@ From `CLAUDE.md` section 9.
 - [ ] Staff can see and end their own sessions. **Dev**
 - [ ] Break-glass access: written reason, 1 hour expiry, audit event, hospital admin notified. **Dev**
 - [ ] Alert when there are more than 20 failed logins in 10 minutes. **Dev**
-- [ ] A separate database role for the API, with no UPDATE, DELETE or TRUNCATE on audit rows and no schema changes; migrations run as another role. Partly: triggers block changes today, but the API's database user owns the tables and could drop the triggers. **Dev**
-- [ ] A tighter Content-Security-Policy for the web app, using nonces (scripts need `'unsafe-inline'` today). **Dev**
-- [ ] Production start-up guard: the API refuses to start with a mock adapter, a missing Sentry DSN or a demo secret. Partly: start-up already checks that secrets exist and are long enough. **Dev**
-- [ ] A safe way to apply permission matrix changes to a live hospital, as a migration or a start-up sync. Today only `pnpm db:seed` syncs roles, and the seed refuses to run in production. **Dev**
+- [x] A separate database role for the API, with no UPDATE, DELETE or TRUNCATE on audit rows and no schema changes; migrations run as another role. The API logs in as a member of `hms_api` (`pnpm db:api-user`) and refuses to start in production as anything stronger. **Dev**
+- [x] A tighter Content-Security-Policy for the web app, using nonces. **Dev**
+- [x] Production start-up guard: the API refuses to start with a mock adapter, a missing Sentry DSN or a demo secret (`APP_ENV=production`). **Dev**
+- [x] A safe way to apply permission matrix changes to a live hospital: `pnpm db:sync-roles --apply` in every deploy, and production refuses to start while roles differ from the matrix. **Dev**
 - [ ] Clean-up job for old idempotency keys (pg-boss). **Dev**
 - [ ] Rate limits on exports and PDFs (10 per hour per user) once those routes exist. **Dev**
 - [ ] Rate limit counts live in memory, which is right for one API container. If production runs more than one, move them to PostgreSQL. **Dev**
