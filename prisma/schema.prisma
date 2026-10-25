@@ -90,6 +90,8 @@ enum ApprovalKind {
   credit_note
   refund
   receipt_void
+  // Billing clearance for discharge while money is still due (docs/billing-rules.md).
+  clearance_dues
 
   @@map("approval_kind")
 }
@@ -854,18 +856,23 @@ model ApprovalRequest {
   decisionNote    String?        @map("decision_note")
   // For an approved discount: the new draft that carries it.
   resultInvoiceId String?        @map("result_invoice_id") @db.Uuid
+  // The discharge a clearance with dues is for.
+  dischargeId     String?        @map("discharge_id") @db.Uuid
 
-  patient    Patient      @relation(fields: [hospitalId, patientId], references: [hospitalId, id], onDelete: Restrict)
-  invoice    Invoice?     @relation(fields: [hospitalId, invoiceId], references: [hospitalId, id], onDelete: Restrict)
-  receipt    Receipt?     @relation(fields: [hospitalId, receiptId], references: [hospitalId, id], onDelete: Restrict)
+  patient    Patient             @relation(fields: [hospitalId, patientId], references: [hospitalId, id], onDelete: Restrict)
+  invoice    Invoice?            @relation(fields: [hospitalId, invoiceId], references: [hospitalId, id], onDelete: Restrict)
+  receipt    Receipt?            @relation(fields: [hospitalId, receiptId], references: [hospitalId, id], onDelete: Restrict)
+  discharge  Discharge?          @relation(fields: [hospitalId, dischargeId], references: [hospitalId, id], onDelete: Restrict)
   creditNote CreditNote?
   refund     Refund?
   voidRecord ReceiptVoid?
+  clearance  DischargeClearance?
 
   @@unique([hospitalId, id])
   // One open request of a kind per bill and per receipt, so two cannot race each other.
   @@unique([kind, invoiceId], map: "approval_requests_one_pending_per_bill", where: raw("status = 'pending' AND invoice_id IS NOT NULL"))
   @@unique([kind, receiptId], map: "approval_requests_one_pending_per_receipt", where: raw("status = 'pending' AND receipt_id IS NOT NULL"))
+  @@unique([kind, dischargeId], map: "approval_requests_one_pending_per_discharge", where: raw("status = 'pending' AND discharge_id IS NOT NULL"))
   @@index([hospitalId, status, requestedAt])
   @@index([hospitalId, patientId])
   @@map("approval_requests")
@@ -1066,6 +1073,7 @@ model Admission {
   opdVisit     OpdVisit?       @relation(fields: [hospitalId, opdVisitId], references: [hospitalId, id], onDelete: Restrict)
   assignments  BedAssignment[]
   dailyCharges DailyCharge[]
+  discharge    Discharge?
 
   @@unique([hospitalId, id])
   @@unique([hospitalId, number])
@@ -1118,4 +1126,70 @@ model DailyCharge {
   @@unique([admissionId, chargeDate, kind])
   @@unique([hospitalId, chargeId])
   @@map("daily_charges")
+}
+
+// The discharge of one admission, from the doctor marking the patient fit to the bed going to
+// cleaning. Each step is written once (docs/billing-rules.md, discharge).
+model Discharge {
+  id            String    @id @default(uuid(7)) @db.Uuid
+  hospitalId    String    @map("hospital_id") @db.Uuid
+  admissionId   String    @map("admission_id") @db.Uuid
+  fitAt         DateTime  @map("fit_at") @db.Timestamptz(3)
+  fitById       String    @map("fit_by_id") @db.Uuid
+  fitNote       String?   @map("fit_note")
+  completedAt   DateTime? @map("completed_at") @db.Timestamptz(3)
+  completedById String?   @map("completed_by_id") @db.Uuid
+
+  admission        Admission            @relation(fields: [hospitalId, admissionId], references: [hospitalId, id], onDelete: Restrict)
+  clearances       DischargeClearance[]
+  summary          DischargeSummary?
+  approvalRequests ApprovalRequest[]
+
+  @@unique([hospitalId, id])
+  @@unique([hospitalId, admissionId])
+  @@index([hospitalId, completedAt])
+  @@map("discharges")
+}
+
+// Billing clearance for a discharge. Given again when the account changes after an earlier one, so
+// the latest one counts. Money still due needs the MD's approval (an approval request).
+model DischargeClearance {
+  id                String   @id @default(uuid(7)) @db.Uuid
+  hospitalId        String   @map("hospital_id") @db.Uuid
+  dischargeId       String   @map("discharge_id") @db.Uuid
+  clearedAt         DateTime @default(now()) @map("cleared_at") @db.Timestamptz(3)
+  clearedById       String   @map("cleared_by_id") @db.Uuid
+  // What the patient still owed when cleared: zero, or the amount the MD approved.
+  duePaise          BigInt   @map("due_paise")
+  approvalRequestId String?  @map("approval_request_id") @db.Uuid
+
+  discharge       Discharge        @relation(fields: [hospitalId, dischargeId], references: [hospitalId, id], onDelete: Restrict)
+  approvalRequest ApprovalRequest? @relation(fields: [hospitalId, approvalRequestId], references: [hospitalId, id], onDelete: Restrict)
+
+  @@unique([hospitalId, approvalRequestId])
+  @@index([dischargeId, clearedAt])
+  @@map("discharge_clearances")
+}
+
+// Drafted by the treating doctor, signed off by the MD, then never changed.
+model DischargeSummary {
+  id                   String    @id @default(uuid(7)) @db.Uuid
+  hospitalId           String    @map("hospital_id") @db.Uuid
+  dischargeId          String    @map("discharge_id") @db.Uuid
+  diagnosis            String
+  courseInHospital     String    @map("course_in_hospital")
+  conditionAtDischarge String    @map("condition_at_discharge")
+  medications          String?
+  advice               String?
+  followUpDate         DateTime? @map("follow_up_date") @db.Date
+  draftedById          String    @map("drafted_by_id") @db.Uuid
+  draftedAt            DateTime  @default(now()) @map("drafted_at") @db.Timestamptz(3)
+  signedById           String?   @map("signed_by_id") @db.Uuid
+  signedAt             DateTime? @map("signed_at") @db.Timestamptz(3)
+
+  discharge Discharge @relation(fields: [hospitalId, dischargeId], references: [hospitalId, id], onDelete: Restrict)
+
+  @@unique([hospitalId, id])
+  @@unique([hospitalId, dischargeId])
+  @@map("discharge_summaries")
 }

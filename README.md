@@ -62,6 +62,10 @@ For OPD, `reception` issues a token under **OPD** (find the patient, choose the 
 
 For IPD, `accounts` first sets each room category's minimum advance under **Settings**, **Minimum advances**. `reception` admits a patient under **IPD** (find the patient, choose the doctor and a free bed); the admission gets a number such as `DEMO/IP/2026-27/000001`, and a warning shows when the deposit held is below the minimum advance. Patients a doctor advised admitting in OPD are listed there too. `nurse` sees every bed under **Beds**, sets empty beds free, cleaning, reserved or blocked, and transfers a patient from the admission page. Every night at 00:05 IST (and when the API starts) a background job posts the room and nursing charges for each night crossed in a bed; `billing` sees the interim bill on the admission page and prints it.
 
+To discharge, `doctor` opens the admission and marks the patient fit, then writes the discharge summary on the discharge page (under **Discharge**). `billing` prepares the final bill there (it posts any room and nursing days not charged yet, or the one day of a same-day stay) and issues it; `cashier` collects what is due or sets the deposit against it, and any excess deposit is refunded through **Approvals**. `billing` then gives billing clearance, or asks `md` to clear with money still due. `md` signs the summary off, and `nurse` or `reception` completes the discharge: the bed goes to cleaning and the signed summary prints on A4.
+
+Under **Reports**, `accounts` and `md` see the day-end collection by cashier and mode and download the day book CSV for Tally (10 downloads an hour per user); `md` also sees the day's OPD, admissions, discharges and beds.
+
 After pulling changes that add permissions, run `pnpm db:sync-roles --apply`: it brings every hospital's seeded roles in line with `apps/api/src/auth/permission-matrix.ts` and keeps your data (`pnpm db:seed` does the same for the demo hospital). The API logs a warning at start-up while they differ.
 
 ## Layout

@@ -89,6 +89,8 @@ export function useApprove(kind: ApprovalKind, id: string) {
         return unwrap(await api.POST('/api/v1/refund-requests/{id}/approve', { params, body }));
       case 'receipt_void':
         return unwrap(await api.POST('/api/v1/void-requests/{id}/approve', { params, body }));
+      case 'clearance_dues':
+        return unwrap(await api.POST('/api/v1/clearance-requests/{id}/approve', { params, body }));
     }
   });
 }
@@ -105,6 +107,8 @@ export function useReject(kind: ApprovalKind, id: string) {
         return unwrap(await api.POST('/api/v1/refund-requests/{id}/reject', { params, body }));
       case 'receipt_void':
         return unwrap(await api.POST('/api/v1/void-requests/{id}/reject', { params, body }));
+      case 'clearance_dues':
+        return unwrap(await api.POST('/api/v1/clearance-requests/{id}/reject', { params, body }));
     }
   });
 }

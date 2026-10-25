@@ -60,6 +60,8 @@ function Summary({ request }: { request: ApprovalRequest }) {
       return <p className="text-xs text-text-muted">{t(details.source === 'deposit' ? 'refundDeposit' : 'refundBill', { mode: tm(details.mode) })}</p>;
     case 'receipt_void':
       return <p className="text-xs text-text-muted">{t('void', { mode: tm(details.mode) })}</p>;
+    case 'clearance_dues':
+      return <p className="text-xs text-text-muted">{t('clearanceDues')}</p>;
   }
 }
 
@@ -76,6 +78,11 @@ function Target({ request }: { request: ApprovalRequest }) {
       {request.receiptId !== null && (
         <Link href={`/payments/receipts/${request.receiptId}`} className={link}>
           {request.receiptNumber}
+        </Link>
+      )}
+      {request.dischargeId !== null && request.details.kind === 'clearance_dues' && (
+        <Link href={`/discharge/${request.dischargeId}`} className={link}>
+          {request.details.admissionNumber}
         </Link>
       )}
       {request.resultInvoiceId !== null && (

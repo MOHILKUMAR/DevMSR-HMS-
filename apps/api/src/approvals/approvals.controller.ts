@@ -10,6 +10,7 @@ import {
   payRefundSchema,
   refundSchema,
   rejectRequestSchema,
+  requestClearanceDuesSchema,
   requestCreditNoteSchema,
   requestDiscountSchema,
   requestReceiptVoidSchema,
@@ -21,6 +22,7 @@ import {
   type PayRefund,
   type Refund,
   type RejectRequest,
+  type RequestClearanceDues,
   type RequestCreditNote,
   type RequestDiscount,
   type RequestReceiptVoid,
@@ -167,6 +169,39 @@ export class VoidRequestsController {
   @ApiContract({ summary: 'Reject a receipt void, with a reason', params: idParamsSchema, body: rejectRequestSchema, response: approvalRequestSchema })
   reject(@CurrentAuth() auth: AuthContext, @ValidParams() params: { id: string }, @ValidBody() body: RejectRequest, @ReqMeta() meta: RequestMeta): Promise<ApprovalRequest> {
     return this.approvals.reject(auth, 'receipt_void', params.id, body, meta);
+  }
+}
+
+@Controller('clearance-requests')
+export class ClearanceRequestsController {
+  constructor(private readonly approvals: ApprovalsService) {}
+
+  @Post()
+  @RequirePermission('billing.clearance.grant')
+  @ApiContract({
+    summary: 'Ask the MD to clear a discharge while money is still due; everything else must be settled',
+    body: requestClearanceDuesSchema,
+    response: approvalRequestSchema,
+  })
+  request(@CurrentAuth() auth: AuthContext, @ValidBody() body: RequestClearanceDues, @ReqMeta() meta: RequestMeta): Promise<ApprovalRequest> {
+    return this.approvals.requestClearanceDues(auth, body, meta);
+  }
+
+  @Post(':id/approve')
+  @HttpCode(200)
+  @Idempotent()
+  @RequirePermission('billing.clearance.approve-dues')
+  @ApiContract({ summary: 'Approve: billing clearance is given for what is due now', params: idParamsSchema, body: approveRequestSchema, response: approvalRequestSchema })
+  approve(@CurrentAuth() auth: AuthContext, @ValidParams() params: { id: string }, @ValidBody() body: ApproveRequest, @ReqMeta() meta: RequestMeta): Promise<ApprovalRequest> {
+    return this.approvals.approve(auth, 'clearance_dues', params.id, body, meta);
+  }
+
+  @Post(':id/reject')
+  @HttpCode(200)
+  @RequirePermission('billing.clearance.approve-dues')
+  @ApiContract({ summary: 'Reject a clearance with dues, with a reason', params: idParamsSchema, body: rejectRequestSchema, response: approvalRequestSchema })
+  reject(@CurrentAuth() auth: AuthContext, @ValidParams() params: { id: string }, @ValidBody() body: RejectRequest, @ReqMeta() meta: RequestMeta): Promise<ApprovalRequest> {
+    return this.approvals.reject(auth, 'clearance_dues', params.id, body, meta);
   }
 }
 

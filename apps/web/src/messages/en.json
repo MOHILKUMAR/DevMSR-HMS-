@@ -54,6 +54,12 @@
     "BED_TAKEN": "This bed is no longer free. It may have been taken at another desk. Choose another bed.",
     "ALREADY_ADMITTED": "This patient is already admitted. Open their current admission instead.",
     "ADMISSION_STATE": "This admission has moved on. Reload the page to see where it is now.",
+    "DISCHARGE_STEP": "This discharge is not at that step yet, or has passed it. Reload the page to see where it is now.",
+    "NOT_TREATING_DOCTOR": "Only the patient's treating doctor can do this.",
+    "BALANCE_NOT_ZERO": "The account is not settled yet. Bill the open charges, collect what is due or refund what is held, then try again.",
+    "ROOM_CHARGES_MISSING": "Room or nursing charges are missing for some days. Ask finance to check the room rates, then prepare the final bill again.",
+    "NOTHING_TO_BILL": "There are no unbilled charges for this patient.",
+    "NOTHING_DUE": "Nothing is due on this account, so give clearance directly.",
     "network": "Could not reach the server. Check the connection and try again.",
     "unknown": "Something went wrong. Try again, and tell your admin if it keeps happening."
   },
@@ -82,9 +88,6 @@
   "home": {
     "welcome": "Welcome, {name}",
     "sessionEnds": "You stay signed in until {time} at the latest, or until 15 minutes without activity."
-  },
-  "comingSoon": {
-    "body": "This screen arrives with its phase 1 slice."
   },
   "loadError": {
     "title": "This screen could not load",
@@ -738,7 +741,8 @@
       "discount": "Discount",
       "credit_note": "Credit note",
       "refund": "Refund",
-      "receipt_void": "Receipt void"
+      "receipt_void": "Receipt void",
+      "clearance_dues": "Clearance with dues"
     },
     "status": {
       "pending": "Waiting",
@@ -823,7 +827,8 @@
       "creditUnits": "{name}: {count, plural, one {# unit} other {# units}}, {amount}",
       "refundDeposit": "From deposit, by {mode}",
       "refundBill": "From an overpaid bill, by {mode}",
-      "void": "Taken by {mode}"
+      "void": "Taken by {mode}",
+      "clearanceDues": "Discharge while this amount is still due"
     },
     "table": {
       "kind": "Request",
@@ -1071,7 +1076,9 @@
       "charge": "Charge",
       "amount": "Amount",
       "noNights": "No nights charged yet.",
-      "interim": "Interim bill"
+      "interim": "Interim bill",
+      "openDischarge": "Open the discharge",
+      "markFit": "Mark fit for discharge"
     },
     "transfer": {
       "title": "Transfer {name}",
@@ -1108,6 +1115,164 @@
       "balance": "Balance to pay",
       "excess": "Deposit left over",
       "note": "This is not a bill. The final bill is issued at discharge."
+    },
+    "fit": {
+      "title": "Mark {name} fit for discharge",
+      "description": "Billing then prepares the final bill. You write the discharge summary, and the MD signs it off.",
+      "note": "Note for the ward and billing (optional)",
+      "noteError": "Enter 3 to 500 characters, or leave it empty."
+    }
+  },
+  "discharge": {
+    "desk": {
+      "title": "Discharge",
+      "description": "Patients marked fit for discharge. Open one to bill, clear, sign off the summary and release the bed.",
+      "show": "Show",
+      "statuses": {
+        "open": "In progress",
+        "completed": "Discharged"
+      },
+      "number": "Admission",
+      "patient": "Patient",
+      "bed": "Bed",
+      "fitAt": "Marked fit",
+      "clearance": "Billing clearance",
+      "summary": "Summary",
+      "completedAt": "Discharged",
+      "loading": "Loading discharges",
+      "noneOpen": "Nobody is waiting for discharge.",
+      "noneCompleted": "No discharges yet.",
+      "cleared": "Cleared",
+      "notCleared": "Not cleared",
+      "summaryStatus": {
+        "none": "Not written",
+        "draft": "Waiting for MD",
+        "signed": "Signed"
+      }
+    },
+    "view": {
+      "loading": "Loading the discharge",
+      "title": "Discharge of {number}",
+      "inProgress": "In progress",
+      "discharged": "Discharged",
+      "back": "Back to discharges",
+      "openAdmission": "Open the admission",
+      "printSummary": "Print summary",
+      "bed": "Bed",
+      "noBed": "No bed",
+      "doctor": "Treating doctor",
+      "fit": "Fit for discharge",
+      "fitBy": "{name}, {time}",
+      "fitNote": "Note",
+      "done": "Done",
+      "waiting": "Waiting",
+      "billsTitle": "Final bill and account",
+      "bill": "Bill",
+      "billStatus": "Status",
+      "billStatuses": {
+        "draft": "Draft",
+        "issued": "Issued",
+        "discarded": "Discarded"
+      },
+      "draft": "Draft",
+      "total": "Total",
+      "due": "Due",
+      "noBills": "No bills for this stay yet.",
+      "unbilled": "Charges not billed yet",
+      "dueOnBills": "Due on bills",
+      "depositHeld": "Deposit held",
+      "refundable": "Overpaid, to refund",
+      "missingDays": "Room or nursing charges are not posted for: {days}. Prepare the final bill to post them.",
+      "settleAtCounter": "The cashier collects what is due, sets the deposit against the bill, or refunds what is left, at the cash counter.",
+      "prepareFinalBill": "Prepare final bill",
+      "clearanceTitle": "Billing clearance",
+      "notCleared": "Not cleared yet. Clearance needs every charge billed and a zero balance.",
+      "cleared": "Cleared by {name}, {time}.",
+      "clearedWithDues": "Cleared by {name}, {time}, with {amount} still due on the MD approval.",
+      "clearanceOutdated": "The account has changed since clearance. Settle it and give clearance again.",
+      "duesWaiting": "A clearance with money due is waiting for the MD.",
+      "openApprovals": "Open approvals",
+      "giveClearance": "Give billing clearance",
+      "duesExplain": "Everything else is settled, but {amount} is still due. Only the MD can clear the patient with money due.",
+      "duesReason": "Reason for clearing with money due",
+      "reasonError": "Enter 3 to 500 characters.",
+      "askMd": "Ask the MD to clear",
+      "completeTitle": "Patient leaves",
+      "completeExplain": "Needs billing clearance and the summary signed by the MD. The bed then goes to cleaning.",
+      "completed": "Discharged by {name}, {time}. The bed went to cleaning.",
+      "complete": "Complete discharge",
+      "order": "Order: fit for discharge, final bill, payment or refund, billing clearance, summary signed, patient leaves."
+    },
+    "summary": {
+      "title": "Discharge summary",
+      "none": "Not written yet. The treating doctor writes it.",
+      "drafted": "Written by {name}, {time}. Waiting for the MD to sign it off.",
+      "signed": "Signed off by {name}, {time}. It can no longer change.",
+      "diagnosis": "Diagnosis",
+      "courseInHospital": "Course in hospital and treatment given",
+      "conditionAtDischarge": "Condition at discharge",
+      "medications": "Medicines on discharge",
+      "advice": "Advice",
+      "optional": "{label} (optional)",
+      "followUpDate": "Follow-up date (optional)",
+      "textError": "Enter 3 to {max} characters.",
+      "dateError": "Choose a date from today.",
+      "save": "Save summary",
+      "sign": "Sign off summary"
+    },
+    "document": {
+      "title": "Discharge summary",
+      "admission": "Admission {number}",
+      "doctor": "{name}, {department}",
+      "admittedAt": "Admitted {time}",
+      "ward": "Ward: {name}",
+      "dischargedAt": "Discharged {time}",
+      "notDischarged": "Not discharged yet",
+      "notWritten": "The summary has not been written yet.",
+      "diagnosis": "Diagnosis",
+      "courseInHospital": "Course in hospital and treatment given",
+      "conditionAtDischarge": "Condition at discharge",
+      "medications": "Medicines on discharge",
+      "advice": "Advice",
+      "followUp": "Follow-up on {date}.",
+      "draftedBy": "Written by {name}",
+      "signedBy": "Signed off by {name}, {time}",
+      "unsigned": "Not signed",
+      "notSignedYet": "This discharge summary is not signed off by the MD yet, so it cannot be printed."
+    }
+  },
+  "reports": {
+    "title": "Reports",
+    "description": "Each report covers one calendar day, midnight to midnight IST.",
+    "date": "Day",
+    "dateError": "Choose a day up to today.",
+    "downloadDayBook": "Download day book (CSV)",
+    "loading": "Loading the report",
+    "collection": {
+      "title": "Collection for {date}",
+      "cashier": "Cashier",
+      "mode": "Mode",
+      "payments": "Payments",
+      "deposits": "Deposits",
+      "refunds": "Refunds",
+      "net": "Net",
+      "none": "No money taken or refunded on this day.",
+      "unknownCashier": "Unknown",
+      "allCashiers": "All cashiers",
+      "total": "Total",
+      "voided": "{count, plural, one {# void receipt} other {# void receipts}} ({amount}) left out."
+    },
+    "operations": {
+      "title": "Activity on {date}",
+      "opdTokens": "OPD tokens",
+      "opdSeen": "OPD seen",
+      "opdCancelled": "OPD cancelled",
+      "admissions": "Admissions",
+      "discharges": "Discharges",
+      "bedsNow": "Beds now: {occupied} of {total} occupied, {free} free, {cleaning} cleaning.",
+      "ward": "Ward",
+      "occupied": "Occupied",
+      "beds": "Beds"
     }
   }
 }

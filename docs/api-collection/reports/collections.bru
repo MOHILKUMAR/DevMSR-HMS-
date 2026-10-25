@@ -1,0 +1,19 @@
+meta {
+  name: Day-end collection
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/reports/collections
+  body: none
+  auth: none
+}
+
+docs {
+  Today in IST; add ?date=YYYY-MM-DD for another day.
+}
+
+assert {
+  res.status: eq 200
+}

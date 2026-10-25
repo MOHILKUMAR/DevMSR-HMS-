@@ -372,3 +372,7 @@ The developer recorded these in `docs/billing-rules.md` so the build could conti
 | D-12 | Payment modes: cash; UPI with the UTR reference; card with the approval code and last 4 digits; bank transfer or cheque with the reference and bank | Accountant | | |
 | D-13 | A cash shift that does not tally closes with the difference and the cashier's reason, shown to finance in the day-end report | Accountant | | |
 | D-14 | Each rate carries its own tax percentage, entered by finance, and the date it applies from. Past rates are never edited | Accountant | | |
+| D-15 | Billing clearance needs the whole account settled: every charge billed, nothing due, and any deposit or overpayment set against bills or refunded. Only the MD can clear with money still due | MD and accountant | | |
+| D-16 | A stay that crosses no midnight is charged one day, at the rate of the room the patient is in when the final bill is prepared | Accountant | | |
+| D-17 | Only the treating doctor marks a patient fit and writes the discharge summary; whoever writes it can never sign it off. The patient leaves only after the MD signs it | MD | | |
+| D-18 | The Tally day book is a CSV with one row per bill, receipt, deposit, credit note and refund, dates as YYYY-MM-DD, the patient's UHID (no names) and amounts in rupees. A void receipt keeps its row at zero | Accountant | | |

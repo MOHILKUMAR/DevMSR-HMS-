@@ -1,0 +1,23 @@
+meta {
+  name: Give billing clearance
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/discharges/{{dischargeId}}/clearance
+  body: none
+  auth: none
+}
+
+headers {
+  X-CSRF-Token: {{csrfToken}}
+}
+
+docs {
+  At a settled account. 422 BALANCE_NOT_ZERO otherwise, with the amounts in error.details.
+}
+
+assert {
+  res.status: eq 201
+}
