@@ -127,7 +127,13 @@ export class BedsRepository {
     return count === 0 ? null : tx.bed.findFirst({ where: { id, hospitalId }, select: BED_SELECT });
   }
 
-  countOccupiedBeds(hospitalId: string, wardId: string, tx: Tx): Promise<number> {
-    return tx.bed.count({ where: { hospitalId, wardId, status: 'occupied' } });
+  /**
+   * Locks every bed of the ward until the transaction ends, then counts the occupied ones. Admission
+   * locks the bed it fills, so a patient placed at the same moment either finishes first (and is
+   * counted here) or waits until the ward is retired (and then finds it inactive).
+   */
+  async lockBedsAndCountOccupied(hospitalId: string, wardId: string, tx: Tx): Promise<number> {
+    const beds = await tx.$queryRaw<{ status: string }[]>`SELECT status::text AS status FROM beds WHERE ward_id = ${wardId}::uuid AND hospital_id = ${hospitalId}::uuid FOR UPDATE`;
+    return beds.filter((bed) => bed.status === 'occupied').length;
   }
 }

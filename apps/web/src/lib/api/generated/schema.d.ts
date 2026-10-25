@@ -299,6 +299,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/service-items/{id}/rates/{rateId}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel the latest rate before it starts; the rate before it carries on */
+        post: operations["tariffsCancelRate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/users": {
         parameters: {
             query?: never;
@@ -746,6 +763,8 @@ export interface components {
                 effectiveTo: string | null;
                 /** Format: date-time */
                 createdAt: string;
+                cancelledAt: string | null;
+                cancelReason: string | null;
             }[];
         };
         TariffsCreateRateRequest: {
@@ -764,6 +783,24 @@ export interface components {
             effectiveTo: string | null;
             /** Format: date-time */
             createdAt: string;
+            cancelledAt: string | null;
+            cancelReason: string | null;
+        };
+        TariffsCancelRateRequest: {
+            reason: string;
+        };
+        TariffsCancelRateResponse: {
+            /** Format: uuid */
+            id: string;
+            ratePaise: number;
+            taxRateBp: number;
+            /** Format: date */
+            effectiveFrom: string;
+            effectiveTo: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            cancelledAt: string | null;
+            cancelReason: string | null;
         };
         UsersListResponse: {
             data: {
@@ -1688,6 +1725,45 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TariffsCreateRateResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    tariffsCancelRate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Value of the CSRF cookie */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+                rateId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TariffsCancelRateRequest"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TariffsCancelRateResponse"];
                 };
             };
             /** @description Error */

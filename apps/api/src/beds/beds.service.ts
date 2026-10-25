@@ -97,7 +97,7 @@ export class BedsService {
     if ((await this.beds.findWard(hospitalId, id)) === null) throw Errors.notFound('ward');
     if (input.roomCategoryId != null) await this.checkRoomCategory(hospitalId, input.roomCategoryId);
     return this.transactions.run(async (tx) => {
-      if (input.isActive === false && (await this.beds.countOccupiedBeds(hospitalId, id, tx)) > 0) throw Errors.bedOccupied();
+      if (input.isActive === false && (await this.beds.lockBedsAndCountOccupied(hospitalId, id, tx)) > 0) throw Errors.bedOccupied();
       const row = await this.beds.updateWard(hospitalId, id, input, tx);
       await this.record(auth, 'masters.ward.updated', 'ward', id, meta, tx, { fields: changedFields(input) });
       return toWard(row);

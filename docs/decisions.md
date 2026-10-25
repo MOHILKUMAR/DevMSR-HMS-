@@ -239,10 +239,30 @@ Every non-obvious decision, oldest first. Each entry has the date, the decision 
 
 ## 2026-10-25: An occupied bed or ward is never retired
 
-- Decision: retiring a bed is a conditional UPDATE that skips beds with status `occupied`, so a patient placed at the same moment cannot slip past a separate check (`BED_OCCUPIED`, 422). Retiring a ward checks for occupied beds in the same transaction. Free, cleaning and blocked are set on the bed board (IPD slice), not in settings.
-- Reason: a retired bed with a patient in it would vanish from the bed board. The IPD slice must also check `is_active` on the bed and ward while holding the bed row lock.
+- Decision: retiring a bed is a conditional UPDATE that skips beds with status `occupied`, so a patient placed at the same moment cannot slip past a separate check (`BED_OCCUPIED`, 422). Retiring a ward first locks all its beds (`SELECT ... FOR UPDATE`), then counts occupied ones, in the same transaction. Free, cleaning and blocked are set on the bed board (IPD slice), not in settings.
+- Reason: a retired bed with a patient in it would vanish from the bed board. The IPD slice must lock the bed row before filling it, then check `is_active` on the bed and the ward: an admission and a ward retirement then always run one after the other. An API test holds a bed lock mid-admission and checks that the retirement waits and is refused.
 
 ## 2026-10-25: Settings screens
 
 - Decision: `/settings` has one tab per section (`features/settings/sections.ts`), shown by permission. A section opened without its view permission is a 404 page; without its manage permission it is read-only. Lists are plain tables with search, a "show inactive" switch and paging, not TanStack Table. Selects are the browser's own `<select>`, and dialogs use Radix Dialog from the existing `radix-ui` package. Edit forms send only the fields that changed, and wait for their select options before they render, because a select takes its value when it first renders. Rupees and tax percentages are typed as text and turned into paise and basis points on the digits, never through floating point (`src/lib/money.ts`).
 - Reason: master lists are short and need no column sorting yet; TanStack Table comes with the patient and billing lists. Native selects are light, keyboard friendly and need no new dependency. Sending only changed fields keeps the audit trail accurate.
+
+## 2026-10-25: A scheduled rate can be cancelled before it starts
+
+- Decision: `POST /service-items/:id/rates/:rateId/cancel` (finance, `tariffs.tariff.manage`) cancels the latest rate if it has not started (IST), with a reason of 3 to 200 characters. The row is kept with `cancelled_at`, `cancelled_by_id` and `cancel_reason`, and never applies; the rate it would have replaced is reopened in the same transaction. A rate that has started, one followed by a later rate, or one already cancelled is refused (`RATE_NOT_CANCELLABLE`); cancel the later rate first. The database trigger allows exactly three changes: closing an open rate, cancelling a rate that has not started, and reopening a rate whose end date has not passed and that no rate follows. A cancelled rate never changes again. No second approver is needed.
+- Reason: without it a mistyped future rate could only be replaced by an even later one, leaving the wrong amount in force for the days between. Nothing has been charged at a rate that has not started, so this is a correction of a plan, not a void of a financial record (voids, discounts and refunds still need maker-checker approval). The history screen shows every rate as In force, Scheduled, Ended or Cancelled, with the reason.
+
+## 2026-10-25: Form fields get their own border colour
+
+- Decision: text boxes and selects use a new token, `--input-border` (`#64748B` in both themes), instead of `--border`. Lines and dividers keep the section 16 `--border`.
+- Reason: section 16 asks for WCAG 2.1 AA, and a field's outline needs 3:1 against its background (WCAG 1.4.11). `--border` gives about 1.2:1 in both themes, so fields on cards and dialogs, like the sign-in form in dark theme, were close to invisible. `#64748B` gives 4.8:1 on white and 3.8:1 on the dark surface.
+
+## 2026-10-25: Dropdowns load every page
+
+- Decision: dropdowns of departments, room categories, doctors and doctor logins load every page of active records (`src/lib/api/all-pages.ts`), up to 20 pages of 100.
+- Reason: lists cap a page at 100, and a dropdown that shows only the first page silently hides the rest. Up to 2,000 choices is far beyond one hospital; a searchable picker can replace a dropdown if a list grows past a few hundred.
+
+## 2026-10-25: `pnpm api:spec` builds outside `dist`
+
+- Decision: `pnpm api:spec` compiles the API with `tsc` into `apps/api/.spec-build` (git-ignored, deleted afterwards) and runs the spec generator from there, instead of `nest build`.
+- Reason: `nest build` empties `apps/api/dist`, which the API in a running `pnpm dev` loads from, so regenerating the spec used to stop the dev API.

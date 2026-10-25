@@ -59,6 +59,7 @@ describe('permission matrix: every route as every role', () => {
         'PATCH /api/v1/service-items/:id tariffs.tariff.manage',
         'GET /api/v1/service-items/:id/rates tariffs.tariff.read',
         'POST /api/v1/service-items/:id/rates tariffs.tariff.manage',
+        'POST /api/v1/service-items/:id/rates/:rateId/cancel tariffs.tariff.manage',
         'GET /api/v1/users users.user.manage',
         'POST /api/v1/users users.user.manage',
         'PATCH /api/v1/users/:id users.user.manage',

@@ -2,6 +2,7 @@
 
 import { keepPreviousData, useMutation, useQuery, useQueryClient, type QueryKey } from '@tanstack/react-query';
 import { PAGE_SIZE_MAX, type ServiceKind } from '@devmsr/validation';
+import { allPages } from '@/lib/api/all-pages';
 import { api } from '@/lib/api/client';
 import { unwrap } from '@/lib/api/errors';
 
@@ -21,18 +22,21 @@ function listQuery({ page, q, includeInactive }: ListParams) {
   };
 }
 
-// Dropdowns list only active records. A hospital has well under 100 departments or room categories.
-const ACTIVE_OPTIONS = { page: 1, pageSize: PAGE_SIZE_MAX } as const;
+/** One page of active records for a dropdown. Dropdowns load every page through allPages. */
+const optionsPage = (page: number) => ({ page, pageSize: PAGE_SIZE_MAX });
 
 export const settingsKeys = {
   all: ['settings'] as const,
   hospital: ['settings', 'hospital'] as const,
   users: (params?: ListParams) => ['settings', 'users', params] as const,
-  doctorLogins: ['settings', 'users', 'doctor-logins'] as const,
+  doctorLogins: ['settings', 'users', 'options', 'doctor-logins'] as const,
   roles: ['settings', 'roles'] as const,
-  departments: (params?: ListParams) => ['settings', 'departments', params] as const,
-  roomCategories: (params?: ListParams) => ['settings', 'room-categories', params] as const,
-  doctors: (params?: ListParams) => ['settings', 'doctors', params] as const,
+  departments: (params: ListParams) => ['settings', 'departments', params] as const,
+  departmentOptions: ['settings', 'departments', 'options'] as const,
+  roomCategories: (params: ListParams) => ['settings', 'room-categories', params] as const,
+  roomCategoryOptions: ['settings', 'room-categories', 'options'] as const,
+  doctors: (params: ListParams) => ['settings', 'doctors', params] as const,
+  doctorOptions: ['settings', 'doctors', 'options'] as const,
   wards: (params?: ListParams) => ['settings', 'wards', params] as const,
   beds: (wardId: string) => ['settings', 'beds', wardId] as const,
   serviceItems: (params?: ListParams & { kind: ServiceKind | '' }) => ['settings', 'service-items', params] as const,
@@ -58,8 +62,10 @@ export function useStaffUsers(params: ListParams) {
 export function useDoctorLogins(enabled: boolean) {
   return useQuery({
     queryKey: settingsKeys.doctorLogins,
-    queryFn: async () =>
-      unwrap(await api.GET('/api/v1/users', { params: { query: { ...ACTIVE_OPTIONS, permission: 'opd.queue.read-own' } } })),
+    queryFn: () =>
+      allPages(async (page) =>
+        unwrap(await api.GET('/api/v1/users', { params: { query: { ...optionsPage(page), permission: 'opd.queue.read-own' } } })),
+      ),
     enabled,
   });
 }
@@ -72,30 +78,51 @@ export function useRoles() {
   });
 }
 
-export function useDepartments(params: ListParams | null) {
+export function useDepartments(params: ListParams) {
   return useQuery({
-    queryKey: settingsKeys.departments(params ?? undefined),
-    queryFn: async () =>
-      unwrap(await api.GET('/api/v1/departments', { params: { query: params === null ? ACTIVE_OPTIONS : listQuery(params) } })),
+    queryKey: settingsKeys.departments(params),
+    queryFn: async () => unwrap(await api.GET('/api/v1/departments', { params: { query: listQuery(params) } })),
     placeholderData: keepPreviousData,
   });
 }
 
-export function useRoomCategories(params: ListParams | null) {
+/** Every active department, for dropdowns. */
+export function useDepartmentOptions() {
   return useQuery({
-    queryKey: settingsKeys.roomCategories(params ?? undefined),
-    queryFn: async () =>
-      unwrap(await api.GET('/api/v1/room-categories', { params: { query: params === null ? ACTIVE_OPTIONS : listQuery(params) } })),
+    queryKey: settingsKeys.departmentOptions,
+    queryFn: () => allPages(async (page) => unwrap(await api.GET('/api/v1/departments', { params: { query: optionsPage(page) } }))),
+  });
+}
+
+export function useRoomCategories(params: ListParams) {
+  return useQuery({
+    queryKey: settingsKeys.roomCategories(params),
+    queryFn: async () => unwrap(await api.GET('/api/v1/room-categories', { params: { query: listQuery(params) } })),
     placeholderData: keepPreviousData,
   });
 }
 
-export function useDoctors(params: ListParams | null) {
+/** Every active room category, for dropdowns. */
+export function useRoomCategoryOptions() {
   return useQuery({
-    queryKey: settingsKeys.doctors(params ?? undefined),
-    queryFn: async () =>
-      unwrap(await api.GET('/api/v1/doctors', { params: { query: params === null ? ACTIVE_OPTIONS : listQuery(params) } })),
+    queryKey: settingsKeys.roomCategoryOptions,
+    queryFn: () => allPages(async (page) => unwrap(await api.GET('/api/v1/room-categories', { params: { query: optionsPage(page) } }))),
+  });
+}
+
+export function useDoctors(params: ListParams) {
+  return useQuery({
+    queryKey: settingsKeys.doctors(params),
+    queryFn: async () => unwrap(await api.GET('/api/v1/doctors', { params: { query: listQuery(params) } })),
     placeholderData: keepPreviousData,
+  });
+}
+
+/** Every active doctor, for dropdowns. */
+export function useDoctorOptions() {
+  return useQuery({
+    queryKey: settingsKeys.doctorOptions,
+    queryFn: () => allPages(async (page) => unwrap(await api.GET('/api/v1/doctors', { params: { query: optionsPage(page) } }))),
   });
 }
 

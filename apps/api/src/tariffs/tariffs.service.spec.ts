@@ -24,14 +24,16 @@ const ITEM: ServiceItemRow = {
   rates: [],
 };
 
-function rate(from: string, to: string | null = null): TariffRateRow {
+function rate(from: string, to: string | null = null, id = 'r1'): TariffRateRow {
   return {
-    id: 'r1',
+    id,
     ratePaise: 30_000n,
     taxRateBp: 0,
     effectiveFrom: new Date(`${from}T00:00:00Z`),
     effectiveTo: to === null ? null : new Date(`${to}T00:00:00Z`),
     createdAt: NOW,
+    cancelledAt: null,
+    cancelReason: null,
   };
 }
 
@@ -41,6 +43,12 @@ function setup(open: TariffRateRow | null) {
     lockServiceItem: vi.fn().mockResolvedValue(undefined),
     openRate: vi.fn().mockResolvedValue(open),
     closeRate: vi.fn().mockResolvedValue(undefined),
+    findRate: vi.fn().mockResolvedValue(open),
+    rateEndingOn: vi.fn().mockResolvedValue(null),
+    cancelRate: vi.fn().mockImplementation((id: string, data: { cancelledAt: Date; cancelReason: string }) =>
+      Promise.resolve({ ...rate('2026-12-01', null, id), cancelledAt: data.cancelledAt, cancelReason: data.cancelReason }),
+    ),
+    reopenRate: vi.fn().mockResolvedValue(undefined),
     insertRate: vi.fn().mockImplementation((data: { effectiveFrom: string; ratePaise: bigint }) =>
       Promise.resolve({ ...rate(data.effectiveFrom), ratePaise: data.ratePaise }),
     ),
@@ -92,5 +100,45 @@ describe('TariffsService.createRate', () => {
     repo.findServiceItem.mockResolvedValue({ ...ITEM, isActive: false });
     const error = await errorOf(service.createRate(FINANCE, 'i1', { ratePaise: 1, taxRateBp: 0, effectiveFrom: '2026-10-25' }, META, NOW));
     expect(error.code).toBe('REFERENCE_INVALID');
+  });
+});
+
+describe('TariffsService.cancelRate', () => {
+  const REASON = { reason: 'Entered the wrong amount' };
+
+  it('cancels a rate that has not started, and the rate before it carries on', async () => {
+    const { service, repo } = setup(rate('2026-12-01', null, 'r2'));
+    repo.rateEndingOn.mockResolvedValue(rate('2026-04-01', '2026-11-30', 'r1'));
+    const cancelled = await service.cancelRate(FINANCE, 'i1', 'r2', REASON, META, NOW);
+    expect(cancelled).toMatchObject({ id: 'r2', cancelReason: 'Entered the wrong amount' });
+    expect(repo.cancelRate).toHaveBeenCalledWith('r2', { cancelledAt: NOW, cancelledById: 'f1', cancelReason: 'Entered the wrong amount' }, {});
+    expect(repo.rateEndingOn).toHaveBeenCalledWith('h1', 'i1', '2026-11-30', {});
+    expect(repo.reopenRate).toHaveBeenCalledWith('r1', {});
+    // The rate is cancelled before the earlier one reopens, or two rates would be open at once.
+    expect(repo.cancelRate.mock.invocationCallOrder[0]).toBeLessThan(repo.reopenRate.mock.invocationCallOrder[0] ?? 0);
+  });
+
+  it('refuses a rate that has started, judged in IST', async () => {
+    for (const from of ['2026-10-25', '2026-04-01']) {
+      const { service, repo } = setup(rate(from));
+      const error = await errorOf(service.cancelRate(FINANCE, 'i1', 'r1', REASON, META, NOW));
+      expect(error.code).toBe('RATE_NOT_CANCELLABLE');
+      expect(repo.cancelRate).not.toHaveBeenCalled();
+    }
+  });
+
+  it('refuses a rate followed by a later one, and one already cancelled', async () => {
+    const { service, repo } = setup(rate('2027-01-01', null, 'r3'));
+    repo.findRate.mockResolvedValue(rate('2026-12-01', '2026-12-31', 'r2'));
+    expect((await errorOf(service.cancelRate(FINANCE, 'i1', 'r2', REASON, META, NOW))).code).toBe('RATE_NOT_CANCELLABLE');
+    repo.findRate.mockResolvedValue({ ...rate('2027-01-01', null, 'r3'), cancelledAt: NOW, cancelReason: 'Wrong' });
+    expect((await errorOf(service.cancelRate(FINANCE, 'i1', 'r3', REASON, META, NOW))).code).toBe('RATE_NOT_CANCELLABLE');
+    expect(repo.cancelRate).not.toHaveBeenCalled();
+  });
+
+  it('reports a rate of another item or hospital as 404', async () => {
+    const { service, repo } = setup(null);
+    repo.findRate.mockResolvedValue(null);
+    expect((await errorOf(service.cancelRate(FINANCE, 'i1', 'r9', REASON, META, NOW))).code).toBe('NOT_FOUND');
   });
 });

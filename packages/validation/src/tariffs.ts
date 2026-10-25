@@ -8,6 +8,7 @@ import {
   listResponseSchema,
   nameSchema,
   paiseSchema,
+  uuidSchema,
 } from './common.js';
 
 export const SERVICE_KINDS = ['consultation', 'room', 'nursing', 'procedure', 'investigation', 'other'] as const;
@@ -77,6 +78,9 @@ export const tariffRateSchema = z.object({
   effectiveFrom: isoDateSchema,
   effectiveTo: isoDateSchema.nullable(),
   createdAt: z.iso.datetime(),
+  /** Set when the rate was cancelled before it started. A cancelled rate never applies. */
+  cancelledAt: z.iso.datetime().nullable(),
+  cancelReason: z.string().nullable(),
 });
 
 export type TariffRate = z.infer<typeof tariffRateSchema>;
@@ -90,3 +94,11 @@ export const createTariffRateSchema = z.object({
 });
 
 export type CreateTariffRate = z.infer<typeof createTariffRateSchema>;
+
+/** Route params for `/service-items/:id/rates/:rateId`. */
+export const rateParamsSchema = z.object({ id: uuidSchema, rateId: uuidSchema });
+export type RateParams = z.infer<typeof rateParamsSchema>;
+
+/** Cancels the latest rate before it starts. The reason goes into the record and the audit log. */
+export const cancelTariffRateSchema = z.object({ reason: z.string().trim().min(3).max(200) });
+export type CancelTariffRate = z.infer<typeof cancelTariffRateSchema>;

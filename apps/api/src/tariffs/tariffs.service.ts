@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import type { Paginated } from '@devmsr/types';
 import type {
+  CancelTariffRate,
   CreateServiceItem,
   CreateTariffRate,
   ServiceItem,
@@ -167,5 +168,54 @@ export class TariffsService {
       if (isUniqueViolation(error)) throw Errors.conflict('Another rate change for this item was saved at the same moment. Reload and try again.');
       throw error;
     }
+  }
+
+  /**
+   * Cancels the latest rate before it starts, for a rate entered by mistake. The rate is kept and
+   * marked cancelled; the rate it would have replaced is reopened so it carries on. A rate that has
+   * started, or one followed by a later rate, cannot be cancelled: cancel the later one first.
+   */
+  async cancelRate(
+    auth: AuthContext,
+    serviceItemId: string,
+    rateId: string,
+    input: CancelTariffRate,
+    meta: RequestMeta,
+    now: Date = new Date(),
+  ): Promise<TariffRate> {
+    const hospitalId = hospitalOf(auth);
+    const today = todayIst(now);
+    if ((await this.tariffs.findServiceItem(hospitalId, serviceItemId, today)) === null) throw Errors.notFound('service item');
+
+    return this.transactions.run(async (tx) => {
+      await this.tariffs.lockServiceItem(hospitalId, serviceItemId, tx);
+      const rate = await this.tariffs.findRate(hospitalId, serviceItemId, rateId, tx);
+      if (rate === null) throw Errors.notFound('rate');
+      if (rate.cancelledAt !== null) throw Errors.rateNotCancellable('This rate is already cancelled.');
+      const from = toDateOnly(rate.effectiveFrom);
+      if (from <= today) {
+        throw Errors.rateNotCancellable('This rate has already started. Set a new rate from a later date instead.');
+      }
+      const open = await this.tariffs.openRate(hospitalId, serviceItemId, tx);
+      if (open?.id !== rate.id) throw Errors.rateNotCancellable('A later rate follows this one. Cancel the later rate first.');
+
+      // Cancel first: the rate before it can only be reopened once no open rate follows it.
+      const cancelled = await this.tariffs.cancelRate(rate.id, { cancelledAt: now, cancelledById: auth.userId, cancelReason: input.reason }, tx);
+      const previous = await this.tariffs.rateEndingOn(hospitalId, serviceItemId, addDays(from, -1), tx);
+      if (previous !== null) await this.tariffs.reopenRate(previous.id, tx);
+      await this.audit.record(
+        {
+          action: 'tariffs.rate.cancelled',
+          hospitalId,
+          actorUserId: auth.userId,
+          entityType: 'service_item',
+          entityId: serviceItemId,
+          meta,
+          details: { rateId: rate.id, effectiveFrom: from, reason: input.reason, reopenedRateId: previous?.id ?? null },
+        },
+        tx,
+      );
+      return toTariffRate(cancelled);
+    });
   }
 }

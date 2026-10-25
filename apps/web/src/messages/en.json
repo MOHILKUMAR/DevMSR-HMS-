@@ -28,6 +28,7 @@
     "REFERENCE_INVALID": "Something you chose is no longer active. Reload the page and choose again.",
     "RATE_DATE_INVALID": "Choose a start date from today onwards, after the start of the latest rate.",
     "BED_OCCUPIED": "A patient is in this bed or ward. Move or discharge the patient first.",
+    "RATE_NOT_CANCELLABLE": "This rate can no longer be cancelled: it has started, a later rate follows it, or it is already cancelled. Close this and open the history again.",
     "network": "Could not reach the server. Check the connection and try again.",
     "unknown": "Something went wrong. Try again, and tell your admin if it keeps happening."
   },
@@ -104,7 +105,8 @@
     "date": "Choose a date.",
     "pincode": "Enter a 6-digit PIN code.",
     "phone": "Use digits, spaces and + ( ) - only.",
-    "email": "Enter an email address, such as accounts@hospital.in."
+    "email": "Enter an email address, such as accounts@hospital.in.",
+    "reason": "Enter a reason of 3 to 200 characters."
   },
   "bedStatus": {
     "free": "Free",
@@ -280,7 +282,22 @@
       "to": "To",
       "enteredOn": "Entered on",
       "noHistory": "No rates yet.",
-      "untilChanged": "Until changed"
+      "untilChanged": "Until changed",
+      "status": {
+        "inForce": "In force",
+        "scheduled": "Scheduled",
+        "ended": "Ended",
+        "cancelled": "Cancelled"
+      },
+      "neverApplied": "Never applied",
+      "cancelRate": "Cancel",
+      "cancelRateNamed": "Cancel the rate from {date}",
+      "cancelTitle": "Cancel this scheduled rate?",
+      "cancelBody": "The rate of {rate} from {date} will never apply, and the rate before it carries on. The record is kept.",
+      "cancelReason": "Reason",
+      "cancelReasonHint": "Such as: entered the wrong amount.",
+      "keepRate": "Keep rate",
+      "confirmCancel": "Cancel rate"
     },
     "hospital": {
       "title": "Hospital profile",

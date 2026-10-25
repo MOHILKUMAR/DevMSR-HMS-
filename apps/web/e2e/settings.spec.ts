@@ -148,6 +148,33 @@ test('finance adds a service item and gives it a rate from today, kept in its hi
   const history = page.getByRole('dialog', { name: `Rate history: ${name}` });
   const first = history.getByRole('row').filter({ hasText: '₹1,250.50' });
   await expect(first).toContainText('Until changed');
+  await expect(first).toContainText('In force');
+  await page.keyboard.press('Escape');
+
+  // A rate scheduled by mistake is cancelled before it starts; today's rate carries on.
+  const nextWeek = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date(Date.now() + 7 * 86_400_000));
+  await row.getByRole('button', { name: `Change rate for ${name}` }).click();
+  const schedule = page.getByRole('dialog', { name: `Change rate: ${name}` });
+  await schedule.getByLabel('Rate in rupees').fill('14,000');
+  await schedule.getByLabel('Tax rate (%)').fill('0');
+  await schedule.getByLabel('Starts on').fill(nextWeek);
+  await schedule.getByRole('button', { name: 'Save' }).click();
+  await expect(schedule).toBeHidden();
+  await expect(row).toContainText('₹1,250.50');
+
+  await row.getByRole('button', { name: `Rate history for ${name}` }).click();
+  const scheduled = history.getByRole('row').filter({ hasText: '₹14,000.00' });
+  await expect(scheduled).toContainText('Scheduled');
+  await scheduled.getByRole('button', { name: /^Cancel the rate from/ }).click();
+  await history.getByRole('button', { name: 'Cancel rate', exact: true }).click();
+  await expect(history.getByText('Enter a reason of 3 to 200 characters.')).toBeVisible();
+  await history.getByLabel('Reason').fill('Entered the wrong amount');
+  await history.getByRole('button', { name: 'Cancel rate', exact: true }).click();
+  await expect(scheduled).toContainText('Cancelled');
+  await expect(scheduled).toContainText('Never applied');
+  await expect(scheduled).toContainText('Entered the wrong amount');
+  await expect(first).toContainText('Until changed');
+  await expect(history.getByRole('button', { name: /^Cancel the rate from/ })).toHaveCount(0);
 });
 
 test('staff without settings permissions cannot reach admin screens', async ({ page }) => {

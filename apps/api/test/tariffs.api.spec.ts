@@ -16,6 +16,8 @@ interface RateBody {
   ratePaise: number;
   effectiveFrom: string;
   effectiveTo: string | null;
+  cancelledAt: string | null;
+  cancelReason: string | null;
 }
 
 function code(prefix: string): string {
@@ -100,7 +102,7 @@ describe('service items and rates', () => {
     await addRate(itemId, {});
     await addRate(itemId, { effectiveFrom: addDays(today, 3) });
     const closed = await t.prisma.tariffRate.findFirstOrThrow({ where: { serviceItemId: itemId, NOT: { effectiveTo: null } } });
-    await expect(t.prisma.tariffRate.update({ where: { id: closed.id }, data: { ratePaise: 1n } })).rejects.toThrow(/not allowed|Only closing/);
+    await expect(t.prisma.tariffRate.update({ where: { id: closed.id }, data: { ratePaise: 1n } })).rejects.toThrow(/Rates are history/);
     await expect(t.prisma.tariffRate.delete({ where: { id: closed.id } })).rejects.toThrow(/not allowed/);
   });
 
@@ -134,5 +136,82 @@ describe('service items and rates', () => {
     expect((await addRate(theirs, {})).status).toBe(404);
     expect((await as(request(t.http).get(`/api/v1/service-items/${theirs}/rates`), clerk)).status).toBe(404);
     expect((await as(request(t.http).patch(`/api/v1/service-items/${theirs}`), finance).send({ name: 'Mine' })).status).toBe(404);
+  });
+
+  describe('cancelling a rate before it starts', () => {
+    const cancel = (itemId: string, rateId: string, browser = finance, reason = 'Entered the wrong amount') =>
+      as(request(t.http).post(`/api/v1/service-items/${itemId}/rates/${rateId}/cancel`), browser).send({ reason });
+    const errorCode = (response: request.Response) => (response.body as ErrorBody).error.code;
+    const newItem = async () => ((await createItem({})).body as ItemBody).id;
+
+    it('cancels a scheduled rate; the current rate carries on and the record is kept', async () => {
+      const itemId = await newItem();
+      const current = (await addRate(itemId, { ratePaise: 30_000 })).body as RateBody;
+      const scheduled = (await addRate(itemId, { ratePaise: 99_900, effectiveFrom: addDays(today, 10) })).body as RateBody;
+
+      const response = await cancel(itemId, scheduled.id);
+      expect(response.status).toBe(200);
+      expect(response.body).toMatchObject({ id: scheduled.id, cancelReason: 'Entered the wrong amount' });
+      expect((response.body as RateBody).cancelledAt).not.toBeNull();
+
+      const history = (await as(request(t.http).get(`/api/v1/service-items/${itemId}/rates`), finance)).body as { data: RateBody[] };
+      expect(history.data).toHaveLength(2);
+      expect(history.data.find((rate) => rate.id === current.id)).toMatchObject({ effectiveTo: null, cancelledAt: null });
+      expect(await t.prisma.auditEvent.count({ where: { entityId: itemId, action: 'tariffs.rate.cancelled' } })).toBe(1);
+
+      // The corrected rate can then be scheduled for the same day.
+      expect((await addRate(itemId, { ratePaise: 35_000, effectiveFrom: addDays(today, 10) })).status).toBe(201);
+    });
+
+    it('refuses a rate that has started, one followed by a later rate, and one already cancelled', async () => {
+      const itemId = await newItem();
+      const current = (await addRate(itemId, {})).body as RateBody;
+      const first = (await addRate(itemId, { effectiveFrom: addDays(today, 5) })).body as RateBody;
+      const second = (await addRate(itemId, { effectiveFrom: addDays(today, 9) })).body as RateBody;
+      for (const rateId of [current.id, first.id]) {
+        const response = await cancel(itemId, rateId);
+        expect(response.status).toBe(422);
+        expect(errorCode(response)).toBe('RATE_NOT_CANCELLABLE');
+      }
+      expect((await cancel(itemId, second.id)).status).toBe(200);
+      expect(errorCode(await cancel(itemId, second.id))).toBe('RATE_NOT_CANCELLABLE');
+
+      // With the later rate cancelled, the earlier scheduled one can go too, and today's rate carries on.
+      expect((await cancel(itemId, first.id)).status).toBe(200);
+      expect((await t.prisma.tariffRate.findUniqueOrThrow({ where: { id: current.id } })).effectiveTo).toBeNull();
+    });
+
+    it('needs a reason, the finance permission, and a rate of this hospital and item', async () => {
+      const itemId = await newItem();
+      await addRate(itemId, {});
+      const scheduled = (await addRate(itemId, { effectiveFrom: addDays(today, 3) })).body as RateBody;
+      expect((await cancel(itemId, scheduled.id, finance, ' ')).status).toBe(400);
+      expect((await cancel(itemId, scheduled.id, clerk)).status).toBe(403);
+      expect((await cancel(itemId, scheduled.id, otherFinance)).status).toBe(404);
+      expect((await cancel(await newItem(), scheduled.id)).status).toBe(404);
+      expect((await t.prisma.tariffRate.findUniqueOrThrow({ where: { id: scheduled.id } })).cancelledAt).toBeNull();
+    });
+
+    it('the database itself refuses to cancel a started rate, reopen a past one, or change a cancelled one', async () => {
+      const itemId = await newItem();
+      const current = (await addRate(itemId, {})).body as RateBody;
+      const scheduled = (await addRate(itemId, { effectiveFrom: addDays(today, 4) })).body as RateBody;
+      const cancelFields = { cancelledAt: new Date(), cancelledById: hospital.id, cancelReason: 'Direct change' };
+
+      await expect(t.prisma.tariffRate.update({ where: { id: current.id }, data: cancelFields })).rejects.toThrow(/Rates are history/);
+      expect((await cancel(itemId, scheduled.id)).status).toBe(200);
+      await expect(t.prisma.tariffRate.update({ where: { id: scheduled.id }, data: { cancelReason: 'Edited' } })).rejects.toThrow(/Rates are history/);
+
+      const past = await t.prisma.tariffRate.create({
+        data: {
+          hospitalId: hospital.id,
+          serviceItemId: await newItem(),
+          ratePaise: 1_000n,
+          effectiveFrom: new Date('2026-01-01T00:00:00Z'),
+          effectiveTo: new Date('2026-03-31T00:00:00Z'),
+        },
+      });
+      await expect(t.prisma.tariffRate.update({ where: { id: past.id }, data: { effectiveTo: null } })).rejects.toThrow(/Rates are history/);
+    });
   });
 });

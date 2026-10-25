@@ -4,6 +4,8 @@ node_modules/
 
 # Builds
 dist/
+# `pnpm api:spec` compiles the API here, away from the dist folder a running `pnpm dev` uses
+.spec-build/
 build/
 out/
 .next/

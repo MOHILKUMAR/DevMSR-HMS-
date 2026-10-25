@@ -28,7 +28,7 @@ function setup() {
     findBed: vi.fn(),
     updateBed: vi.fn(),
     updateWard: vi.fn().mockResolvedValue(WARD),
-    countOccupiedBeds: vi.fn().mockResolvedValue(0),
+    lockBedsAndCountOccupied: vi.fn().mockResolvedValue(0),
   };
   const audit = { record: vi.fn().mockResolvedValue(undefined) };
   const transactions = { run: vi.fn((work: (tx: unknown) => Promise<unknown>) => work({})) };
@@ -70,7 +70,7 @@ describe('BedsService', () => {
 
   it('refuses to retire a ward with a patient in it', async () => {
     const { service, repo } = setup();
-    repo.countOccupiedBeds.mockResolvedValue(1);
+    repo.lockBedsAndCountOccupied.mockResolvedValue(1);
     expect(await codeOf(service.updateWard(ADMIN, 'w1', { isActive: false }, META))).toBe('BED_OCCUPIED');
     expect(repo.updateWard).not.toHaveBeenCalled();
   });

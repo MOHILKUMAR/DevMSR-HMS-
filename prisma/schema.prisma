@@ -207,12 +207,16 @@ model TariffRate {
   effectiveTo   DateTime? @map("effective_to") @db.Date
   createdById   String?   @map("created_by_id") @db.Uuid
   createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  // Set when a rate is cancelled before it starts. A cancelled rate never applies and is kept for the record.
+  cancelledAt   DateTime? @map("cancelled_at") @db.Timestamptz(3)
+  cancelledById String?   @map("cancelled_by_id") @db.Uuid
+  cancelReason  String?   @map("cancel_reason")
 
   hospital    Hospital    @relation(fields: [hospitalId], references: [id], onDelete: Restrict)
   serviceItem ServiceItem @relation(fields: [hospitalId, serviceItemId], references: [hospitalId, id], onDelete: Restrict)
 
   // One open rate per service item. Never look a rate up by serviceItemId alone through this key.
-  @@unique([serviceItemId], map: "tariff_rates_one_open_rate", where: raw("effective_to IS NULL"))
+  @@unique([serviceItemId], map: "tariff_rates_one_open_rate", where: raw("effective_to IS NULL AND cancelled_at IS NULL"))
   @@index([serviceItemId, effectiveFrom])
   @@map("tariff_rates")
 }

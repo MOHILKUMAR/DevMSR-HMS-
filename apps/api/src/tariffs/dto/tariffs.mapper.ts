@@ -15,6 +15,8 @@ export function toTariffRate(row: TariffRateRow): TariffRate {
     effectiveFrom: toDateOnly(row.effectiveFrom),
     effectiveTo: row.effectiveTo === null ? null : toDateOnly(row.effectiveTo),
     createdAt: row.createdAt.toISOString(),
+    cancelledAt: row.cancelledAt === null ? null : row.cancelledAt.toISOString(),
+    cancelReason: row.cancelReason,
   };
 }
 

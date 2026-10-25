@@ -43,8 +43,9 @@ Lists take `?page=1&pageSize=50&q=text&includeInactive=true` and return `{ data,
 | GET | `/service-items` | `tariffs.tariff.read` | Everything the hospital charges for, with the rate that applies today (`currentRate`, or null). `?kind=` and `?doctorId=` filter. |
 | POST | `/service-items` | `tariffs.tariff.manage` | Body `{ code, name, kind, doctorId?, roomCategoryId? }`. Only a consultation has a doctor, only room rent and nursing have a room category. |
 | PATCH | `/service-items/:id` | `tariffs.tariff.manage` | Any of `{ name, isActive }`. |
-| GET | `/service-items/:id/rates` | `tariffs.tariff.read` | `{ data }`: the full rate history, newest first. |
+| GET | `/service-items/:id/rates` | `tariffs.tariff.read` | `{ data }`: the full rate history, newest first, cancelled rates included (`cancelledAt`, `cancelReason`). |
 | POST | `/service-items/:id/rates` | `tariffs.tariff.manage` | Body `{ ratePaise, taxRateBp, effectiveFrom }`. Starts today or later (IST) and after the current rate's start; the current rate ends the day before. 422 `RATE_DATE_INVALID` otherwise. |
+| POST | `/service-items/:id/rates/:rateId/cancel` | `tariffs.tariff.manage` | Body `{ reason }` (3 to 200 characters). Cancels the latest rate before it starts; the rate before it carries on. 200 with the cancelled rate. 422 `RATE_NOT_CANCELLABLE` for a rate that has started, is followed by a later rate, or is already cancelled. |
 
 ## Error codes
 
@@ -68,4 +69,5 @@ Lists take `?page=1&pageSize=50&q=text&includeInactive=true` and return `{ data,
 | `REFERENCE_INVALID` | 422 | A chosen department, room category, doctor or service item is inactive or does not exist. |
 | `RATE_DATE_INVALID` | 422 | A new rate starts in the past, or not after the current rate's start. |
 | `BED_OCCUPIED` | 422 | Retiring a bed or ward that has a patient in it. |
+| `RATE_NOT_CANCELLABLE` | 422 | Cancelling a rate that has started, is followed by a later rate, or is already cancelled. |
 | `INTERNAL_ERROR` | 500 | Anything unexpected. Details are logged with the `X-Request-Id`, never returned. |

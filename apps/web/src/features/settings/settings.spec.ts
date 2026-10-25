@@ -1,7 +1,7 @@
-import type { StaffUser } from '@devmsr/validation';
+import type { StaffUser, TariffRate } from '@devmsr/validation';
 import { describe, expect, it } from 'vitest';
 import { changedFields, staffUserChanges } from './changes';
-import { toRateBody } from './rate-form';
+import { cancellableRateId, rateStatus, toRateBody } from './rate-form';
 import { visibleSettingsSections } from './sections';
 
 const keys = (permissions: string[]) => visibleSettingsSections(permissions).map((section) => section.key);
@@ -81,5 +81,37 @@ describe('toRateBody', () => {
   it('gives nothing for text that is not an amount', () => {
     expect(toRateBody({ rupees: 'twelve', taxPercent: '0', effectiveFrom: '2026-11-01' })).toBeNull();
     expect(toRateBody({ rupees: '12', taxPercent: '120', effectiveFrom: '2026-11-01' })).toBeNull();
+  });
+});
+
+describe('rate status and cancelling', () => {
+  const TODAY = '2026-10-25';
+  const rate = (id: string, effectiveFrom: string, effectiveTo: string | null, cancelledAt: string | null = null): TariffRate => ({
+    id,
+    ratePaise: 50_000,
+    taxRateBp: 0,
+    effectiveFrom,
+    effectiveTo,
+    createdAt: '2026-10-25T00:00:00.000Z',
+    cancelledAt,
+    cancelReason: cancelledAt === null ? null : 'Wrong amount',
+  });
+
+  it('names where each rate stands today', () => {
+    expect(rateStatus(rate('a', '2026-04-01', null), TODAY)).toBe('inForce');
+    expect(rateStatus(rate('a', '2026-04-01', TODAY), TODAY)).toBe('inForce');
+    expect(rateStatus(rate('a', '2026-04-01', '2026-10-24'), TODAY)).toBe('ended');
+    expect(rateStatus(rate('a', '2026-11-01', null), TODAY)).toBe('scheduled');
+    expect(rateStatus(rate('a', '2026-11-01', null, '2026-10-25T05:00:00.000Z'), TODAY)).toBe('cancelled');
+  });
+
+  it('offers to cancel only the latest rate, and only before it starts', () => {
+    const current = rate('current', '2026-04-01', '2026-10-31');
+    const scheduled = rate('scheduled', '2026-11-01', null);
+    expect(cancellableRateId([scheduled, current], TODAY)).toBe('scheduled');
+    expect(cancellableRateId([rate('current', '2026-04-01', null)], TODAY)).toBeNull();
+    expect(cancellableRateId([rate('today', TODAY, null)], TODAY)).toBeNull();
+    // Once the scheduled rate is cancelled, the rate before it is the latest again, and it has started.
+    expect(cancellableRateId([rate('scheduled', '2026-11-01', null, '2026-10-25T05:00:00.000Z'), rate('current', '2026-04-01', null)], TODAY)).toBeNull();
   });
 });
