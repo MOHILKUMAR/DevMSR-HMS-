@@ -61,9 +61,9 @@ result="$(
     --volume "$AGE_IDENTITY_FILE:/run/age-identity:ro" \
     "hms-backup:$tag" restore ${backup_name:+"$backup_name"}
 )" || die "restore or restore checks failed: see the output above"
+
 # 2. Start the API on the restored copy. Its own session secret; the real field key, so step 3 proves it.
-# APP_ENV=staging: the copy has no API login or Sentry, which only the production guard requires.
-# 2. Start the API on the restored copy. Its own session secret; the real field key, so step 3 proves it.
+# APP_ENV=staging: the copy has no API login and no Sentry, which only the production guard requires.
 field_key="$(sed -n 's/^FIELD_ENCRYPTION_KEY=//p' "$HMS_ENV_DIR/api.env" | tail -n 1)"
 [[ -n "$field_key" ]] || dry_run || die "FIELD_ENCRYPTION_KEY missing in api.env"
 # Passed by name, so the key never appears on a command line.
