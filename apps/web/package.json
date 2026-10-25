@@ -7,7 +7,7 @@
     "build": "next build",
     "dev": "next dev --port 3000",
     "start": "next start --port 3000",
-    "lint": "eslint .",
+    "lint": "next typegen && eslint .",
     "typecheck": "next typegen && tsc --noEmit",
     "api:types": "openapi-typescript ../../docs/openapi.json --output src/lib/api/generated/schema.d.ts",
     "test": "vitest run",

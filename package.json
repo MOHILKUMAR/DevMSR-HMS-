@@ -19,7 +19,7 @@
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "db:reset": "prisma migrate reset",
-    "db:seed": "prisma db seed",
+    "db:seed": "pnpm db:generate && prisma db seed",
     "api:spec": "pnpm db:generate && pnpm build:packages && pnpm --filter @devmsr/api build && node apps/api/dist/openapi/generate-spec.js docs/openapi.json && pnpm --filter @devmsr/web api:types"
   },
   "devDependencies": {

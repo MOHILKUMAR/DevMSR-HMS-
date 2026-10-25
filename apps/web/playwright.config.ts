@@ -42,6 +42,8 @@ export default defineConfig({
     {
       // CI runs the standalone server, as the Docker image does. CI copies static files into it first.
       command: ci ? 'node .next/standalone/apps/web/server.js' : 'pnpm start',
+      // The standalone server binds to HOSTNAME, which CI runners set to the machine name.
+      env: { HOSTNAME: '0.0.0.0', PORT: '3000' },
       url: 'http://localhost:3000/login',
       reuseExistingServer: !ci,
       timeout: 120_000,

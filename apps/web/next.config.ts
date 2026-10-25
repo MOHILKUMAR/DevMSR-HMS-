@@ -21,7 +21,8 @@ const contentSecurityPolicy = [
   "base-uri 'self'",
   "form-action 'self'",
   "frame-ancestors 'none'",
-  ...(isDev ? [] : ['upgrade-insecure-requests']),
+  // No upgrade-insecure-requests: HSTS already forces HTTPS in production, and the directive would
+  // break a production build served over http://localhost (CI and local Docker runs).
 ].join('; ');
 
 const securityHeaders = [
