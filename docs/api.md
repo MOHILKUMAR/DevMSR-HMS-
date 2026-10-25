@@ -126,6 +126,25 @@ Walk-in visits (`docs/billing-rules.md`, OPD). Tokens are numbered for the whole
 | POST | `/opd-visits/:id/orders` | `clinical.order.create` | Needs `Idempotency-Key`. Body `{ serviceItemId, quantity }` (1 to 99), a test or procedure (not a consultation, room or nursing item). Posts its charge at today's rate for the billing clerk to bill. Only while the patient is with the doctor. |
 | POST | `/opd-visits/:id/complete` | `clinical.note.write` | Ends the visit; its notes are locked from then on. |
 
+## IPD and beds
+
+Admissions, transfers, the bed board and the interim bill (`docs/billing-rules.md`, IPD and beds). A patient has at most one open admission, a bed at most one patient, and a bed is `occupied` exactly while an admission holds it; the database enforces all three. Room and nursing charges are posted by the midnight job, not by a route (see below).
+
+| Method | Path | Permission | Notes |
+| --- | --- | --- | --- |
+| POST | `/admissions` | `ipd.admission.create` | Needs `Idempotency-Key`. Body `{ patientId, doctorId, bedId, reason?, opdVisitId? }`; `opdVisitId` is an OPD visit of this patient where admission was advised. Gives the next `<CODE>/IP/<FY>/<6 digits>` number and sets the bed occupied. The deposit held and the room category's minimum advance are kept on the admission; `advanceShort` is true when the deposit is less (a warning only). 409 `ALREADY_ADMITTED`; 409 `BED_TAKEN` when the bed is not free (or another desk took it first); 422 `REFERENCE_INVALID` for an inactive doctor, a visit that did not advise admission, or a ward with no room category. |
+| GET | `/admissions` | `ipd.admission.read` | Paged admissions, newest first. `?status=admitted` for the patients in now. |
+| GET | `/admissions/advised` | `ipd.admission.read` | OPD visits of the last 7 days where the doctor advised admission and the patient has not been admitted since. |
+| GET | `/admissions/:id` | `ipd.admission.read` | One admission with every bed it held (and why each ended) and the room and nursing charges posted for each night. |
+| POST | `/admissions/:id/transfers` | `ipd.transfer.create` | Body `{ bedId }`. Ends the current bed (reason `transfer`), sets it to cleaning, and opens the new one. 409 `BED_TAKEN`; 409 `ADMISSION_STATE` once discharged. |
+| GET | `/admissions/:id/interim-bill` | `billing.account.read` | What the stay has come to: the patient's charges since admission that are not on an issued bill, totalled like a bill but with no number, and the deposit held. Audited. |
+| GET | `/bed-board` | `beds.bed.read` | Every active ward with its room category and minimum advance, and every active bed with its state and, when occupied, the admission number and patient. |
+| PUT | `/beds/:id/status` | `beds.bed.update-status` | Body `{ status }`: `free`, `cleaning`, `reserved` or `blocked`. 204. 422 `BED_OCCUPIED` for a bed with a patient in it. |
+| GET | `/room-categories/minimum-advances` | `masters.data.read` | Each room category's minimum advance, with whether the category is active. |
+| PUT | `/room-categories/:id/minimum-advance` | `tariffs.tariff.manage` | Body `{ minimumAdvancePaise }` (0 for none). Returns the list. |
+
+The midnight job (`ipd-midnight-charges`, pg-boss, 00:05 IST and once when the API starts) posts a room charge and a nursing charge for each night an admission crosses midnight in a bed, at the rates in force that day for the room category of the bed held at midnight. A night with no rate is skipped and logged; it is posted on a later run once the rate exists, as are nights missed while the API was down. Each night and kind is posted once (a unique key), so runs can repeat safely. These charges have no `postedBy`; the audit event `ipd.daily-charges.posted` has no actor.
+
 ## Error codes
 
 | Code | Status | When |
@@ -147,7 +166,7 @@ Walk-in visits (`docs/billing-rules.md`, OPD). Tokens are numbered for the whole
 | `DOCTOR_LOGIN_INVALID` | 422 | The login to link to a doctor is not an active doctor login of this hospital, or is linked already. |
 | `REFERENCE_INVALID` | 422 | A chosen department, room category, doctor or service item is inactive or does not exist. |
 | `RATE_DATE_INVALID` | 422 | A new rate starts in the past, or not after the current rate's start. |
-| `BED_OCCUPIED` | 422 | Retiring a bed or ward that has a patient in it. |
+| `BED_OCCUPIED` | 422 | Retiring a bed or ward that has a patient in it, or setting the state of an occupied bed by hand. |
 | `RATE_NOT_CANCELLABLE` | 422 | Cancelling a rate that has started, is followed by a later rate, or is already cancelled. |
 | `DUPLICATE_PATIENT` | 409 | The Aadhaar or ABHA number belongs to another patient of the hospital. `details.matches` lists `{ id, uhid }` only. |
 | `POSSIBLE_DUPLICATE` | 409 | A patient with the same mobile, or the same name and birth year, exists and was not acknowledged. `details.matches` lists `{ id, uhid }` only. |
@@ -169,4 +188,7 @@ Walk-in visits (`docs/billing-rules.md`, OPD). Tokens are numbered for the whole
 | `REFUND_NOT_READY` | 409 | Paying out a refund that is not approved, or was paid already. |
 | `VISIT_STATE` | 409 | The OPD visit has moved on (paid, called in, completed or cancelled) and cannot take this step. |
 | `TOKEN_EXISTS` | 409 | The patient already has an open token for this doctor today. |
+| `BED_TAKEN` | 409 | The bed chosen for an admission or transfer is not free, or another desk took it first. |
+| `ALREADY_ADMITTED` | 409 | Admitting a patient who has an open admission. |
+| `ADMISSION_STATE` | 409 | The admission is discharged and cannot take this step. |
 | `INTERNAL_ERROR` | 500 | Anything unexpected. Details are logged with the `X-Request-Id`, never returned. |

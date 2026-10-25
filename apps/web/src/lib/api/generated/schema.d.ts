@@ -4,6 +4,92 @@
  */
 
 export interface paths {
+    "/api/v1/admissions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Admissions, newest first. ?status=admitted for the patients in now */
+        get: operations["admissionsList"];
+        put?: never;
+        /** Admit a patient into a free bed, with the next admission number */
+        post: operations["admissionsAdmit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admissions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One admission with its beds and the room and nursing charges posted */
+        get: operations["admissionsGet"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admissions/{id}/interim-bill": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What the stay has come to so far, without a bill number (audited) */
+        get: operations["admissionsInterimBill"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admissions/{id}/transfers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Move the patient to another free bed; the old bed goes to cleaning */
+        post: operations["admissionsTransfer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admissions/advised": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** OPD visits of the last 7 days where admission was advised and none followed */
+        get: operations["admissionsAdvised"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/approval-requests": {
         parameters: {
             query?: never;
@@ -106,6 +192,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/bed-board": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Every active ward with its beds, their state and who is in them */
+        get: operations["bedBoardBedBoard"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/beds/{id}": {
         parameters: {
             query?: never;
@@ -121,6 +224,23 @@ export interface paths {
         head?: never;
         /** Retire or restore a bed */
         patch: operations["bedsUpdate"];
+        trace?: never;
+    };
+    "/api/v1/beds/{id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set a bed free, cleaning, reserved or blocked; an occupied bed is refused */
+        put: operations["bedBoardSetStatus"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/cash-shifts": {
@@ -948,6 +1068,40 @@ export interface paths {
         patch: operations["roomCategoriesUpdate"];
         trace?: never;
     };
+    "/api/v1/room-categories/{id}/minimum-advance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set the minimum advance of a room category */
+        put: operations["bedBoardSetAdvance"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/room-categories/minimum-advances": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Each room category's minimum advance at admission */
+        get: operations["bedBoardAdvances"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/service-items": {
         parameters: {
             query?: never;
@@ -1185,6 +1339,303 @@ export interface components {
                 details?: unknown;
             };
         };
+        AdmissionsListResponse: {
+            data: {
+                /** Format: uuid */
+                id: string;
+                number: string;
+                /** @enum {string} */
+                status: "admitted" | "discharged";
+                patient: {
+                    /** Format: uuid */
+                    id: string;
+                    uhid: string;
+                    fullName: string;
+                    /** @enum {string} */
+                    sex: "male" | "female" | "other" | "unknown";
+                    dateOfBirth: string | null;
+                };
+                doctor: {
+                    /** Format: uuid */
+                    id: string;
+                    fullName: string;
+                };
+                bed: {
+                    /** Format: uuid */
+                    id: string;
+                    code: string;
+                    wardName: string;
+                    roomCategoryName: string | null;
+                } | null;
+                /** Format: date-time */
+                admittedAt: string;
+                dischargedAt: string | null;
+                minimumAdvancePaise: number;
+                depositHeldPaise: number;
+                advanceShort: boolean;
+            }[];
+            page: number;
+            pageSize: number;
+            total: number;
+        };
+        AdmissionsAdmitRequest: {
+            /** Format: uuid */
+            patientId: string;
+            /** Format: uuid */
+            doctorId: string;
+            /** Format: uuid */
+            bedId: string;
+            reason?: string;
+            /** Format: uuid */
+            opdVisitId?: string;
+        };
+        AdmissionsAdmitResponse: {
+            /** Format: uuid */
+            id: string;
+            number: string;
+            /** @enum {string} */
+            status: "admitted" | "discharged";
+            patient: {
+                /** Format: uuid */
+                id: string;
+                uhid: string;
+                fullName: string;
+                /** @enum {string} */
+                sex: "male" | "female" | "other" | "unknown";
+                dateOfBirth: string | null;
+            };
+            doctor: {
+                /** Format: uuid */
+                id: string;
+                fullName: string;
+            };
+            bed: {
+                /** Format: uuid */
+                id: string;
+                code: string;
+                wardName: string;
+                roomCategoryName: string | null;
+            } | null;
+            /** Format: date-time */
+            admittedAt: string;
+            dischargedAt: string | null;
+            minimumAdvancePaise: number;
+            depositHeldPaise: number;
+            advanceShort: boolean;
+            /** @enum {string} */
+            payerType: "self_pay";
+            reason: string | null;
+            opdVisitId: string | null;
+            admittedByName: string | null;
+            beds: {
+                /** Format: uuid */
+                id: string;
+                code: string;
+                wardName: string;
+                roomCategoryName: string | null;
+                /** Format: date-time */
+                startedAt: string;
+                endedAt: string | null;
+                endReason: ("transfer" | "discharge") | null;
+            }[];
+            dailyCharges: {
+                /** Format: date */
+                chargeDate: string;
+                /** @enum {string} */
+                kind: "room" | "nursing";
+                description: string;
+                amountPaise: number;
+                bedCode: string;
+            }[];
+        };
+        AdmissionsGetResponse: {
+            /** Format: uuid */
+            id: string;
+            number: string;
+            /** @enum {string} */
+            status: "admitted" | "discharged";
+            patient: {
+                /** Format: uuid */
+                id: string;
+                uhid: string;
+                fullName: string;
+                /** @enum {string} */
+                sex: "male" | "female" | "other" | "unknown";
+                dateOfBirth: string | null;
+            };
+            doctor: {
+                /** Format: uuid */
+                id: string;
+                fullName: string;
+            };
+            bed: {
+                /** Format: uuid */
+                id: string;
+                code: string;
+                wardName: string;
+                roomCategoryName: string | null;
+            } | null;
+            /** Format: date-time */
+            admittedAt: string;
+            dischargedAt: string | null;
+            minimumAdvancePaise: number;
+            depositHeldPaise: number;
+            advanceShort: boolean;
+            /** @enum {string} */
+            payerType: "self_pay";
+            reason: string | null;
+            opdVisitId: string | null;
+            admittedByName: string | null;
+            beds: {
+                /** Format: uuid */
+                id: string;
+                code: string;
+                wardName: string;
+                roomCategoryName: string | null;
+                /** Format: date-time */
+                startedAt: string;
+                endedAt: string | null;
+                endReason: ("transfer" | "discharge") | null;
+            }[];
+            dailyCharges: {
+                /** Format: date */
+                chargeDate: string;
+                /** @enum {string} */
+                kind: "room" | "nursing";
+                description: string;
+                amountPaise: number;
+                bedCode: string;
+            }[];
+        };
+        AdmissionsInterimBillResponse: {
+            /** Format: uuid */
+            admissionId: string;
+            admissionNumber: string;
+            issuer: {
+                name: string;
+                addressLine: string | null;
+                city: string | null;
+                state: string | null;
+                pincode: string | null;
+                phone: string | null;
+                email: string | null;
+                gstin: string | null;
+            };
+            patient: {
+                /** Format: uuid */
+                id: string;
+                uhid: string;
+                fullName: string;
+                /** @enum {string} */
+                sex: "male" | "female" | "other" | "unknown";
+                dateOfBirth: string | null;
+                phone: string | null;
+                address: string | null;
+            };
+            /** Format: date-time */
+            admittedAt: string;
+            /** Format: date-time */
+            generatedAt: string;
+            lines: {
+                description: string;
+                /** Format: date */
+                serviceDate: string;
+                quantity: number;
+                unitRatePaise: number;
+                taxRateBp: number;
+                amountPaise: number;
+                totalPaise: number;
+            }[];
+            subtotalPaise: number;
+            cgstPaise: number;
+            sgstPaise: number;
+            roundOffPaise: number;
+            totalPaise: number;
+            depositHeldPaise: number;
+        };
+        AdmissionsTransferRequest: {
+            /** Format: uuid */
+            bedId: string;
+        };
+        AdmissionsTransferResponse: {
+            /** Format: uuid */
+            id: string;
+            number: string;
+            /** @enum {string} */
+            status: "admitted" | "discharged";
+            patient: {
+                /** Format: uuid */
+                id: string;
+                uhid: string;
+                fullName: string;
+                /** @enum {string} */
+                sex: "male" | "female" | "other" | "unknown";
+                dateOfBirth: string | null;
+            };
+            doctor: {
+                /** Format: uuid */
+                id: string;
+                fullName: string;
+            };
+            bed: {
+                /** Format: uuid */
+                id: string;
+                code: string;
+                wardName: string;
+                roomCategoryName: string | null;
+            } | null;
+            /** Format: date-time */
+            admittedAt: string;
+            dischargedAt: string | null;
+            minimumAdvancePaise: number;
+            depositHeldPaise: number;
+            advanceShort: boolean;
+            /** @enum {string} */
+            payerType: "self_pay";
+            reason: string | null;
+            opdVisitId: string | null;
+            admittedByName: string | null;
+            beds: {
+                /** Format: uuid */
+                id: string;
+                code: string;
+                wardName: string;
+                roomCategoryName: string | null;
+                /** Format: date-time */
+                startedAt: string;
+                endedAt: string | null;
+                endReason: ("transfer" | "discharge") | null;
+            }[];
+            dailyCharges: {
+                /** Format: date */
+                chargeDate: string;
+                /** @enum {string} */
+                kind: "room" | "nursing";
+                description: string;
+                amountPaise: number;
+                bedCode: string;
+            }[];
+        };
+        AdmissionsAdvisedResponse: {
+            data: {
+                /** Format: uuid */
+                visitId: string;
+                /** Format: date */
+                visitDate: string;
+                patient: {
+                    /** Format: uuid */
+                    id: string;
+                    uhid: string;
+                    fullName: string;
+                };
+                doctor: {
+                    /** Format: uuid */
+                    id: string;
+                    fullName: string;
+                };
+                diagnosis: string | null;
+            }[];
+        };
         ApprovalRequestsListResponse: {
             data: {
                 /** Format: uuid */
@@ -1410,6 +1861,34 @@ export interface components {
                 idleTimeoutSeconds: number;
             };
         };
+        BedBoardBedBoardResponse: {
+            wards: {
+                /** Format: uuid */
+                id: string;
+                code: string;
+                name: string;
+                roomCategory: {
+                    /** Format: uuid */
+                    id: string;
+                    name: string;
+                    minimumAdvancePaise: number;
+                } | null;
+                beds: {
+                    /** Format: uuid */
+                    id: string;
+                    code: string;
+                    /** @enum {string} */
+                    status: "free" | "occupied" | "cleaning" | "reserved" | "blocked";
+                    occupant: {
+                        /** Format: uuid */
+                        admissionId: string;
+                        admissionNumber: string;
+                        patientName: string;
+                        uhid: string;
+                    } | null;
+                }[];
+            }[];
+        };
         BedsUpdateRequest: {
             isActive: boolean;
         };
@@ -1422,6 +1901,10 @@ export interface components {
             /** @enum {string} */
             status: "free" | "occupied" | "cleaning" | "reserved" | "blocked";
             isActive: boolean;
+        };
+        BedBoardSetStatusRequest: {
+            /** @enum {string} */
+            status: "free" | "cleaning" | "reserved" | "blocked";
         };
         CashShiftsListResponse: {
             data: {
@@ -4011,6 +4494,29 @@ export interface components {
             name: string;
             isActive: boolean;
         };
+        BedBoardSetAdvanceRequest: {
+            minimumAdvancePaise: number;
+        };
+        BedBoardSetAdvanceResponse: {
+            data: {
+                /** Format: uuid */
+                id: string;
+                code: string;
+                name: string;
+                isActive: boolean;
+                minimumAdvancePaise: number;
+            }[];
+        };
+        BedBoardAdvancesResponse: {
+            data: {
+                /** Format: uuid */
+                id: string;
+                code: string;
+                name: string;
+                isActive: boolean;
+                minimumAdvancePaise: number;
+            }[];
+        };
         TariffsListResponse: {
             data: {
                 /** Format: uuid */
@@ -4541,6 +5047,207 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    admissionsList: {
+        parameters: {
+            query?: {
+                page?: number;
+                pageSize?: number;
+                sort?: string;
+                status?: "admitted" | "discharged";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionsListResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    admissionsAdmit: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Value of the CSRF cookie */
+                "X-CSRF-Token": string;
+                /** @description Unique per financial request. A repeat returns the stored response. */
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdmissionsAdmitRequest"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionsAdmitResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    admissionsGet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionsGetResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    admissionsInterimBill: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionsInterimBillResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    admissionsTransfer: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Value of the CSRF cookie */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdmissionsTransferRequest"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionsTransferResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    admissionsAdvised: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionsAdvisedResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
     approvalRequestsList: {
         parameters: {
             query?: {
@@ -4733,6 +5440,35 @@ export interface operations {
             };
         };
     };
+    bedBoardBedBoard: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BedBoardBedBoardResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
     bedsUpdate: {
         parameters: {
             query?: never;
@@ -4759,6 +5495,42 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["BedsUpdateResponse"];
                 };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    bedBoardSetStatus: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Value of the CSRF cookie */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BedBoardSetStatusRequest"];
+            };
+        };
+        responses: {
+            /** @description No content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Error */
             default: {
@@ -6782,6 +7554,73 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RoomCategoriesUpdateResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    bedBoardSetAdvance: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Value of the CSRF cookie */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BedBoardSetAdvanceRequest"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BedBoardSetAdvanceResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    bedBoardAdvances: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BedBoardAdvancesResponse"];
                 };
             };
             /** @description Error */

@@ -31,6 +31,8 @@ export const PERMISSIONS = {
 
   // IPD, beds and nursing
   'ipd.admission.create': 'Admit patients',
+  'ipd.admission.read': 'View admissions, beds held and room charges posted',
+  'ipd.transfer.create': 'Move an admitted patient to another bed',
   'ipd.discharge.mark-fit': 'Mark a patient fit for discharge',
   'beds.bed.read': 'View the ward and bed board',
   'beds.bed.update-status': 'Change bed status, for example to cleaning',
@@ -117,6 +119,7 @@ export const ROLES = {
       'reports.profit.read',
       'reports.finance.export',
       'opd.visit.read',
+      'ipd.admission.read',
       'billing.account.read',
       'billing.discount.approve',
       'billing.discount.approve-above-limit',
@@ -156,6 +159,7 @@ export const ROLES = {
       'billing.invoice.issue',
       'billing.discount.request',
       'billing.credit-note.request',
+      'ipd.admission.read',
       'tariffs.tariff.read',
     ],
   },
@@ -173,6 +177,7 @@ export const ROLES = {
       'payments.refund.pay',
       // The OPD tokens waiting for their consultation fee.
       'opd.visit.read',
+      'ipd.admission.read',
       'payments.receipt.void-request',
       'billing.refund.request',
       'tariffs.tariff.read',
@@ -189,6 +194,8 @@ export const ROLES = {
       'opd.appointment.manage',
       'opd.visit.read',
       'ipd.admission.create',
+      'ipd.admission.read',
+      'ipd.transfer.create',
       'beds.bed.read',
       'tariffs.tariff.read',
     ],
@@ -202,6 +209,7 @@ export const ROLES = {
       'opd.queue.read-own',
       'clinical.note.write',
       'clinical.order.create',
+      'ipd.admission.read',
       'ipd.discharge.mark-fit',
       // To choose tests and procedures to order, with their rates.
       'tariffs.tariff.read',
@@ -213,6 +221,8 @@ export const ROLES = {
     permissions: [
       ...STAFF,
       'patients.patient.read',
+      'ipd.admission.read',
+      'ipd.transfer.create',
       'beds.bed.read',
       'beds.bed.update-status',
       'nursing.vitals.record',

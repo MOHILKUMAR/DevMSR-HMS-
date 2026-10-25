@@ -51,6 +51,9 @@
     "REFUND_NOT_READY": "This refund is not approved yet, or it has been paid already. Reload the page to check.",
     "VISIT_STATE": "This visit has moved on, for example it was paid or called in at another counter. Reload the page to see where it is now.",
     "TOKEN_EXISTS": "This patient already has an open token for this doctor today. Use that token.",
+    "BED_TAKEN": "This bed is no longer free. It may have been taken at another desk. Choose another bed.",
+    "ALREADY_ADMITTED": "This patient is already admitted. Open their current admission instead.",
+    "ADMISSION_STATE": "This admission has moved on. Reload the page to see where it is now.",
     "network": "Could not reach the server. Check the connection and try again.",
     "unknown": "Something went wrong. Try again, and tell your admin if it keeps happening."
   },
@@ -150,7 +153,8 @@
       "doctors": "Doctors",
       "wards": "Wards and beds",
       "rates": "Rates and fees",
-      "hospital": "Hospital profile"
+      "hospital": "Hospital profile",
+      "advances": "Minimum advances"
     },
     "users": {
       "title": "Staff users",
@@ -337,6 +341,17 @@
       "email": "Email",
       "save": "Save details",
       "saved": "Saved."
+    },
+    "advances": {
+      "description": "The advance expected at admission for each room category. If less is held, staff see a warning and the admission goes ahead.",
+      "category": "Room category",
+      "code": "Code",
+      "amount": "Minimum advance",
+      "amountFor": "Minimum advance in rupees for {name}",
+      "actions": "Actions",
+      "save": "Save",
+      "loading": "Loading room categories",
+      "none": "No room categories yet. Add them under Wards and beds."
     }
   },
   "patients": {
@@ -983,6 +998,116 @@
       "payFirst": "Pay {fee} at the cash counter first",
       "paid": "Paid, bill {number}",
       "issuedAt": "Issued {time}"
+    }
+  },
+  "ipd": {
+    "desk": {
+      "title": "IPD",
+      "description": "Admit patients into free beds. Room and nursing charges are posted every midnight for each patient in a bed.",
+      "current": "Admitted now",
+      "number": "Admission",
+      "patient": "Patient",
+      "bed": "Bed",
+      "doctor": "Doctor",
+      "admittedAt": "Admitted",
+      "loading": "Loading admissions",
+      "none": "Nobody is admitted."
+    },
+    "admit": {
+      "title": "Admit a patient",
+      "findPatient": "Find the patient",
+      "changePatient": "Choose another patient",
+      "fromOpd": "Admission advised in OPD",
+      "doctor": "Admitting doctor",
+      "chooseDoctor": "Choose a doctor",
+      "bed": "Bed",
+      "loadingBeds": "Loading beds",
+      "noFreeBeds": "No free beds",
+      "chooseBed": "Choose a free bed",
+      "wardGroup": "{ward}: {category}, minimum advance {advance}",
+      "reason": "Reason for admission (optional)",
+      "reasonError": "Enter 3 to 500 characters, or leave it empty.",
+      "admit": "Admit patient",
+      "admitted": "Admitted as {number}, bed {bed}.",
+      "advanceShort": "The deposit held ({held}) is below the minimum advance for this room ({minimum}). Ask the patient to pay the advance at the cash counter.",
+      "open": "Open the admission",
+      "next": "Next patient"
+    },
+    "advised": {
+      "title": "Admission advised in OPD",
+      "date": "Visit",
+      "patient": "Patient",
+      "doctor": "Doctor",
+      "diagnosis": "Diagnosis",
+      "actions": "Actions",
+      "admit": "Admit"
+    },
+    "admission": {
+      "loading": "Loading the admission",
+      "title": "Admission {number}",
+      "admitted": "Admitted",
+      "discharged": "Discharged",
+      "back": "Back to IPD",
+      "printInterim": "Print interim bill",
+      "transfer": "Transfer",
+      "advanceShort": "The deposit held at admission ({held}) was below the minimum advance ({minimum}).",
+      "bed": "Bed",
+      "noBed": "No bed",
+      "doctor": "Doctor",
+      "admittedAt": "Admitted",
+      "reason": "Reason for admission",
+      "noReason": "Not given",
+      "beds": "Beds",
+      "from": "From",
+      "to": "To",
+      "now": "Now",
+      "endReason": {
+        "transfer": "transfer",
+        "discharge": "discharge"
+      },
+      "nights": "Room and nursing charges",
+      "nightsHint": "Posted after each midnight, at the rate of the room the patient was in at midnight.",
+      "night": "Night of",
+      "charge": "Charge",
+      "amount": "Amount",
+      "noNights": "No nights charged yet.",
+      "interim": "Interim bill"
+    },
+    "transfer": {
+      "title": "Transfer {name}",
+      "description": "Move the patient to a free bed. The bed they leave goes to cleaning.",
+      "bed": "New bed",
+      "chooseBed": "Choose a free bed"
+    },
+    "board": {
+      "title": "Bed board",
+      "summary": "{free} free, {occupied} occupied, {cleaning} cleaning, of {total} beds.",
+      "loading": "Loading the bed board",
+      "noWards": "No wards yet. Add them under Settings, Wards and beds.",
+      "noCategory": "No room category: patients cannot be admitted here",
+      "category": "{name}, minimum advance {advance}",
+      "setStatusFor": "Set the state of bed {bed}"
+    },
+    "interim": {
+      "title": "Interim bill",
+      "admission": "Admission {number}",
+      "generated": "As of {time}",
+      "admittedAt": "Admitted {time}",
+      "description": "Description",
+      "date": "Date",
+      "quantity": "Qty",
+      "rate": "Rate",
+      "amount": "Amount",
+      "nothing": "Nothing charged yet.",
+      "subtotal": "Subtotal",
+      "cgst": "CGST",
+      "sgst": "SGST",
+      "roundOff": "Round off",
+      "total": "Total so far",
+      "deposit": "Deposit held",
+      "balance": "Balance to pay",
+      "excess": "Deposit left over",
+      "note": "This is not a bill. The final bill is issued at discharge."
     }
   }
 }

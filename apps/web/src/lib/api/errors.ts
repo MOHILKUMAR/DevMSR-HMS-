@@ -37,6 +37,9 @@ const KNOWN_CODES = [
   'REFUND_NOT_READY',
   'VISIT_STATE',
   'TOKEN_EXISTS',
+  'BED_TAKEN',
+  'ALREADY_ADMITTED',
+  'ADMISSION_STATE',
 ] as const;
 
 export type ErrorMessageKey = (typeof KNOWN_CODES)[number] | 'network' | 'unknown';

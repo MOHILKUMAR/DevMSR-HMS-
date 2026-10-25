@@ -24,7 +24,7 @@ export function formatUhid(hospitalCode: string, year: string, value: number): s
 }
 
 /** The document types with their own number series, and the code each number carries. */
-export const DOCUMENT_PREFIXES = { invoice: 'INV', receipt: 'RCT', credit_note: 'CN', refund: 'RF' } as const;
+export const DOCUMENT_PREFIXES = { invoice: 'INV', receipt: 'RCT', credit_note: 'CN', refund: 'RF', admission: 'IP' } as const;
 export type DocumentKind = keyof typeof DOCUMENT_PREFIXES;
 
 /** `DEMO/INV/2026-27/000001`: hospital code, type, financial year, 6 digits (docs/billing-rules.md). */

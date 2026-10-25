@@ -51,6 +51,8 @@ enum NumberKind {
   refund
   // Per day (IST), for the whole hospital (docs/billing-rules.md).
   opd_token
+  // DEMO/IP/2026-27/000001, per financial year like bills (docs/billing-rules.md).
+  admission
 
   @@map("number_kind")
 }
@@ -118,6 +120,36 @@ enum OpdVisitStatus {
   cancelled
 
   @@map("opd_visit_status")
+}
+
+// An admission stays admitted until discharge (slice 6).
+enum AdmissionStatus {
+  admitted
+  discharged
+
+  @@map("admission_status")
+}
+
+// Who pays. Insurance and TPA arrive in phase 3.
+enum PayerType {
+  self_pay
+
+  @@map("payer_type")
+}
+
+enum BedEndReason {
+  transfer
+  discharge
+
+  @@map("bed_end_reason")
+}
+
+// What the midnight job posts for each night in a bed.
+enum DailyChargeKind {
+  room
+  nursing
+
+  @@map("daily_charge_kind")
 }
 
 enum BedStatus {
@@ -243,6 +275,7 @@ model Doctor {
   user         User?         @relation(fields: [userId], references: [id], onDelete: Restrict)
   serviceItems ServiceItem[]
   opdVisits    OpdVisit[]
+  admissions   Admission[]
 
   @@unique([hospitalId, id])
   @@index([hospitalId, departmentId])
@@ -250,17 +283,20 @@ model Doctor {
 }
 
 model RoomCategory {
-  id         String   @id @default(uuid(7)) @db.Uuid
-  hospitalId String   @map("hospital_id") @db.Uuid
-  code       String
-  name       String
-  isActive   Boolean  @default(true) @map("is_active")
-  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  id                  String   @id @default(uuid(7)) @db.Uuid
+  hospitalId          String   @map("hospital_id") @db.Uuid
+  code                String
+  name                String
+  // The advance expected at admission. Less gives a warning only (docs/billing-rules.md).
+  minimumAdvancePaise BigInt   @default(0) @map("minimum_advance_paise")
+  isActive            Boolean  @default(true) @map("is_active")
+  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt           DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   hospital     Hospital      @relation(fields: [hospitalId], references: [id], onDelete: Restrict)
   wards        Ward[]
   serviceItems ServiceItem[]
+  dailyCharges DailyCharge[]
 
   @@unique([hospitalId, code])
   @@unique([hospitalId, id])
@@ -468,6 +504,7 @@ model Patient {
   creditNotes      CreditNote[]
   refunds          Refund[]
   opdVisits        OpdVisit[]
+  admissions       Admission[]
 
   @@unique([hospitalId, uhid])
   @@unique([hospitalId, id])
@@ -526,10 +563,13 @@ model Bed {
   createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt  DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  hospital Hospital @relation(fields: [hospitalId], references: [id], onDelete: Restrict)
-  ward     Ward     @relation(fields: [hospitalId, wardId], references: [hospitalId, id], onDelete: Restrict)
+  hospital     Hospital        @relation(fields: [hospitalId], references: [id], onDelete: Restrict)
+  ward         Ward            @relation(fields: [hospitalId, wardId], references: [hospitalId, id], onDelete: Restrict)
+  assignments  BedAssignment[]
+  dailyCharges DailyCharge[]
 
   @@unique([wardId, code])
+  @@unique([hospitalId, id])
   @@index([hospitalId, status])
   @@map("beds")
 }
@@ -631,14 +671,16 @@ model Charge {
   status        ChargeStatus @default(pending)
   // The bill holding this charge: a draft while pending, the issued bill once billed.
   invoiceId     String?      @map("invoice_id") @db.Uuid
-  postedById    String       @map("posted_by_id") @db.Uuid
+  // Null for room and nursing charges posted by the midnight job.
+  postedById    String?      @map("posted_by_id") @db.Uuid
   createdAt     DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
 
-  patient     Patient     @relation(fields: [hospitalId, patientId], references: [hospitalId, id], onDelete: Restrict)
-  serviceItem ServiceItem @relation(fields: [hospitalId, serviceItemId], references: [hospitalId, id], onDelete: Restrict)
-  tariffRate  TariffRate  @relation(fields: [tariffRateId], references: [id], onDelete: Restrict)
-  invoice     Invoice?    @relation(fields: [hospitalId, invoiceId], references: [hospitalId, id], onDelete: Restrict)
+  patient     Patient      @relation(fields: [hospitalId, patientId], references: [hospitalId, id], onDelete: Restrict)
+  serviceItem ServiceItem  @relation(fields: [hospitalId, serviceItemId], references: [hospitalId, id], onDelete: Restrict)
+  tariffRate  TariffRate   @relation(fields: [tariffRateId], references: [id], onDelete: Restrict)
+  invoice     Invoice?     @relation(fields: [hospitalId, invoiceId], references: [hospitalId, id], onDelete: Restrict)
   opdOrder    OpdOrder?
+  dailyCharge DailyCharge?
 
   @@unique([hospitalId, id])
   @@index([hospitalId, patientId, status])
@@ -971,6 +1013,7 @@ model OpdVisit {
   serviceItem ServiceItem @relation(fields: [hospitalId, serviceItemId], references: [hospitalId, id], onDelete: Restrict)
   feeInvoice  Invoice?    @relation(fields: [hospitalId, feeInvoiceId], references: [hospitalId, id], onDelete: Restrict)
   orders      OpdOrder[]
+  admissions  Admission[]
 
   @@unique([hospitalId, id])
   @@unique([hospitalId, visitDate, tokenNumber])
@@ -995,4 +1038,84 @@ model OpdOrder {
   @@unique([hospitalId, chargeId])
   @@index([visitId])
   @@map("opd_orders")
+}
+
+// An IPD admission. The patient holds one bed at a time through bed assignments; room and nursing
+// charges are posted for every midnight they are in a bed.
+model Admission {
+  id                  String          @id @default(uuid(7)) @db.Uuid
+  hospitalId          String          @map("hospital_id") @db.Uuid
+  patientId           String          @map("patient_id") @db.Uuid
+  number              String
+  financialYear       String          @map("financial_year")
+  status              AdmissionStatus @default(admitted)
+  payerType           PayerType       @default(self_pay) @map("payer_type")
+  doctorId            String          @map("doctor_id") @db.Uuid
+  // When the doctor advised admission in an OPD visit.
+  opdVisitId          String?         @map("opd_visit_id") @db.Uuid
+  reason              String?
+  admittedAt          DateTime        @default(now()) @map("admitted_at") @db.Timestamptz(3)
+  admittedById        String          @map("admitted_by_id") @db.Uuid
+  // The room category's minimum advance and the deposit held, as they were at admission.
+  minimumAdvancePaise BigInt          @map("minimum_advance_paise")
+  depositHeldPaise    BigInt          @map("deposit_held_paise")
+  dischargedAt        DateTime?       @map("discharged_at") @db.Timestamptz(3)
+
+  patient      Patient         @relation(fields: [hospitalId, patientId], references: [hospitalId, id], onDelete: Restrict)
+  doctor       Doctor          @relation(fields: [hospitalId, doctorId], references: [hospitalId, id], onDelete: Restrict)
+  opdVisit     OpdVisit?       @relation(fields: [hospitalId, opdVisitId], references: [hospitalId, id], onDelete: Restrict)
+  assignments  BedAssignment[]
+  dailyCharges DailyCharge[]
+
+  @@unique([hospitalId, id])
+  @@unique([hospitalId, number])
+  // A patient has at most one admission open at a time.
+  @@unique([patientId], map: "admissions_one_open_per_patient", where: raw("status = 'admitted'"))
+  @@index([hospitalId, status, admittedAt])
+  @@map("admissions")
+}
+
+// A patient in a bed, from a time until a transfer or discharge. Never edited except to end it.
+model BedAssignment {
+  id          String        @id @default(uuid(7)) @db.Uuid
+  hospitalId  String        @map("hospital_id") @db.Uuid
+  admissionId String        @map("admission_id") @db.Uuid
+  bedId       String        @map("bed_id") @db.Uuid
+  startedAt   DateTime      @default(now()) @map("started_at") @db.Timestamptz(3)
+  endedAt     DateTime?     @map("ended_at") @db.Timestamptz(3)
+  endReason   BedEndReason? @map("end_reason")
+  createdById String        @map("created_by_id") @db.Uuid
+  endedById   String?       @map("ended_by_id") @db.Uuid
+
+  admission Admission @relation(fields: [hospitalId, admissionId], references: [hospitalId, id], onDelete: Restrict)
+  bed       Bed       @relation(fields: [hospitalId, bedId], references: [hospitalId, id], onDelete: Restrict)
+
+  // One patient per bed, and one bed per admission, at a time (CLAUDE.md section 7).
+  @@unique([bedId], map: "bed_assignments_one_active_per_bed", where: raw("ended_at IS NULL"))
+  @@unique([admissionId], map: "bed_assignments_one_active_per_admission", where: raw("ended_at IS NULL"))
+  @@index([admissionId, startedAt])
+  @@map("bed_assignments")
+}
+
+// A room or nursing charge the midnight job posted for one night of an admission. The unique key
+// makes the job safe to run again: a night is never charged twice.
+model DailyCharge {
+  id             String          @id @default(uuid(7)) @db.Uuid
+  hospitalId     String          @map("hospital_id") @db.Uuid
+  admissionId    String          @map("admission_id") @db.Uuid
+  chargeDate     DateTime        @map("charge_date") @db.Date
+  kind           DailyChargeKind
+  chargeId       String          @map("charge_id") @db.Uuid
+  bedId          String          @map("bed_id") @db.Uuid
+  roomCategoryId String          @map("room_category_id") @db.Uuid
+  createdAt      DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  admission    Admission    @relation(fields: [hospitalId, admissionId], references: [hospitalId, id], onDelete: Restrict)
+  charge       Charge       @relation(fields: [hospitalId, chargeId], references: [hospitalId, id], onDelete: Restrict)
+  bed          Bed          @relation(fields: [hospitalId, bedId], references: [hospitalId, id], onDelete: Restrict)
+  roomCategory RoomCategory @relation(fields: [hospitalId, roomCategoryId], references: [hospitalId, id], onDelete: Restrict)
+
+  @@unique([admissionId, chargeDate, kind])
+  @@unique([hospitalId, chargeId])
+  @@map("daily_charges")
 }
