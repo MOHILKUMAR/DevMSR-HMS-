@@ -14,7 +14,7 @@ const META = { requestId: 'r', ipAddress: null, userAgent: null };
 const NOW = new Date('2026-10-25T04:30:00Z');
 
 function user(userId: string, permissions: string[]): AuthContext {
-  return { sessionId: 's', userId, hospitalId: 'h1', kind: 'staff', permissions: new Set(permissions), expiresAt: NOW };
+  return { sessionId: 's', userId, hospitalId: 'h1', kind: 'staff', permissions: new Set(permissions), expiresAt: NOW, userHospitalId: 'h1', breakGlass: null };
 }
 const FINANCE = user('finance', ['billing.discount.approve', 'billing.credit-note.approve', 'billing.void.approve']);
 const MD = user('md', ['billing.discount.approve', 'billing.discount.approve-above-limit', 'billing.refund.approve']);

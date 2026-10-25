@@ -24,13 +24,15 @@ import { StartupChecksModule } from './common/startup/startup-checks.js';
 import { ApprovalsModule } from './approvals/approvals.module.js';
 import { BedsModule } from './beds/beds.module.js';
 import { BillingModule } from './billing/billing.module.js';
-import { HealthModule } from './health/health.module.js';
+import { BreakGlassModule } from './break-glass/break-glass.module.js';
 import { DischargeModule } from './discharge/discharge.module.js';
+import { HealthModule } from './health/health.module.js';
 import { IpdModule } from './ipd/ipd.module.js';
+import { NotificationsModule } from './notifications/notifications.module.js';
 import { OpdModule } from './opd/opd.module.js';
-import { ReportsModule } from './reports/reports.module.js';
 import { PatientsModule } from './patients/patients.module.js';
 import { PaymentsModule } from './payments/payments.module.js';
+import { ReportsModule } from './reports/reports.module.js';
 import { SettingsModule } from './settings/settings.module.js';
 import { TariffsModule } from './tariffs/tariffs.module.js';
 import { UsersModule } from './users/users.module.js';
@@ -43,7 +45,7 @@ export class AppModule {
       imports: [
         ConfigModule.forRoot(env),
         LoggerModule.forRoot(loggerOptions(env)),
-        ThrottlerModule.forRoot(rateLimitOptions(env, authCookieNames(env).session)),
+        ThrottlerModule.forRoot(rateLimitOptions(env, authCookieNames(env))),
         PrismaModule,
         CryptoModule,
         AuditModule,
@@ -59,6 +61,8 @@ export class AppModule {
         PatientsModule,
         BillingModule,
         PaymentsModule,
+        NotificationsModule,
+        BreakGlassModule,
         ApprovalsModule,
         OpdModule,
         IpdModule,

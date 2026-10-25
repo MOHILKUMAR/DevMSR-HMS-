@@ -4,8 +4,13 @@ import { isActive, NAV_ITEMS, visibleNavItems } from './nav-items';
 const keys = (permissions: string[]) => visibleNavItems(permissions).map((item) => item.key);
 
 describe('visibleNavItems', () => {
-  it('shows only home to someone with no section permissions, such as the super admin', () => {
-    expect(keys(['auth.session.manage-own', 'platform.hospital.manage'])).toEqual(['home']);
+  it('shows the super admin home and break-glass access only', () => {
+    expect(keys(['auth.session.manage-own', 'platform.hospital.manage', 'platform.break-glass.use'])).toEqual(['home', 'breakGlass']);
+  });
+
+  it('shows a super admin during break-glass the read-only hospital sections', () => {
+    const during = ['platform.break-glass.use', 'patients.patient.read', 'billing.account.read', 'masters.data.read', 'beds.bed.read', 'audit.event.read'];
+    expect(keys(during)).toEqual(['home', 'patients', 'beds', 'settings', 'breakGlass']);
   });
 
   it('shows the receptionist patients, OPD, IPD and beds, and nothing about money', () => {

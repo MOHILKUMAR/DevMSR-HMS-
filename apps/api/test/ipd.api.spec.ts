@@ -137,13 +137,15 @@ describe('IPD: admissions, beds, transfers and the midnight room and nursing cha
     const admission = (await admit(patient.id, ward.beds[0] ?? '')).body as AdmissionBody;
 
     // Nothing is charged before the first midnight.
-    await charges.postDue(now);
+    // Each test posts for its own hospital only: test files run at once, and a run dated days ahead
+    // would post nights for every other file's patients too.
+    await charges.postForHospital(hospital.id, now);
     expect(((await get(`/api/v1/admissions/${admission.id}`, nurse)).body as AdmissionBody).dailyCharges).toEqual([]);
 
     // The next day the patient moves to the ICU; two midnights later both nights are charged.
     await ipd.transfer(staff(), admission.id, { bedId: intensive.beds[0] ?? '' }, meta(), new Date(now.getTime() + DAY));
 
-    const result = await charges.postDue(new Date(now.getTime() + 2 * DAY + 60 * 60 * 1000));
+    const result = await charges.postForHospital(hospital.id, new Date(now.getTime() + 2 * DAY + 60 * 60 * 1000));
     const daily = ((await get(`/api/v1/admissions/${admission.id}`, nurse)).body as AdmissionBody).dailyCharges;
     expect(daily.map((day) => [day.kind, day.amountPaise])).toEqual([
       ['room', 100_000],
@@ -152,7 +154,7 @@ describe('IPD: admissions, beds, transfers and the midnight room and nursing cha
       ['nursing', 150_000],
     ]);
     expect(result.posted).toBeGreaterThanOrEqual(4);
-    expect((await charges.postDue(new Date(now.getTime() + 2 * DAY + 60 * 60 * 1000))).posted).toBe(0);
+    expect((await charges.postForHospital(hospital.id, new Date(now.getTime() + 2 * DAY + 60 * 60 * 1000))).posted).toBe(0);
 
     // The interim bill totals what the stay has come to: Rs 8,800.
     expect((await get(`/api/v1/admissions/${admission.id}/interim-bill`, nurse)).status).toBe(403);
@@ -163,7 +165,7 @@ describe('IPD: admissions, beds, transfers and the midnight room and nursing cha
   it('leaves a night uncharged when the room category has no rate, and says so', async () => {
     const charges = t.app.get(IpdChargesService);
     const admission = (await admit((await createPatient(t.prisma, hospital.id)).id, noRates.beds[0] ?? '')).body as AdmissionBody;
-    const result = await charges.postDue(new Date(Date.now() + DAY + 60 * 60 * 1000));
+    const result = await charges.postForHospital(hospital.id, new Date(Date.now() + DAY + 60 * 60 * 1000));
     expect(result.missingRates).toBeGreaterThanOrEqual(2);
     expect(((await get(`/api/v1/admissions/${admission.id}`, nurse)).body as AdmissionBody).dailyCharges).toEqual([]);
   });
@@ -177,7 +179,7 @@ describe('IPD: admissions, beds, transfers and the midnight room and nursing cha
   });
 
   function staff(): AuthContext {
-    return { sessionId: 's', userId: receptionUser.id, hospitalId: hospital.id, kind: 'staff', permissions: new Set(), expiresAt: new Date() };
+    return { sessionId: 's', userId: receptionUser.id, hospitalId: hospital.id, kind: 'staff', permissions: new Set(), expiresAt: new Date(), userHospitalId: hospital.id, breakGlass: null };
   }
   function meta() {
     return { requestId: 'test', ipAddress: null, userAgent: null };

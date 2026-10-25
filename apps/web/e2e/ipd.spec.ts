@@ -1,5 +1,6 @@
 import { randomInt, randomUUID } from 'node:crypto';
 import { expect, test, type Browser, type Page } from '@playwright/test';
+import { freshTotpCode, seedTotpSecret } from './totp';
 
 // An admission end to end: finance sets the general ward's minimum advance, the receptionist admits
 // a new patient into a free general bed (and sees the short-advance warning), the bed board shows them,
@@ -12,12 +13,18 @@ function seedPassword(): string {
   return password;
 }
 
-async function signIn(browser: Browser, username: string, displayName: string): Promise<Page> {
+/** `twoFactor` for the demo users whose role needs it: the seed gave them SEED_TOTP_SECRET. */
+async function signIn(browser: Browser, username: string, displayName: string, twoFactor = false): Promise<Page> {
   const page = await (await browser.newContext()).newPage();
   await page.goto('/login');
   await page.getByLabel('Username').fill(username);
   await page.getByLabel('Password').fill(seedPassword());
   await page.getByRole('button', { name: 'Sign in' }).click();
+  if (twoFactor) {
+    const step = page.getByRole('form', { name: 'Two-factor sign-in' });
+    await step.getByLabel('Code from the app').fill(await freshTotpCode(seedTotpSecret()));
+    await step.getByRole('button', { name: 'Sign in' }).click();
+  }
   await expect(page.getByRole('heading', { name: `Welcome, ${displayName}` })).toBeVisible();
   return page;
 }
@@ -27,7 +34,7 @@ test('a patient is admitted into a free bed, transferred to the ICU, and the old
 
   // Finance sets the general ward's minimum advance to Rs 5,000, or Rs 6,000 when an earlier run left
   // it at 5,000 (Save stays off for an unchanged amount). Either is more than a new patient holds.
-  const finance = await signIn(browser, 'accounts', 'Demo Accountant');
+  const finance = await signIn(browser, 'accounts', 'Demo Accountant', true);
   await finance.goto('/settings/advances');
   const general = finance.getByLabel(/^Minimum advance in rupees for General/).first();
   await general.fill((await general.inputValue()) === '5000.00' ? '6000' : '5000');

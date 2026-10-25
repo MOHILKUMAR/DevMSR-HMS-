@@ -48,6 +48,12 @@ jobs:
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm test
+      # Contract: pnpm test already fails if docs/openapi.json is stale against the routes. This
+      # fails if the web app's generated client types are stale against docs/openapi.json.
+      - name: Web API types match docs/openapi.json
+        run: |
+          pnpm --filter @devmsr/web api:types
+          git diff --exit-code -- apps/web/src/lib/api/generated || { echo "Run pnpm api:spec and commit the result."; exit 1; }
 
   audit:
     name: Dependency audit
@@ -88,6 +94,8 @@ jobs:
       JOBS_DATABASE_URL: postgresql://hms_jobs:hms_jobs_ci_only_pw@localhost:5432/hms
       # Fake demo users from the seed, on a throwaway database.
       SEED_USER_PASSWORD: ci-only-Passw0rd
+      # Base32 two-factor secret the seed gives admin, accounts and superadmin; e2e/totp.ts makes their codes.
+      SEED_TOTP_SECRET: CIONLYDEMOTOTPKEYCIONLYDEMOTOTPK
       # The whole suite signs the same demo users in well within a minute. The login limit itself
       # is proven by the API tests (auth.api.spec.ts), so here it only needs to stay out of the way.
       RATE_LIMIT_LOGIN_PER_MINUTE: "1000"

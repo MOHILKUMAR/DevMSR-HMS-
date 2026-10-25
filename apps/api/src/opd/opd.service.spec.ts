@@ -11,7 +11,7 @@ import { OpdService } from './opd.service.js';
 
 const META = { requestId: 'r', ipAddress: null, userAgent: null };
 const NOW = new Date('2026-10-26T04:30:00Z');
-const user = (userId: string): AuthContext => ({ sessionId: 's', userId, hospitalId: 'h1', kind: 'staff', permissions: new Set(), expiresAt: NOW });
+const user = (userId: string): AuthContext => ({ sessionId: 's', userId, hospitalId: 'h1', kind: 'staff', permissions: new Set(), expiresAt: NOW, userHospitalId: 'h1', breakGlass: null });
 
 function visit(overrides: Partial<VisitRow> = {}): VisitRow {
   return {

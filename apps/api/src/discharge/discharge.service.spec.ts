@@ -13,7 +13,7 @@ import { DischargeService } from './discharge.service.js';
 
 const META = { requestId: 'r', ipAddress: null, userAgent: null };
 function user(userId: string): AuthContext {
-  return { sessionId: 's', userId, hospitalId: 'h1', kind: 'staff', permissions: new Set(), expiresAt: new Date() };
+  return { sessionId: 's', userId, hospitalId: 'h1', kind: 'staff', permissions: new Set(), expiresAt: new Date(), userHospitalId: 'h1', breakGlass: null };
 }
 
 async function errorCode(work: Promise<unknown>): Promise<string> {

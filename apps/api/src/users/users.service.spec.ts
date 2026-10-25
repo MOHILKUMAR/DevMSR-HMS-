@@ -2,13 +2,14 @@ import { describe, expect, it, vi } from 'vitest';
 import type { AuditService } from '../audit/audit.service.js';
 import type { AuthContext } from '../auth/auth-context.js';
 import type { SessionsService } from '../auth/sessions.service.js';
+import type { TwoFactorRepository } from '../auth/two-factor.repository.js';
 import { AppError } from '../common/errors/app-error.js';
 import type { TransactionRunner } from '../common/prisma/transaction-runner.js';
 import type { StaffUserRow, UsersRepository } from './users.repository.js';
 import { UsersService } from './users.service.js';
 
 const META = { requestId: 'r', ipAddress: null, userAgent: null };
-const ADMIN: AuthContext = { sessionId: 's', userId: 'admin-1', hospitalId: 'h1', kind: 'staff', permissions: new Set(), expiresAt: new Date() };
+const ADMIN: AuthContext = { sessionId: 's', userId: 'admin-1', hospitalId: 'h1', kind: 'staff', permissions: new Set(), expiresAt: new Date(), userHospitalId: 'h1', breakGlass: null };
 
 const ROW: StaffUserRow = {
   id: 'u1',
@@ -16,6 +17,8 @@ const ROW: StaffUserRow = {
   displayName: 'Nurse One',
   isActive: true,
   lockedUntil: null,
+  mustChangePassword: true,
+  totpEnabledAt: null,
   lastLoginAt: null,
   createdAt: new Date('2026-10-25T00:00:00Z'),
   userRoles: [{ role: { code: 'nurse', name: 'Nurse' } }],
@@ -35,6 +38,7 @@ function setup(rolesFound: { id: string; code: string }[] = [{ id: 'r1', code: '
   const service = new UsersService(
     repo as unknown as UsersRepository,
     sessions as unknown as SessionsService,
+    {} as TwoFactorRepository,
     audit as unknown as AuditService,
     transactions as unknown as TransactionRunner,
   );

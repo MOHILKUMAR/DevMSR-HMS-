@@ -55,6 +55,7 @@ describe('production start-up guard', () => {
     expect(problems({ DATABASE_URL: 'postgresql://hms:hms_local_only@localhost:5432/hms' })).toContain('DATABASE_URL uses the local or CI demo password');
     expect(problems({ DIRECT_URL: 'postgresql://hms:hms_ci_only@localhost:5432/hms' })).toContain('DIRECT_URL uses the local or CI demo password');
     expect(problems({ SEED_USER_PASSWORD: 'anything' })).toContain('SEED_USER_PASSWORD is set');
+    expect(problems({ SEED_TOTP_SECRET: 'JBSWY3DPEHPK3PXP' })).toContain('SEED_TOTP_SECRET is set');
     expect(problems()).not.toMatch(/placeholder|demo password|SEED_USER_PASSWORD|same value/);
   });
 

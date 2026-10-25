@@ -1,0 +1,10 @@
+[Unit]
+Description=Export yesterday's DevMSR HMS logs at 01:00 UTC
+
+[Timer]
+OnCalendar=*-*-* 01:00:00 UTC
+RandomizedDelaySec=10min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

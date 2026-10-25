@@ -16,6 +16,15 @@ export interface ActiveSession {
   };
 }
 
+export interface OwnSessionRow {
+  id: string;
+  createdAt: Date;
+  lastSeenAt: Date;
+  expiresAt: Date;
+  ipAddress: string | null;
+  userAgent: string | null;
+}
+
 export interface NewSession {
   tokenHash: string;
   userId: string;
@@ -57,6 +66,19 @@ export class SessionsRepository {
     return rows.map((row) => row.code);
   }
 
+  /** The session's open break-glass grant, if it has not expired and its hospital is active. */
+  findActiveBreakGlass(sessionId: string, now: Date): Promise<{ id: string; hospitalId: string; expiresAt: Date } | null> {
+    return this.prisma.breakGlassGrant.findFirst({
+      where: { sessionId, endedAt: null, expiresAt: { gt: now }, hospital: { isActive: true } },
+      select: { id: true, hospitalId: true, expiresAt: true },
+    });
+  }
+
+  /** Ends the session's break-glass grant with the session itself. */
+  async endBreakGlass(sessionId: string, at: Date, tx: Tx): Promise<void> {
+    await tx.breakGlassGrant.updateMany({ where: { sessionId, endedAt: null }, data: { endedAt: at } });
+  }
+
   async create(data: NewSession, tx?: Tx): Promise<{ id: string; expiresAt: Date }> {
     return (tx ?? this.prisma).session.create({
       data: { ...data, lastSeenAt: data.createdAt },
@@ -73,5 +95,30 @@ export class SessionsRepository {
       where: { ...where, endedAt: null },
       data: { endedAt: at, endReason: reason },
     });
+  }
+
+  /** A user's own sessions that are still usable: not ended, not past the maximum age or the idle limit. */
+  listOpen(owner: { userId: string; hospitalId: string | null }, now: Date, idleSince: Date): Promise<OwnSessionRow[]> {
+    return this.prisma.session.findMany({
+      where: { ...owner, endedAt: null, expiresAt: { gt: now }, lastSeenAt: { gt: idleSince } },
+      select: { id: true, createdAt: true, lastSeenAt: true, expiresAt: true, ipAddress: true, userAgent: true },
+      orderBy: { lastSeenAt: 'desc' },
+    });
+  }
+
+  /** Ends the owner's sessions matching `ids`, or all but `exceptId`. Returns the IDs actually ended. */
+  async endOwn(
+    owner: { userId: string; hospitalId: string | null },
+    which: { ids: string[] } | { exceptId: string },
+    reason: SessionEndReason,
+    at: Date,
+    tx: Tx,
+  ): Promise<string[]> {
+    const where = { ...owner, endedAt: null, ...('ids' in which ? { id: { in: which.ids } } : { id: { not: which.exceptId } }) };
+    const rows = await tx.session.findMany({ where, select: { id: true } });
+    if (rows.length === 0) return [];
+    const ids = rows.map((row) => row.id);
+    await tx.session.updateMany({ where: { id: { in: ids }, endedAt: null }, data: { endedAt: at, endReason: reason } });
+    return ids;
   }
 }

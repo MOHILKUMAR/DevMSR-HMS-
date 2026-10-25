@@ -17,7 +17,7 @@ import {
   type UpdateStaffUser,
 } from '@devmsr/validation';
 import type { AuthContext } from '../auth/auth-context.js';
-import { CurrentAuth, RequirePermission } from '../auth/decorators.js';
+import { CurrentAuth, PasswordRateLimit, RequirePermission } from '../auth/decorators.js';
 import { ApiContract, ValidBody, ValidParams, ValidQuery } from '../common/contract/api-contract.js';
 import { ReqMeta, type RequestMeta } from '../common/http/app-request.js';
 import { UsersService } from './users.service.js';
@@ -59,8 +59,9 @@ export class UsersController {
 
   @Post(':id/password')
   @RequirePermission('users.user.manage')
+  @PasswordRateLimit()
   @HttpCode(204)
-  @ApiContract({ summary: 'Set a new password, unlock the account and end its sessions', params: idParamsSchema, body: setStaffPasswordSchema })
+  @ApiContract({ summary: 'Set a new password the user must replace at next sign-in, unlock the account and end its sessions', params: idParamsSchema, body: setStaffPasswordSchema })
   setPassword(
     @CurrentAuth() auth: AuthContext,
     @ValidParams() params: { id: string },
@@ -68,6 +69,14 @@ export class UsersController {
     @ReqMeta() meta: RequestMeta,
   ): Promise<void> {
     return this.users.setPassword(auth, params.id, body, meta);
+  }
+
+  @Post(':id/two-factor/reset')
+  @RequirePermission('users.user.manage')
+  @HttpCode(204)
+  @ApiContract({ summary: 'Switch off a staff user\'s two-factor sign-in after a lost phone, and end their sessions', params: idParamsSchema })
+  resetTwoFactor(@CurrentAuth() auth: AuthContext, @ValidParams() params: { id: string }, @ReqMeta() meta: RequestMeta): Promise<void> {
+    return this.users.resetTwoFactor(auth, params.id, meta);
   }
 }
 

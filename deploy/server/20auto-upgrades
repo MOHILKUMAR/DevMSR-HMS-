@@ -1,0 +1,5 @@
+// Copy to /etc/apt/apt.conf.d/20auto-upgrades. Security updates install every day; the server
+// reboots itself at 03:30 IST only when an update needs it (52unattended-upgrades-hms).
+APT::Periodic::Update-Package-Lists "1";
+APT::Periodic::Unattended-Upgrade "1";
+APT::Periodic::AutocleanInterval "7";
