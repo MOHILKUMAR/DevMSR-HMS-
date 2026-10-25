@@ -32,6 +32,14 @@ expect "$out" 'would set current=v9\.9\.9-dryrun'
 # Migrations run before the new containers start.
 [[ "$(grep -n 'hms-migrate:v9' <<<"$out" | tail -n 1 | cut -d: -f1)" -lt "$(grep -n 'up --detach' <<<"$out" | head -n 1 | cut -d: -f1)" ]] ||
   { echo "migrations must run before the containers start" >&2; exit 1; }
+expect "$out" 'docker run --rm .*--env-file .*/env/api\.env --env-file .*/env/migrate\.env .*hms-api:v9\.9\.9-dryrun node dist/cli/create-api-db-user\.js'
+expect "$out" 'docker run --rm .*--env-file .*/env/api\.env .*hms-api:v9\.9\.9-dryrun node dist/cli/sync-roles\.js --apply'
+# The API login and the role sync come after the migrations and before the new containers.
+first_line() { grep -n -- "$1" <<<"$out" | head -n 1 | cut -d: -f1; }
+[[ "$(first_line 'docker run .*hms-migrate:v9.9.9-dryrun$')" -lt "$(first_line 'create-api-db-user')" &&
+  "$(first_line 'create-api-db-user')" -lt "$(first_line 'sync-roles')" &&
+  "$(first_line 'sync-roles')" -lt "$(first_line 'up --detach')" ]] ||
+  { echo "order must be: migrations, API login, role sync, containers" >&2; exit 1; }
 
 echo "deploy.sh rejects a bad tag"
 if "$repo/deploy/deploy.sh" latest >/dev/null 2>&1; then
@@ -46,6 +54,7 @@ out="$("$repo/deploy/rollback.sh" 2>&1)"
 expect "$out" 'releases/v1\.0\.0/compose\.prod\.yml .* up --detach --wait'
 expect "$out" 'would set current=v1\.0\.0'
 expect "$out" 'would set previous=v1\.0\.1'
+expect "$out" 'hms-api:v1\.0\.0 node dist/cli/sync-roles\.js --apply'
 
 echo "restart.sh"
 out="$("$repo/deploy/restart.sh" api 2>&1)"

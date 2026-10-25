@@ -31,7 +31,7 @@ Supabase offers three:
 | Session pooler | `<pooler-host>:5432` | Yes | IPv4. One server connection per client connection |
 | Transaction pooler | `<pooler-host>:6543` | No | IPv4. Each transaction may use a different server connection |
 
-Use the **session pooler** for both `DATABASE_URL` (API) and `DIRECT_URL` (migrations), unless the direct connection is reachable. Why:
+Use the **session pooler** for both `DATABASE_URL` (API) and `DIRECT_URL` (migrations), unless the direct connection is reachable. They are different users: `DIRECT_URL` is `postgres`, the owner; `DATABASE_URL` is the API's restricted login, which `deploy.sh` creates as a member of `hms_api`. Through the pooler its user name is `hms_app.<project-ref>`. Why the session pooler:
 
 - The API opens every connection with the startup option `-c TimeZone=UTC` (`docs/decisions.md`, "Database sessions run in UTC"). A transaction pooler may drop it or apply it only to the first server connection, and timestamps would then be stored 5.5 hours wrong on any server connection in IST. Supabase databases default to UTC, which hides the problem until someone changes it.
 - The gapless counters hold row locks from the counter update to the commit. That works through any pooler that keeps a transaction on one server connection, but the session pooler makes it certain.

@@ -5,12 +5,14 @@
 # Never use its output on a real server.
 #
 # Usage: deploy/test/make-rehearsal-home.sh <dir>
-#        REHEARSAL_DATABASE_URL sets the database the containers use (default: a placeholder).
+#        REHEARSAL_DATABASE_URL is the owner connection the containers use (default: a placeholder).
+#        The API gets its own login on the same database, created by deploy.sh.
 set -euo pipefail
 
 home="${1:?usage: make-rehearsal-home.sh <dir>}"
 repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 database_url="${REHEARSAL_DATABASE_URL:-postgresql://hms:unused@db.invalid:5432/hms_infra}"
+api_database_url="$(sed -E "s#//[^@]*@#//hms_app_rehearsal:$(openssl rand -hex 16)@#" <<<"$database_url")"
 # Git Bash would turn "/CN=..." into a Windows path. No effect elsewhere.
 export MSYS2_ARG_CONV_EXCL="/CN="
 
@@ -21,7 +23,7 @@ sed -e 's/^APP_HOST=.*/APP_HOST=app.hms.test/' \
   -e 's/^API_HOST=.*/API_HOST=api.hms.test/' \
   -e 's#^NEXT_PUBLIC_API_URL=.*#NEXT_PUBLIC_API_URL=https://api.hms.test/api/v1#' \
   "$repo/deploy/env/deploy.env.example" >"$home/env/deploy.env"
-sed -e "s#^DATABASE_URL=.*#DATABASE_URL=$database_url#" \
+sed -e "s#^DATABASE_URL=.*#DATABASE_URL=$api_database_url#" \
   -e "s#^SESSION_SECRET=.*#SESSION_SECRET=$(secret)#" \
   -e "s#^FIELD_ENCRYPTION_KEY=.*#FIELD_ENCRYPTION_KEY=$(secret)#" \
   -e 's#^CORS_ORIGINS=.*#CORS_ORIGINS=https://app.hms.test#' \
