@@ -38,17 +38,19 @@ Stages 2 and 8 depend on other people and take the most calendar time, so start 
 
 Each one blocks a feature, and none can be guessed (`CLAUDE.md` section 2). Answers go into `docs/billing-rules.md`. All **Hospital**.
 
-- [ ] Packages: contents, exclusions, length of stay, and how extras are billed. Needed for slice 3b.
-- [ ] OPD token and IPD admission number formats. Needed for slices 4 and 5.
-- [ ] Registration fee: whether there is one, and how much. Needed for slice 4.
-- [ ] Room and nursing charges posted at midnight: what is charged for the admission day and the discharge day. Needed for slice 5.
-- [ ] Minimum advance for each room category. Needed for slice 5.
-- [ ] The title printed on bills under GST ("Bill", "Tax invoice" or "Bill of supply") and which services are exempt. Needed before the first real bill.
-- [ ] Hospital logo, GSTIN and the details printed on bills and receipts.
-- [ ] Recovery targets: how much data the hospital can afford to lose, and how long it can run on paper. These set the backup schedule.
-- [ ] How long medical and financial records must be kept.
-- [ ] Whether existing patients (UHIDs, open balances, deposits) move over from the current system.
-- [ ] Confirmation that the database, files, backups and logs must all stay in India.
+The questions to send are in [`docs/hospital-questions.md`](hospital-questions.md), grouped by who answers, with the question number after each item below. Its section D also asks the hospital to confirm the rules the developer has recorded so far.
+
+- [ ] Packages: contents, exclusions, length of stay, and how extras are billed. Needed for slice 3b. Questions MD-1 and AC-6.
+- [ ] OPD token and IPD admission number formats. Needed for slices 4 and 5. Questions AD-1 and AC-5.
+- [ ] Registration fee: whether there is one, and how much. Needed for slice 4. Question MD-2.
+- [ ] Room and nursing charges posted at midnight: what is charged for the admission day and the discharge day. Needed for slice 5. Question AC-3.
+- [ ] Minimum advance for each room category. Needed for slice 5. Question AC-4.
+- [ ] The title printed on bills under GST ("Bill", "Tax invoice" or "Bill of supply") and which services are exempt. Needed before the first real bill. Question AC-1.
+- [ ] Hospital logo, GSTIN and the details printed on bills and receipts. Question AC-2.
+- [ ] Recovery targets: how much data the hospital can afford to lose, and how long it can run on paper. These set the backup schedule. Questions MD-3 and MD-4.
+- [ ] How long medical and financial records must be kept. Question MD-5.
+- [ ] Whether existing patients (UHIDs, open balances, deposits) move over from the current system. Question MD-6.
+- [ ] Confirmation that the database, files, backups and logs must all stay in India. Question MD-7.
 
 ## Stage 3: Finish phase 1 features
 
@@ -123,13 +125,13 @@ A copy of production with fake data, used for UAT, printer checks and the VAPT.
 
 ## Stage 8: Compliance and paperwork
 
-Start now: these need the hospital and its adviser.
+Start now: these need the hospital and its adviser. Each item has a draft for review in `docs/drafts/`. An item is ticked only once the hospital, and where marked its legal adviser, has approved the final version.
 
-- [ ] Digital Personal Data Protection Act 2023 and its rules: a privacy notice for patients, consent wording at registration, how patients ask to see or correct their data, and duties when there is a breach. **Legal + Hospital**
-- [ ] A data processing agreement between DevMSR and the hospital: who controls the data, who processes it, and what happens to it when the contract ends. **Legal**
-- [ ] Incident response plan: who does what, and reporting cyber incidents to CERT-In within 6 hours. **Dev + Hospital**
-- [ ] Access policy: who gets which role, same-day removal of staff who leave, and a monthly review of the user list. **Hospital**
-- [ ] Downtime procedure: paper registration slips, bills and receipts for when the internet or the server is down, and how they are entered afterwards without breaking the number series. **Hospital + Dev**
+- [ ] Digital Personal Data Protection Act 2023 and its rules: a privacy notice for patients, consent wording at registration, how patients ask to see or correct their data, and duties when there is a breach. **Legal + Hospital** Draft: [`docs/drafts/privacy-notice-and-consent.md`](drafts/privacy-notice-and-consent.md).
+- [ ] A data processing agreement between DevMSR and the hospital: who controls the data, who processes it, and what happens to it when the contract ends. **Legal** Draft outline: [`docs/drafts/data-processing-agreement-outline.md`](drafts/data-processing-agreement-outline.md).
+- [ ] Incident response plan: who does what, and reporting cyber incidents to CERT-In within 6 hours. **Dev + Hospital** Draft: [`docs/drafts/incident-response-plan.md`](drafts/incident-response-plan.md).
+- [ ] Access policy: who gets which role, same-day removal of staff who leave, and a monthly review of the user list. **Hospital** Draft: [`docs/drafts/access-policy.md`](drafts/access-policy.md).
+- [ ] Downtime procedure: paper registration slips, bills and receipts for when the internet or the server is down, and how they are entered afterwards without breaking the number series. **Hospital + Dev** Draft: [`docs/drafts/downtime-procedure.md`](drafts/downtime-procedure.md).
 
 ## Stage 9: Cutover
 
