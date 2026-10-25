@@ -15,7 +15,8 @@ export const PERMISSIONS = {
   'users.user.manage': 'Create, edit and deactivate staff users',
   'users.role.manage': 'Create custom roles and choose their permissions',
   'settings.hospital.manage': 'Edit hospital settings',
-  'masters.data.manage': 'Edit masters such as wards, beds, departments and services',
+  'masters.data.manage': 'Edit masters such as wards, beds, departments and doctors',
+  'masters.data.read': 'View masters: departments, doctors, wards, beds, hospital details',
   'audit.event.read': 'View the audit log and login history',
 
   // Patients, OPD and clinical
@@ -50,7 +51,8 @@ export const PERMISSIONS = {
   'payments.shift.manage-own': 'Open and close own cash shift',
 
   // Finance and reports
-  'tariffs.tariff.manage': 'Edit tariffs',
+  'tariffs.tariff.manage': 'Edit service items and their rates',
+  'tariffs.tariff.read': 'View service items and their current rates',
   'costing.cost-rate.manage': 'Edit cost rates',
   'reports.collection.read': 'View collection reports',
   'reports.finance.export': 'Export to Tally',
@@ -74,6 +76,8 @@ export interface RoleDefinition {
 }
 
 const SELF: PermissionCode = 'auth.session.manage-own';
+/** Every hospital role: own session, and the masters every screen needs (departments, doctors, wards). */
+const STAFF = [SELF, 'masters.data.read'] as const satisfies readonly PermissionCode[];
 
 export const ROLES = {
   super_admin: {
@@ -86,11 +90,12 @@ export const ROLES = {
     name: 'Hospital admin',
     scope: 'hospital',
     permissions: [
-      SELF,
+      ...STAFF,
       'users.user.manage',
       'users.role.manage',
       'settings.hospital.manage',
       'masters.data.manage',
+      'tariffs.tariff.read',
       'audit.event.read',
     ],
   },
@@ -98,7 +103,7 @@ export const ROLES = {
     name: 'MD or owner',
     scope: 'hospital',
     permissions: [
-      SELF,
+      ...STAFF,
       'reports.collection.read',
       'reports.operations.read',
       'reports.profit.read',
@@ -106,6 +111,7 @@ export const ROLES = {
       'billing.discount.approve',
       'billing.refund.approve',
       'billing.void.approve',
+      'tariffs.tariff.read',
       'audit.event.read',
     ],
   },
@@ -113,8 +119,9 @@ export const ROLES = {
     name: 'Finance head or accountant',
     scope: 'hospital',
     permissions: [
-      SELF,
+      ...STAFF,
       'tariffs.tariff.manage',
+      'tariffs.tariff.read',
       'costing.cost-rate.manage',
       'billing.refund.approve',
       'reports.finance.export',
@@ -125,12 +132,13 @@ export const ROLES = {
     name: 'Billing clerk',
     scope: 'hospital',
     permissions: [
-      SELF,
+      ...STAFF,
       'patients.patient.read',
       'billing.charge.create',
       'billing.invoice.create',
       'billing.invoice.issue',
       'billing.discount.request',
+      'tariffs.tariff.read',
     ],
   },
   cashier: {
@@ -138,37 +146,39 @@ export const ROLES = {
     scope: 'hospital',
     // Refund request: section 12 has the cashier refund excess deposit at discharge, after approval.
     permissions: [
-      SELF,
+      ...STAFF,
       'patients.patient.read',
       'payments.receipt.create',
       'payments.deposit.create',
       'payments.shift.manage-own',
       'billing.refund.request',
+      'tariffs.tariff.read',
     ],
   },
   receptionist: {
     name: 'Receptionist',
     scope: 'hospital',
     permissions: [
-      SELF,
+      ...STAFF,
       'patients.patient.read',
       'patients.patient.create',
       'patients.patient.update',
       'opd.appointment.manage',
       'ipd.admission.create',
       'beds.bed.read',
+      'tariffs.tariff.read',
     ],
   },
   doctor: {
     name: 'Doctor',
     scope: 'hospital',
-    permissions: [SELF, 'patients.patient.read', 'opd.queue.read-own', 'clinical.note.write', 'ipd.discharge.mark-fit'],
+    permissions: [...STAFF, 'patients.patient.read', 'opd.queue.read-own', 'clinical.note.write', 'ipd.discharge.mark-fit'],
   },
   nurse: {
     name: 'Nurse',
     scope: 'hospital',
     permissions: [
-      SELF,
+      ...STAFF,
       'patients.patient.read',
       'beds.bed.read',
       'beds.bed.update-status',
@@ -179,17 +189,17 @@ export const ROLES = {
   pharmacist: {
     name: 'Pharmacist',
     scope: 'hospital',
-    permissions: [SELF, 'patients.patient.read', 'pharmacy.department.manage'],
+    permissions: [...STAFF, 'patients.patient.read', 'pharmacy.department.manage'],
   },
   lab_technician: {
     name: 'Lab technician',
     scope: 'hospital',
-    permissions: [SELF, 'patients.patient.read', 'lab.department.manage'],
+    permissions: [...STAFF, 'patients.patient.read', 'lab.department.manage'],
   },
   ot_coordinator: {
     name: 'OT coordinator',
     scope: 'hospital',
-    permissions: [SELF, 'patients.patient.read', 'ot.department.manage'],
+    permissions: [...STAFF, 'patients.patient.read', 'ot.department.manage'],
   },
 } as const satisfies Record<string, RoleDefinition>;
 

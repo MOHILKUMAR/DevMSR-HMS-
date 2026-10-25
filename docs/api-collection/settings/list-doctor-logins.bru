@@ -1,0 +1,19 @@
+meta {
+  name: List doctor logins
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/users?permission=opd.queue.read-own
+  body: none
+  auth: none
+}
+
+docs {
+  Staff users holding the doctor queue permission: the logins that can be linked to a doctor.
+}
+
+assert {
+  res.status: eq 200
+}

@@ -211,3 +211,38 @@ Every non-obvious decision, oldest first. Each entry has the date, the decision 
 
 - Decision: `pnpm test:e2e` runs `apps/web/e2e` against the seeded demo hospital. Locally it reuses running servers, and `PLAYWRIGHT_CHANNEL=chrome` (or `msedge`) uses the installed browser instead of downloading one. CI runs it in its own job: Postgres in IST, migrate, seed, production build, the standalone web server as in Docker, and Playwright's Chromium.
 - Reason: the smoke test exercises the real build and pipeline. The channel option avoids a browser download on developer machines.
+
+## 2026-10-25: Phase 1 order and the admin setup slice
+
+- Decision: phase 1 is built as one pull request per slice: admin setup, patient registration, billing and payments, OPD, IPD and the bed board, then discharge and reports. Pharmacy, lab and OT wait until phase 1 is done. Admin setup adds staff users, departments, doctors, room categories, wards and beds, service items with dated rates, and the hospital profile, with screens under `/settings`.
+- Reason: agreed with the developer. Every later slice needs these masters (a doctor for OPD, a bed for IPD, a rate for billing).
+
+## 2026-10-25: Who may read masters and rates
+
+- Decision: every hospital role gets `masters.data.read` (departments, doctors, wards, beds, hospital details). `tariffs.tariff.read` goes to the hospital admin, MD, accountant, billing clerk, cashier and receptionist. Changing masters needs `masters.data.manage` (hospital admin); changing rates needs `tariffs.tariff.manage` (accountant). The hospital admin sees rates but cannot change them.
+- Reason: front desk and ward staff need these lists to work, and none of them is sensitive. Rates are money, so they stay with finance, as in the role table of `CLAUDE.md`.
+
+## 2026-10-25: Rates are dated and never edited
+
+- Decision: a service item's rate lives in `tariff_rates` with `effective_from` and `effective_to` (IST calendar dates) and its own tax rate in basis points. A new rate must start today or later and after the current rate's start; the current rate is closed the day before. The service item row is locked (`SELECT ... FOR UPDATE`) while this happens, and a partial unique index allows one open rate per item. A trigger refuses DELETE and any UPDATE except closing an open rate.
+- Reason: `CLAUDE.md` asks for `effective_from` and `effective_to` on every price and a rate snapshot on every charge. Never editing a past rate means a bill can always be explained from the rate history.
+
+## 2026-10-25: Doctor logins are found by permission, not role name
+
+- Decision: a doctor record may link to one staff login that holds `opd.queue.read-own`, is active and belongs to the same hospital. `GET /users?permission=<code>` lists such logins for the screen.
+- Reason: section 8 says code checks permission codes, never role names, and the hospital admin may later make custom roles.
+
+## 2026-10-25: Admins cannot change their own access
+
+- Decision: `PATCH /users/:id` refuses a change to the caller's own roles or active flag, and `POST /users/:id/password` refuses the caller's own account (`SELF_CHANGE_NOT_ALLOWED`). Renaming yourself is allowed. Setting a password unlocks the account and ends every session of that user; deactivating a user ends their sessions too.
+- Reason: an admin cannot lock themself out or raise their own access by mistake, and a password handed over by an admin takes effect at once.
+
+## 2026-10-25: An occupied bed or ward is never retired
+
+- Decision: retiring a bed is a conditional UPDATE that skips beds with status `occupied`, so a patient placed at the same moment cannot slip past a separate check (`BED_OCCUPIED`, 422). Retiring a ward checks for occupied beds in the same transaction. Free, cleaning and blocked are set on the bed board (IPD slice), not in settings.
+- Reason: a retired bed with a patient in it would vanish from the bed board. The IPD slice must also check `is_active` on the bed and ward while holding the bed row lock.
+
+## 2026-10-25: Settings screens
+
+- Decision: `/settings` has one tab per section (`features/settings/sections.ts`), shown by permission. A section opened without its view permission is a 404 page; without its manage permission it is read-only. Lists are plain tables with search, a "show inactive" switch and paging, not TanStack Table. Selects are the browser's own `<select>`, and dialogs use Radix Dialog from the existing `radix-ui` package. Edit forms send only the fields that changed, and wait for their select options before they render, because a select takes its value when it first renders. Rupees and tax percentages are typed as text and turned into paise and basis points on the digits, never through floating point (`src/lib/money.ts`).
+- Reason: master lists are short and need no column sorting yet; TanStack Table comes with the patient and billing lists. Native selects are light, keyboard friendly and need no new dependency. Sending only changed fields keeps the audit trail accurate.

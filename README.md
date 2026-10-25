@@ -44,6 +44,8 @@ pnpm dev
 
 Open http://localhost:3000 and sign in. The seed creates a fake demo hospital with one user per role (`superadmin`, `admin`, `md`, `accounts`, `billing`, `cashier`, `reception`, `doctor`, `nurse`, `pharmacy`, `lab`, `ot`), all with `SEED_USER_PASSWORD` from `.env`. Each role sees only its own sections in the sidebar. The API is on http://localhost:4000/api/v1 (try `/api/v1/health`).
 
+Start with **Settings**. As `admin`, add staff users and their roles, departments, doctors (linked to their logins), room categories, wards and beds, and the hospital details printed on bills. As `accounts`, add service items and set their rates from a date. The demo rates are fake.
+
 ## Layout
 
 | Path | What it is |

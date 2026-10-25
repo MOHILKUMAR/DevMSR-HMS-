@@ -28,3 +28,17 @@ export function formatPaise(paise: bigint | number): string {
   const formatted = money.format(rupees).replace(/\.00$/, `.${String(remainder).padStart(2, '0')}`);
   return negative ? `-${formatted}` : formatted;
 }
+
+const dateOnly = new Intl.DateTimeFormat('en-IN', { timeZone: 'UTC', day: '2-digit', month: 'short', year: 'numeric' });
+
+/** A calendar date stored as `YYYY-MM-DD` (already an IST date), shown as `24 Oct 2026`. */
+export function formatDate(isoDate: string): string {
+  return dateOnly.format(new Date(`${isoDate}T00:00:00Z`));
+}
+
+const istDay = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' });
+
+/** Today's date in IST as `YYYY-MM-DD`, the format date inputs use. */
+export function todayIst(now: Date = new Date()): string {
+  return istDay.format(now);
+}

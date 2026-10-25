@@ -33,14 +33,43 @@ describe('permission matrix: every route as every role', () => {
     await t.close();
   });
 
-  it('lists every route with its permission (update this list when adding a route)', () => {
-    expect(routes.map((r) => `${r.method} ${r.path} ${r.isPublic ? 'public' : (r.permission ?? 'none')}`)).toEqual([
-      'GET /api/v1/auth/csrf public',
-      'POST /api/v1/auth/login public',
-      'POST /api/v1/auth/logout auth.session.manage-own',
-      'GET /api/v1/auth/me auth.session.manage-own',
-      'GET /api/v1/health public',
-    ]);
+  it('lists every route with its permission (update this list when adding a route, after review)', () => {
+    expect(routes.map((r) => `${r.method} ${r.path} ${r.isPublic ? 'public' : (r.permission ?? 'none')}`).sort()).toEqual(
+      [
+        'GET /api/v1/auth/csrf public',
+        'POST /api/v1/auth/login public',
+        'POST /api/v1/auth/logout auth.session.manage-own',
+        'GET /api/v1/auth/me auth.session.manage-own',
+        'PATCH /api/v1/beds/:id masters.data.manage',
+        'GET /api/v1/departments masters.data.read',
+        'POST /api/v1/departments masters.data.manage',
+        'PATCH /api/v1/departments/:id masters.data.manage',
+        'GET /api/v1/doctors masters.data.read',
+        'POST /api/v1/doctors masters.data.manage',
+        'PATCH /api/v1/doctors/:id masters.data.manage',
+        'GET /api/v1/health public',
+        'GET /api/v1/hospital-profile masters.data.read',
+        'PATCH /api/v1/hospital-profile settings.hospital.manage',
+        'GET /api/v1/roles users.user.manage',
+        'GET /api/v1/room-categories masters.data.read',
+        'POST /api/v1/room-categories masters.data.manage',
+        'PATCH /api/v1/room-categories/:id masters.data.manage',
+        'GET /api/v1/service-items tariffs.tariff.read',
+        'POST /api/v1/service-items tariffs.tariff.manage',
+        'PATCH /api/v1/service-items/:id tariffs.tariff.manage',
+        'GET /api/v1/service-items/:id/rates tariffs.tariff.read',
+        'POST /api/v1/service-items/:id/rates tariffs.tariff.manage',
+        'GET /api/v1/users users.user.manage',
+        'POST /api/v1/users users.user.manage',
+        'PATCH /api/v1/users/:id users.user.manage',
+        'POST /api/v1/users/:id/password users.user.manage',
+        'GET /api/v1/wards masters.data.read',
+        'POST /api/v1/wards masters.data.manage',
+        'PATCH /api/v1/wards/:id masters.data.manage',
+        'GET /api/v1/wards/:id/beds masters.data.read',
+        'POST /api/v1/wards/:id/beds masters.data.manage',
+      ].sort(),
+    );
   });
 
   it('uses only permission codes from the matrix', () => {

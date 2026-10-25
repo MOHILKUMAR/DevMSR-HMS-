@@ -1,0 +1,20 @@
+meta {
+  name: Rate history of a service item
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{baseUrl}}/service-items/{{serviceItemId}}/rates
+  body: none
+  auth: none
+}
+
+docs {
+  Run "List service items with current rates" first. Changing a rate needs the accountant
+  (tariffs.tariff.manage): POST the same path with { ratePaise, taxRateBp, effectiveFrom }.
+}
+
+assert {
+  res.status: eq 200
+}
