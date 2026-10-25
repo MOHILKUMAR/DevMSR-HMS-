@@ -1,0 +1,109 @@
+name: Load test (billing counter)
+
+# Runs tests/load/billing-counter.js with k6 against the production build of the API on the runner,
+# with a seeded throwaway database, then checks that every bill and receipt number series is gapless
+# and that the database holds exactly the bills and receipts k6 created. A small run proves the
+# script and the numbering under concurrency; the real peak run is against staging
+# (docs/runbooks/load-test.md).
+on:
+  pull_request:
+    paths:
+      - 'tests/load/**'
+      - 'deploy/sql/check-number-series.sql'
+      - '.github/workflows/load-test.yml'
+  workflow_dispatch:
+    inputs:
+      counters:
+        description: Counters working at once
+        default: '8'
+      duration:
+        description: How long they work (k6 duration)
+        default: 3m
+
+permissions:
+  contents: read
+
+concurrency:
+  group: load-test-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  load:
+    name: k6 billing counter and number series check
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: hms
+          POSTGRES_PASSWORD: hms_ci_only
+          POSTGRES_DB: hms_load
+          TZ: Asia/Kolkata
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U hms -d hms_load"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      # The API runs as its own restricted login, as in production, so a missing grant fails here.
+      DATABASE_URL: postgresql://hms_app:hms_app_ci_only_pw@localhost:5432/hms_load
+      DIRECT_URL: postgresql://hms:hms_ci_only@localhost:5432/hms_load
+      # Background jobs run as a login that owns only the pgboss schema, also made by db:api-user.
+      JOBS_DATABASE_URL: postgresql://hms_jobs:hms_jobs_ci_only_pw@localhost:5432/hms_load
+      # Fake demo users from the seed, on a throwaway database.
+      SEED_USER_PASSWORD: ci-only-Passw0rd
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: command -v psql || sudo apt-get install --yes --quiet postgresql-client
+      - name: Generate secrets for this run
+        run: |
+          for name in SESSION_SECRET FIELD_ENCRYPTION_KEY; do
+            value=$(openssl rand -base64 32)
+            echo "::add-mask::$value"
+            echo "$name=$value" >> "$GITHUB_ENV"
+          done
+      - run: pnpm db:deploy
+      - run: pnpm db:api-user
+      - run: pnpm db:seed
+      - name: Build and start the API as in production
+        run: |
+          pnpm db:generate
+          pnpm --filter "@devmsr/api..." build
+          NODE_ENV=production APP_ENV=staging PORT=4000 nohup node apps/api/dist/main.js > "$RUNNER_TEMP/api.log" 2>&1 &
+          for _ in $(seq 1 60); do curl -fsS http://localhost:4000/api/v1/health >/dev/null 2>&1 && exit 0; sleep 1; done
+          cat "$RUNNER_TEMP/api.log"; exit 1
+      - name: Run k6
+        env:
+          COUNTERS: ${{ inputs.counters || '4' }}
+          DURATION: ${{ inputs.duration || '1m' }}
+        run: |
+          docker run --rm --network host --user "$(id -u)" \
+            --volume "$PWD/tests/load:/scripts:ro" --volume "$RUNNER_TEMP:/out" \
+            grafana/k6:2.2.0 run \
+            -e BASE_URL=http://localhost:4000 -e PASSWORD="$SEED_USER_PASSWORD" \
+            -e COUNTERS="$COUNTERS" -e DURATION="$DURATION" \
+            -e SUMMARY_FILE=/out/load-summary.json \
+            /scripts/billing-counter.js
+      - name: Check the number series
+        run: psql "$DIRECT_URL" -X -v ON_ERROR_STOP=1 -f deploy/sql/check-number-series.sql
+      - name: The database holds exactly what k6 created
+        run: |
+          cat "$RUNNER_TEMP/load-summary.json"
+          expected_bills=$(jq .bills_issued "$RUNNER_TEMP/load-summary.json")
+          expected_receipts=$(jq .receipts_created "$RUNNER_TEMP/load-summary.json")
+          bills=$(psql "$DIRECT_URL" -X -A -t -c "SELECT count(*) FROM invoices WHERE number IS NOT NULL")
+          receipts=$(psql "$DIRECT_URL" -X -A -t -c "SELECT count(*) FROM receipts")
+          echo "bills: k6 $expected_bills, database $bills; receipts: k6 $expected_receipts, database $receipts"
+          [ "$expected_bills" -gt 0 ] && [ "$bills" = "$expected_bills" ] && [ "$receipts" = "$expected_receipts" ]
+      - name: API log
+        if: failure()
+        run: tail -n 200 "$RUNNER_TEMP/api.log"

@@ -1,0 +1,87 @@
+# Staging and production: web, API and Caddy on one server. The database is Supabase, so there is
+# no database container. deploy/deploy.sh copies this file into $HMS_HOME/releases/<tag>/ and runs it
+# with HMS_TAG and HMS_HOME set. Never run it by hand on a server: use the scripts
+# (docs/runbooks/deploy-and-rollback.md).
+name: hms
+
+x-hardening: &hardening
+  restart: unless-stopped
+  # Code cannot be changed at runtime. Each service gets only the writable paths it needs.
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: ['no-new-privileges:true']
+  networks: [app]
+  # journald keeps logs for 180 days on the server (docs/runbooks/log-retention.md).
+  logging:
+    driver: journald
+    options:
+      # The container name, for example hms-api-1: journalctl -t hms-api-1
+      tag: '{{.Name}}'
+
+services:
+  api:
+    <<: *hardening
+    image: hms-api:${HMS_TAG:?HMS_TAG is required}
+    env_file: ${HMS_HOME:?HMS_HOME is required}/env/api.env
+    tmpfs: ['/tmp:size=64m']
+    # The Supabase CA certificate, if node-postgres needs it (NODE_EXTRA_CA_CERTS in api.env,
+    # docs/runbooks/supabase.md). Never the Caddy key, which stays in certs/.
+    volumes: ['${HMS_HOME:?HMS_HOME is required}/db-certs:/etc/hms/db-certs:ro']
+    # Starting values for a small server. Watch `docker stats` during the load test and adjust.
+    mem_limit: 768m
+    pids_limit: 256
+
+  web:
+    <<: *hardening
+    image: hms-web:${HMS_TAG:?HMS_TAG is required}
+    env_file: ${HMS_HOME:?HMS_HOME is required}/env/web.env
+    tmpfs: ['/tmp:size=64m']
+    # The only writable path in the web image (see apps/web/Dockerfile).
+    volumes: ['web-cache:/app/apps/web/.next/cache']
+    mem_limit: 512m
+    pids_limit: 256
+    depends_on:
+      api:
+        condition: service_healthy
+
+  caddy:
+    <<: *hardening
+    image: caddy:2.11.7-alpine
+    # Not root. The sysctl lets an unprivileged process bind ports 80 and 443 inside its own network
+    # namespace. The image marks /usr/bin/caddy with the NET_BIND_SERVICE file capability, and the
+    # kernel refuses to run a binary whose file capabilities are outside the bounding set, so that one
+    # capability stays in the set. no-new-privileges still stops the process from gaining it.
+    user: '1000:1000'
+    cap_add: [NET_BIND_SERVICE]
+    sysctls:
+      net.ipv4.ip_unprivileged_port_start: 0
+    environment:
+      APP_HOST: ${APP_HOST:?APP_HOST is required}
+      API_HOST: ${API_HOST:?API_HOST is required}
+    # IPv4 only: Docker publishes IPv6 through a userland proxy that the DOCKER-USER firewall rules
+    # never see (deploy/server/setup-firewall.sh). Cloudflare reaches the origin through its A record.
+    ports:
+      - '0.0.0.0:80:80'
+      - '0.0.0.0:443:443'
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./caddy:/etc/caddy/snippets:ro
+      - ${HMS_HOME:?HMS_HOME is required}/certs:/etc/caddy/certs:ro
+    # Certificates are files from Cloudflare's origin CA, so Caddy's data and config folders hold
+    # nothing worth keeping.
+    tmpfs:
+      - '/data:uid=1000,gid=1000,mode=0700,size=16m'
+      - '/config:uid=1000,gid=1000,mode=0700,size=16m'
+    mem_limit: 256m
+    pids_limit: 128
+    depends_on:
+      api:
+        condition: service_healthy
+      web:
+        condition: service_healthy
+
+networks:
+  app:
+
+volumes:
+  web-cache:

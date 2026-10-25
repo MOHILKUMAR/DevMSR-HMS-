@@ -87,38 +87,38 @@ From `CLAUDE.md` section 9.
 
 A copy of production with fake data, used for UAT, printer checks and the VAPT.
 
-- [ ] A production Docker Compose file and a Caddyfile (`app.` and `api.` subdomains). Neither is in the repo yet. **Dev**
-- [ ] Oracle Cloud VM with Docker, the two images, Caddy, and Cloudflare in front. Partly: the web and API images build in CI and run as the non-root `node` user with health checks. **Dev**
+- [x] A production Docker Compose file and a Caddyfile (`app.` and `api.` subdomains): `deploy/compose.prod.yml` and `deploy/Caddyfile`, rehearsed in CI (`.github/workflows/deploy-rehearsal.yml`). **Dev**
+- [ ] Oracle Cloud VM with Docker, the two images, Caddy, and Cloudflare in front. Partly: the web and API images build in CI and run as the non-root `node` user with health checks, and the setup steps are in `docs/runbooks/` (server hardening, Cloudflare, deploy). **Dev**
 - [ ] Its own Supabase project and R2 bucket, sharing nothing with production. **Dev**
-- [ ] A deploy script the developer runs: build images from a tagged commit, run `pnpm db:deploy`, start the containers, check `/health`, and keep the previous images for rollback. **Dev**
+- [x] A deploy script the developer runs: build images from a tagged commit, run `pnpm db:deploy`, start the containers, check `/health`, and keep the previous images for rollback. `deploy/deploy.sh`, `deploy/rollback.sh` and `deploy/restart.sh`, rehearsed in CI; first real run on staging still to come. **Dev**
 - [ ] Load the fake demo hospital, then rehearse entering the hospital's real masters (tariffs, staff names, wards). No real patients on staging. **Dev + Hospital**
 
 ## Stage 6: Production infrastructure and operations
 
 - [ ] Paid host chosen, with its data centre in India. **Dev + Hospital**
-- [ ] Server: SSH by key only, a firewall with only ports 80 and 443 open (Caddy), automatic security updates, and the clock synced by NTP. CERT-In asks for NIC or NPL time servers: confirm with the auditor. **Dev**
-- [ ] Supabase: **Dev**
+- [ ] Server: SSH by key only, a firewall with only ports 80 and 443 open (Caddy), automatic security updates, and the clock synced by NTP. CERT-In asks for NIC or NPL time servers: confirm with the auditor. Partly: steps and files ready in `docs/runbooks/server-hardening.md` and `deploy/server/`, not yet applied to a server. **Dev**
+- [ ] Supabase: **Dev**. Partly: `docs/runbooks/supabase.md`, `deploy/sql/supabase-lockdown.sql` and `deploy/check-database.sh` are ready; no project created yet.
   - the Mumbai region
   - the database reachable only from the server's IP address
   - its Data API turned off, or the `anon` and `authenticated` roles' access revoked. The app uses Supabase only as plain PostgreSQL, and tables in the `public` schema are otherwise reachable through Supabase's REST API.
   - a check that the connection pooler keeps the app's per-connection UTC setting and its row locks, or else a session pooler or a direct connection
-- [ ] Cloudflare: DNS, proxy on, TLS set to full (strict), HSTS. **Dev**
-- [ ] Production secrets: generate `SESSION_SECRET` and `FIELD_ENCRYPTION_KEY` once, keep them in the server's environment and in a second safe place, and write down how to rotate them. Losing the field key loses every Aadhaar and ABHA number. **Dev**
-- [ ] Production environment: `NODE_ENV=production`, `COOKIE_DOMAIN`, `CORS_ORIGINS`, `TRUST_PROXY` set for Cloudflare and Caddy, real email keys, and `MAIL_ENABLED` only once tested. **Dev**
-- [ ] Backups: Supabase's daily backups, plus an encrypted `pg_dump` to an R2 bucket in a separate account, kept as long as the hospital decides in stage 2. **Dev**
-- [ ] Restore drill: restore last night's backup to a fresh database, run the app on it, and check the bill and receipt counters and the audit trail. Repeat every quarter and record the result. **Dev**
-- [ ] Monitoring: Sentry for web and API with patient data removed before anything is sent, an uptime check on `/health`, and alerts for downtime, error spikes, failed logins and failed backups. **Dev**
-- [ ] Logs: API and Caddy logs shipped to storage in India and kept 180 days (CERT-In), out of reach of the app. **Dev**
-- [ ] Release process: tagged releases from `main`, a change log, migrations applied by the developer before new containers start, and written rollback steps. **Dev**
-- [ ] Published backup, recovery and security practices, one of the four promises in `CLAUDE.md` section 1. **Dev**
+- [ ] Cloudflare: DNS, proxy on, TLS set to full (strict), HSTS. Partly: steps in `docs/runbooks/cloudflare.md`, with authenticated origin pulls; not yet applied. **Dev**
+- [ ] Production secrets: generate `SESSION_SECRET` and `FIELD_ENCRYPTION_KEY` once, keep them in the server's environment and in a second safe place, and write down how to rotate them. Losing the field key loses every Aadhaar and ABHA number. Partly: `docs/runbooks/secrets-and-rotation.md`; rotating the field key needs an app feature. **Dev**
+- [ ] Production environment: `NODE_ENV=production`, `COOKIE_DOMAIN`, `CORS_ORIGINS`, `TRUST_PROXY` set for Cloudflare and Caddy, real email keys, and `MAIL_ENABLED` only once tested. Partly: templates in `deploy/env/` (`TRUST_PROXY=2`). **Dev**
+- [ ] Backups: Supabase's daily backups, plus an encrypted `pg_dump` to an R2 bucket in a separate account, kept as long as the hospital decides in stage 2. Partly: `deploy/backup.sh`, the `hms-backup` image and a nightly timer are ready and rehearsed in CI (`docs/runbooks/backup-and-restore.md`); no bucket or keys yet, and R2 cannot promise the data stays in India (stage 2). **Dev**
+- [ ] Restore drill: restore last night's backup to a fresh database, run the app on it, and check the bill and receipt counters and the audit trail. Repeat every quarter and record the result. Partly: `deploy/restore-drill.sh` does all of this and also checks the field key; it runs in CI on every deploy change. The first drill on a real server and its entry in `docs/runbooks/restore-drill-log.md` are still to come. **Dev**
+- [ ] Monitoring: Sentry for web and API with patient data removed before anything is sent, an uptime check on `/health`, and alerts for downtime, error spikes, failed logins and failed backups. Partly: `docs/runbooks/monitoring.md`, with backup and host heartbeats (`deploy/check-host.sh`); the uptime service is not chosen, and the Sentry SDKs and the failed-login alert are app work. **Dev**
+- [ ] Logs: API and Caddy logs shipped to storage in India and kept 180 days (CERT-In), out of reach of the app. Partly: journald keeps 190 days on the server and `deploy/logs-export.sh` copies each day encrypted off the server (`docs/runbooks/log-retention.md`); not yet applied to a server, and the store's region is open. **Dev**
+- [x] Release process: tagged releases from `main`, a change log, migrations applied by the developer before new containers start, and written rollback steps. `CHANGELOG.md` and `docs/runbooks/deploy-and-rollback.md`. **Dev**
+- [ ] Published backup, recovery and security practices, one of the four promises in `CLAUDE.md` section 1. Partly: `docs/security-practices.md`, written for the hospital; publish it as a page once its "before go-live" items are true. **Dev**
 
 ## Stage 7: Testing, audits and the VAPT
 
-- [ ] Performance budget on staging: first load under 1 MB of JavaScript, and first paint under 1.5 s on 4 Mbps. Measuring bundles needs `@next/bundle-analyzer`, a new dependency to approve. **Dev**
-- [ ] Accessibility: a WCAG 2.1 AA check of every screen, with the billing and payment counters fully usable from the keyboard. **Dev**
-- [ ] Load test (k6) of the billing counter at peak: post charges, issue bills and take payments at once, then check the number series has no gaps. **Dev**
-- [ ] OWASP ZAP baseline scan against staging, run in CI. **Dev**
-- [ ] Contract test: an OpenAPI snapshot, so the web app and the API cannot drift apart. **Dev**
+- [ ] Performance budget on staging: first load under 1 MB of JavaScript, and first paint under 1.5 s on 4 Mbps. Partly: `apps/web/e2e/performance-budget.spec.ts` checks both in CI against the production build (compressed JavaScript, emulated 4 Mbps); still to be measured on staging. `@next/bundle-analyzer` was not needed. **Dev**
+- [ ] Accessibility: a WCAG 2.1 AA check of every screen, with the billing and payment counters fully usable from the keyboard. Partly: `apps/web/e2e/accessibility.spec.ts` runs axe on every current screen and works both counters from the keyboard in CI; new screens join its list, and a screen reader check belongs in UAT. **Dev**
+- [ ] Load test (k6) of the billing counter at peak: post charges, issue bills and take payments at once, then check the number series has no gaps. Partly: `tests/load/billing-counter.js` and the gap check run in CI (`.github/workflows/load-test.yml`); the peak run on staging is still to come (`docs/runbooks/load-test.md`). **Dev**
+- [ ] OWASP ZAP baseline scan against staging, run in CI. Partly: `.github/workflows/zap-baseline.yml` is a manual dispatch for staging URLs and scans the runner's build on pull requests that change it (`docs/runbooks/zap-scan.md`); no staging yet. **Dev**
+- [x] Contract test: an OpenAPI snapshot, so the web app and the API cannot drift apart. The API test checks `docs/openapi.json` against the routes, and CI checks the web's generated types against `docs/openapi.json`. **Dev**
 - [ ] Printers: A4 and 80 mm printouts on the hospital's own printers and browsers. **Hospital + Dev**
 - [ ] UAT: hospital staff run a normal day on staging (registration, OPD, admission, billing, cash shifts, discharge) and sign it off. **Hospital**
 - [ ] VAPT on staging by a CERT-In empanelled auditor. Fix every high and critical finding, get a retest, and keep the report. **Auditor + Dev**

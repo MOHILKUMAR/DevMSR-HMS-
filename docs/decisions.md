@@ -434,3 +434,84 @@ Every non-obvious decision, oldest first. Each entry has the date, the decision 
 
 - Decision: the collection report counts receipts by when they were taken and refunds by when they were paid, in IST calendar days, under the cashier whose shift took or paid them, by payment mode. Void receipts are left out of every figure and shown as a count. The day book is a CSV of bills issued, receipts, deposits, credit notes and refunds of the day, with ISO dates, the patient's UHID only (no names in an exported file), amounts in rupees with two decimals worked out in integers, and a void receipt kept at 0.00 so numbers stay gapless. Text cells that could start a spreadsheet formula are prefixed with an apostrophe. Exports go through a third rate limit, `export`, at `RATE_LIMIT_EXPORT_PER_HOUR` (10) per user per hour (section 9); PDFs will use the same decorator. To confirm the CSV layout with the accountant (D-18).
 - Reason: `docs/billing-rules.md` asks for a calendar-day report by cashier and mode and a daily CSV day book. Tally ledger names are not known yet, so the CSV stays a plain day book the accountant can map.
+
+## 2026-10-25: Releases are built on the server from a tag
+
+- Decision: `deploy/deploy.sh <tag>` runs on the server. It checks the tag is on `origin/main`, exports the tagged tree with `git archive` (never a checkout), builds `hms-api`, `hms-web` and `hms-migrate` images tagged with the release, applies migrations, starts the release, checks the public health URLs, and starts the previous release again if the new one is unhealthy. The newest 3 releases keep their images and compose files, so `deploy/rollback.sh` needs no rebuild. No container registry.
+- Reason: the developer approved building on the server: no registry to run or secure, and one server. Building from an export means the script never changes under itself and local edits on the server never reach an image.
+
+## 2026-10-25: Migrations get their own image and are never rolled back
+
+- Decision: `deploy/migrate.Dockerfile` holds only the Prisma CLI, the schema and the migrations, and runs `pnpm db:deploy` with `DIRECT_URL` before the new containers start. The app Dockerfiles are unchanged. A rollback starts older images and leaves the schema as it is, so every migration must keep the previous release working: add first, remove in a later release, never rename in one step.
+- Reason: the API image is built with `pnpm deploy --prod` and has no Prisma CLI. Down migrations on a live billing database are riskier than forward-compatible ones.
+
+## 2026-10-25: Caddy with Cloudflare origin certificates and authenticated origin pulls
+
+- Decision: Caddy serves a Cloudflare origin CA certificate (no Let's Encrypt), requires Cloudflare's origin pull client certificate, trusts `CF-Connecting-IP` and `X-Forwarded-For` only from Cloudflare's ranges (`deploy/caddy/cloudflare-ips.caddy`), and the API uses `TRUST_PROXY=2`. Caddy runs as uid 1000 with a read-only root, binding 80 and 443 through the namespaced `net.ipv4.ip_unprivileged_port_start` sysctl. `NET_BIND_SERVICE` stays in its bounding set only because the image gives the binary that file capability, and the kernel refuses to run a binary whose file capabilities are outside the set (the first rehearsal failed with `exec /usr/bin/caddy: operation not permitted`). Its data folders are tmpfs, since there are no ACME certificates to keep. Logs go to stdout in JSON.
+- Reason: section 9 asks for non-root containers and only Caddy exposing 80 and 443. With origin pulls a request that bypasses Cloudflare fails at the TLS handshake even if a firewall rule is wrong. A 15-year origin certificate removes certificate renewal from the server.
+
+## 2026-10-25: The web ports are filtered in DOCKER-USER, and published on IPv4 only
+
+- Decision: `deploy/server/setup-firewall.sh` sets ufw for SSH and writes `DOCKER-USER` rules (through `/etc/ufw/after.rules`) that let only Cloudflare's IPv4 ranges reach 80 and 443. Caddy publishes `0.0.0.0:80` and `0.0.0.0:443` only, and the Docker daemon runs without the userland proxy. The cloud provider's firewall allows the same, as a first layer.
+- Reason: Docker's rules for published ports skip ufw's input rules, so ufw alone would leave 80 and 443 open to everyone. IPv6 publishing goes through a userland proxy that these rules never see.
+
+## 2026-10-25: Supabase through the session pooler, checked by a script
+
+- Decision: `DATABASE_URL` and `DIRECT_URL` use Supabase's session pooler (or a direct connection if it is reachable over IPv4). `deploy/check-database.sh` proves, through the real connection string and the API's `TimeZone=UTC` startup option, that every transaction runs in UTC, a transaction stays on one backend, and a transaction's lock blocks another connection until commit. It uses a transaction-scoped advisory lock by default, and a real counter row with `--row-lock`. `deploy/sql/supabase-lockdown.sql` revokes `anon` and `authenticated` everywhere in `public`, including default privileges, and revokes EXECUTE on functions from PUBLIC.
+- Reason: a transaction pooler can drop the startup option, which would store timestamps 5.5 hours wrong on an IST connection, and it breaks Prisma's session advisory lock during migrations. Supabase's direct connection is IPv6 only without a paid add-on, and containers have no IPv6. The advisory lock follows the same transaction rules as row locks without touching business data. Revoking the Data API roles protects the tables even if the Data API is turned on again by mistake.
+
+## 2026-10-25: A deploy rehearsal in CI instead of a local Docker run
+
+- Decision: `.github/workflows/deploy-rehearsal.yml` runs on pull requests that touch `deploy/`, the Dockerfiles or migrations, and by hand. It runs shellcheck and the Docker-free dry runs (`deploy/test/dry-run.sh`), then deploys two tags of the pull request on the runner with test certificates, rolls back, restarts the API, checks container hardening, headers, the HTTP redirect and the refusal of clients without the origin pull certificate, runs `deploy/check-database.sh`, and runs the Supabase lockdown against stand-in roles. It is a separate workflow so `ci.yml` stays as it is.
+- Reason: the development machine has no Docker, and a deploy script that has never run is not a deploy script. The dry runs need only bash, git and openssl, so they also run in Git Bash on Windows.
+- Watch out: when the production start-up guard (go-live checklist stage 4) lands, the rehearsal's `api.env` (built by `deploy/test/make-rehearsal-home.sh` from `deploy/env/api.env.example`) must satisfy it, for example with `NODE_ENV=production` and a fake Sentry DSN, or a rehearsal mode.
+
+## 2026-10-25: Backups are age-encrypted dumps of the public schema, to a store the server cannot delete from
+
+- Decision: `deploy/backup.sh` runs the `hms-backup` image (PostgreSQL 17 client tools, age and rclone, built with each release) nightly from a systemd timer and before every migration. It dumps only the `public` schema, without owners or grants, encrypts it with age to two public keys (the developer's and the hospital's), and uploads it with a manifest (time, versions, latest migration, size, SHA-256) through rclone to a bucket in a separate account. Retention and deletion protection come from the bucket's lock and lifecycle rules, not from the script, so the server's token never needs to delete. Restore refuses a missing manifest, a SHA-256 mismatch, the live database, or a target that is not empty.
+- Reason: section 9 asks for encrypted backups, and stage 6 for a copy in a separate account. Public-key encryption means a stolen server or bucket token reads nothing. Supabase's own schemas are not ours to restore, and leaving out owners and grants lets a dump restore into any fresh database. rclone keeps the store a configuration choice (R2 or an Indian region), which the hospital's stage 2 answer decides.
+
+## 2026-10-25: The restore drill checks the number series, the audit trail, the app and the field key
+
+- Decision: `deploy/restore-drill.sh` restores into a throwaway PostgreSQL container set to IST, runs `deploy/sql/restore-checks.sql` (every UHID, bill and receipt series starts at 1 with no gaps or repeats and matches its counter; issued bills or receipts have audit events, none in the future; 15 named protection triggers are present, enabled, and refuse an UPDATE of an audit event or issued bill and a DELETE of a receipt), starts the current API image on the copy, and checks that `FIELD_ENCRYPTION_KEY` from `api.env` decrypts a stored Aadhaar or ABHA number without printing it. `deploy/sql/check-number-series.sql` is shared with the load test.
+- Reason: stage 6 asks the drill to check the counters and the audit trail. A backup is useless if the field key that opens it is lost or rotated without anyone noticing, and the trigger check catches a dump that restored tables without their protections. Patients alone do not require audit events, because the seed loads patients without any.
+
+## 2026-10-25: Logs stay 190 days in journald, with a daily encrypted copy off the server
+
+- Decision: Docker's journald driver collects every container's output (tag: the container name, for example `hms-api-1`). journald keeps all logs persistent, compressed and sealed for 190 days (`deploy/server/journald-hms.conf`). `deploy/logs-export.sh` copies each UTC day of the whole journal, gzipped and age-encrypted, to `LOG_STORE`. Caddy's access log drops query strings and the Referer header, like the API's own log.
+- Reason: CERT-In asks for 180 days of logs kept in India. The server is in India, so journald alone meets that; the off-server copy survives losing the server. journald needs no new service, and sealing makes tampering detectable. A query string could carry a search term, which section 7 keeps out of logs.
+
+## 2026-10-25: Heartbeats instead of a monitoring server
+
+- Decision: an external uptime service (the developer's choice; none signed up) checks the health URL and the login page every minute, and receives heartbeats from the backup (`BACKUP_PING_URL`) and from an hourly host check (`deploy/check-host.sh`: disk space, container health), so it alerts on failure and on silence. Sentry is planned as app work with `beforeSend` scrubbing, needing approval for its SDKs.
+- Reason: section 3 rules out extra infrastructure and paid services without approval. Heartbeats catch a timer that silently stopped, which an exit status alone cannot.
+
+## 2026-10-25: The load test bills seeded patients through shared sessions per counter
+
+- Decision: `tests/load/billing-counter.js` (k6, run from the `grafana/k6` image) treats each virtual user as one counter with its own billing clerk and cashier sessions, signed in during setup and waiting out the login limit. It bills the seeded demo patients (found by UHID number) instead of registering new ones, sends one issue and one payment in ten twice at once with one `Idempotency-Key`, and writes its counts so the workflow can check the database holds exactly that many bills and receipts and that `deploy/sql/check-number-series.sql` passes. Cookies are carried by hand because k6's jar never sends `Secure` cookies over plain http.
+- Reason: the API only accepts mobile numbers that look real, and section 7 keeps real-looking personal data out of tests. Sessions are rate limited per session and logins per user and address, so per-counter sessions keep the test inside the limits a real counter has. The CI run proves the script and the numbering under concurrency; the peak measurement is on staging.
+
+## 2026-10-25: The JavaScript budget counts compressed bytes, measured in the browser
+
+- Decision: `apps/web/e2e/performance-budget.spec.ts` opens the login screen and the main signed-in screens on a cold cache against the production build in CI and fails if the JavaScript transferred (compressed, as served) reaches 1,000,000 bytes, or if first contentful paint over an emulated 4 Mbps line (40 ms round trip) reaches 1.5 s. `@next/bundle-analyzer` is not added.
+- Reason: the developer chose compressed size, since the promise is about weak hospital lines. Measuring what the browser downloads covers every chunk the page really loads, with no new dependency; the analyzer can be added later to find what is big.
+
+## 2026-10-25: Accessibility checks with axe and a keyboard-only counter run
+
+- Decision: `apps/web/e2e/accessibility.spec.ts` runs axe (`@axe-core/playwright` 4.14.0, approved) with the WCAG 2.0 and 2.1 A and AA rules on the login screen and every screen that exists, signed in as the role that uses it, and works the billing counter (find patient, add a charge, prepare and issue the bill) and the payment counter (open shift, find patient, take payment) with Tab, typing and Enter only. Any violation fails the test. New screens are added to its list.
+- Reason: section 16 asks for WCAG 2.1 AA and a billing flow that works from the keyboard. axe finds what can be found automatically; the keyboard run proves the counters are reachable. A manual check with a screen reader is still part of UAT.
+
+## 2026-10-25: ZAP baseline from its pinned image, scanning the runner until staging exists
+
+- Decision: `.github/workflows/zap-baseline.yml` runs `zap-baseline.py` from `ghcr.io/zaproxy/zaproxy:2.16.1` pinned by digest, not the third-party action. Run by hand it scans the staging web and API URLs given; on pull requests that change the scan it scans the production builds started on the runner. Only rules marked FAIL in `.zap/rules.tsv` fail the job; accepted warnings carry their reason there.
+- Reason: section 18 asks for a ZAP baseline against staging in CI, and staging does not exist yet. A manual dispatch works only from `main`, so the pull request mode is what proves the job before then.
+
+## 2026-10-25: The contract test also covers the web's generated types
+
+- Decision: `ci.yml` regenerates `apps/web/src/lib/api/generated/schema.d.ts` from `docs/openapi.json` after `pnpm test` and fails if it differs. Together with the existing test that fails when `docs/openapi.json` is stale against the routes, the web app and the API cannot drift apart unnoticed.
+- Reason: section 18's contract row. The OpenAPI snapshot test already existed; the generated client was the unchecked half.
+
+## 2026-10-26: Deploys create the API's database login and sync roles; rollbacks sync back
+
+- Decision: after migrations, `deploy.sh` runs `node dist/cli/create-api-db-user.js` in the new API image with `api.env` and `migrate.env` (the owner's `DIRECT_URL`), so the restricted login in `DATABASE_URL` exists and has that password, then `node dist/cli/sync-roles.js --apply` as the API's login. Both run before the new containers start. `rollback.sh`, and the automatic rollback in `deploy.sh`, run the older release's `sync-roles --apply` before starting it. `api.env` sets `APP_ENV` (`staging` in the template), and the deploy rehearsal gives the API its own login, as production will.
+- Reason: track B's API database role, start-up guard and role sync (the three entries of 2026-10-25 above) make a production API refuse to start as the owner or with roles that differ from its matrix. Running the older matrix on rollback keeps the older release startable; the sync only touches seeded roles and writes an audit event for each change.

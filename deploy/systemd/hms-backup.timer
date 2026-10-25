@@ -1,0 +1,12 @@
+[Unit]
+Description=Nightly DevMSR HMS backup at 02:00 IST
+
+[Timer]
+# 20:30 UTC is 02:00 IST. Change the schedule once the hospital sets its recovery targets (go-live
+# checklist stage 2), for example every 6 hours: OnCalendar=*-*-* 00/6:30:00 UTC
+OnCalendar=*-*-* 20:30:00 UTC
+RandomizedDelaySec=5min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

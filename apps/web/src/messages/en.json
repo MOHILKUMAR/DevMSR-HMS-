@@ -201,7 +201,7 @@
       "edit": "Edit",
       "editNamed": "Edit {name}",
       "setPassword": "Set password",
-      "setPasswordNamed": "Set a new password for {name}",
+      "setPasswordNamed": "Set password for {name}",
       "createTitle": "Add staff user",
       "createDescription": "The person signs in with this username and the temporary password you set, then chooses their own.",
       "fullName": "Full name",

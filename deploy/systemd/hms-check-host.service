@@ -1,0 +1,10 @@
+# Copy to /etc/systemd/system/, then: sudo systemctl daemon-reload && sudo systemctl enable --now hms-check-host.timer
+[Unit]
+Description=DevMSR HMS host check (disk, containers)
+After=docker.service
+
+[Service]
+Type=oneshot
+User=hmsadmin
+Environment=HMS_HOME=/opt/hms
+ExecStart=/opt/hms/src/deploy/check-host.sh
