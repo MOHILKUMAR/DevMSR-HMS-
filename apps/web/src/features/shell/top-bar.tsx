@@ -3,6 +3,7 @@ import { UserRound } from 'lucide-react';
 import { cookies } from 'next/headers';
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
+import { NotificationBell } from '@/features/notifications/notification-bell';
 import { PatientSearchBox } from '@/features/patients/patient-search-box';
 import { THEME_COOKIE } from '@/lib/cookies';
 import { SignOutButton } from './sign-out-button';
@@ -29,6 +30,7 @@ export async function TopBar({ me }: { me: MeResponse }) {
           </span>
           <UserRound className="size-5 text-text-muted" aria-hidden />
         </Link>
+        {me.permissions.includes('notifications.notification.read-own') && <NotificationBell />}
         <ThemeToggle initialDark={dark} />
         <SignOutButton />
       </div>

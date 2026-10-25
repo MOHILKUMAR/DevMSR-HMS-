@@ -5,6 +5,7 @@ import type { TransactionRunner } from '../common/prisma/transaction-runner.js';
 import type { AuthRepository, LoginCandidate } from './auth.repository.js';
 import { AuthService, LOCKOUT_MS, MAX_FAILED_LOGINS } from './auth.service.js';
 import type { CsrfService } from './csrf.service.js';
+import type { FailedLoginAlerts } from './failed-login-alerts.js';
 import { hashPassword } from './password.js';
 import type { SessionsService } from './sessions.service.js';
 import type { TwoFactorRepository } from './two-factor.repository.js';
@@ -65,6 +66,7 @@ function setup(user: LoginCandidate | null, failure = { locked: false }) {
     transactions as unknown as TransactionRunner,
     twoFactor as unknown as TwoFactorService,
     {} as TwoFactorRepository,
+    { afterFailure: vi.fn().mockResolvedValue(undefined) } as unknown as FailedLoginAlerts,
   );
   return { service, repository, sessions, audit, twoFactor };
 }

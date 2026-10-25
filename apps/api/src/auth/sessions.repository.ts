@@ -66,6 +66,19 @@ export class SessionsRepository {
     return rows.map((row) => row.code);
   }
 
+  /** The session's open break-glass grant, if it has not expired and its hospital is active. */
+  findActiveBreakGlass(sessionId: string, now: Date): Promise<{ id: string; hospitalId: string; expiresAt: Date } | null> {
+    return this.prisma.breakGlassGrant.findFirst({
+      where: { sessionId, endedAt: null, expiresAt: { gt: now }, hospital: { isActive: true } },
+      select: { id: true, hospitalId: true, expiresAt: true },
+    });
+  }
+
+  /** Ends the session's break-glass grant with the session itself. */
+  async endBreakGlass(sessionId: string, at: Date, tx: Tx): Promise<void> {
+    await tx.breakGlassGrant.updateMany({ where: { sessionId, endedAt: null }, data: { endedAt: at } });
+  }
+
   async create(data: NewSession, tx?: Tx): Promise<{ id: string; expiresAt: Date }> {
     return (tx ?? this.prisma).session.create({
       data: { ...data, lastSeenAt: data.createdAt },

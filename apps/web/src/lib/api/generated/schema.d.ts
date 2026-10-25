@@ -294,6 +294,58 @@ export interface paths {
         patch: operations["bedsUpdate"];
         trace?: never;
     };
+    "/api/v1/break-glass": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** This hospital's break-glass history with each reason */
+        get: operations["breakGlassHistory"];
+        put?: never;
+        /** Open one hospital's records read-only for 1 hour in this session, with a written reason; its admins are notified */
+        post: operations["breakGlassStart"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/break-glass/current/end": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** End your break-glass access now */
+        post: operations["breakGlassEnd"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/break-glass/hospitals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Active hospitals a super admin can open through break-glass */
+        get: operations["breakGlassHospitals"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/cash-shifts": {
         parameters: {
             query?: never;
@@ -548,6 +600,74 @@ export interface paths {
         put?: never;
         /** Issue a draft: the next bill number, then locked for good */
         post: operations["invoicesIssue"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your own notifications, newest first; ?unread=true for unread only */
+        get: operations["notificationsList"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notifications/{id}/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark one of your notifications read */
+        post: operations["notificationsMarkRead"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notifications/read-all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark all your notifications read */
+        post: operations["notificationsMarkAllRead"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notifications/unread-count": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** How many of your notifications are unread, for the top bar */
+        get: operations["notificationsUnreadCount"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -975,6 +1095,12 @@ export interface components {
                 expiresAt: string;
                 idleTimeoutSeconds: number;
             };
+            breakGlass: {
+                /** Format: uuid */
+                grantId: string;
+                /** Format: date-time */
+                expiresAt: string;
+            } | null;
             /** @constant */
             status: "signed_in";
             csrfToken: string;
@@ -1011,6 +1137,12 @@ export interface components {
                 expiresAt: string;
                 idleTimeoutSeconds: number;
             };
+            breakGlass: {
+                /** Format: uuid */
+                grantId: string;
+                /** Format: date-time */
+                expiresAt: string;
+            } | null;
             /** @constant */
             status: "signed_in";
             csrfToken: string;
@@ -1048,6 +1180,12 @@ export interface components {
                 expiresAt: string;
                 idleTimeoutSeconds: number;
             };
+            breakGlass: {
+                /** Format: uuid */
+                grantId: string;
+                /** Format: date-time */
+                expiresAt: string;
+            } | null;
             /** @constant */
             status: "signed_in";
             csrfToken: string;
@@ -1089,6 +1227,12 @@ export interface components {
                 expiresAt: string;
                 idleTimeoutSeconds: number;
             };
+            breakGlass: {
+                /** Format: uuid */
+                grantId: string;
+                /** Format: date-time */
+                expiresAt: string;
+            } | null;
             /** @constant */
             status: "signed_in";
             csrfToken: string;
@@ -1122,6 +1266,12 @@ export interface components {
                 expiresAt: string;
                 idleTimeoutSeconds: number;
             };
+            breakGlass: {
+                /** Format: uuid */
+                grantId: string;
+                /** Format: date-time */
+                expiresAt: string;
+            } | null;
         };
         AccountChangePasswordRequest: {
             currentPassword: string;
@@ -1182,6 +1332,70 @@ export interface components {
             /** @enum {string} */
             status: "free" | "occupied" | "cleaning" | "reserved" | "blocked";
             isActive: boolean;
+        };
+        BreakGlassHistoryResponse: {
+            data: {
+                /** Format: uuid */
+                id: string;
+                hospital: {
+                    /** Format: uuid */
+                    id: string;
+                    code: string;
+                    name: string;
+                };
+                user: {
+                    /** Format: uuid */
+                    id: string;
+                    username: string;
+                    displayName: string;
+                };
+                reason: string;
+                /** Format: date-time */
+                createdAt: string;
+                /** Format: date-time */
+                expiresAt: string;
+                endedAt: string | null;
+                active: boolean;
+            }[];
+            page: number;
+            pageSize: number;
+            total: number;
+        };
+        BreakGlassStartRequest: {
+            /** Format: uuid */
+            hospitalId: string;
+            reason: string;
+        };
+        BreakGlassStartResponse: {
+            /** Format: uuid */
+            id: string;
+            hospital: {
+                /** Format: uuid */
+                id: string;
+                code: string;
+                name: string;
+            };
+            user: {
+                /** Format: uuid */
+                id: string;
+                username: string;
+                displayName: string;
+            };
+            reason: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            expiresAt: string;
+            endedAt: string | null;
+            active: boolean;
+        };
+        BreakGlassHospitalsResponse: {
+            data: {
+                /** Format: uuid */
+                id: string;
+                code: string;
+                name: string;
+            }[];
         };
         CashShiftsListResponse: {
             data: {
@@ -1791,6 +2005,29 @@ export interface components {
             createdByName: string | null;
             issuedAt: string | null;
             issuedByName: string | null;
+        };
+        NotificationsListResponse: {
+            data: {
+                /** Format: uuid */
+                id: string;
+                /** @enum {string} */
+                kind: "break_glass_started" | "failed_logins";
+                details: {
+                    [key: string]: string | number | boolean | null;
+                };
+                /** Format: date-time */
+                createdAt: string;
+                readAt: string | null;
+            }[];
+            page: number;
+            pageSize: number;
+            total: number;
+        };
+        NotificationsMarkAllReadResponse: {
+            updated: number;
+        };
+        NotificationsUnreadCountResponse: {
+            unread: number;
         };
         PatientsRegisterRequest: {
             fullName: string;
@@ -3072,6 +3309,136 @@ export interface operations {
             };
         };
     };
+    breakGlassHistory: {
+        parameters: {
+            query?: {
+                page?: number;
+                pageSize?: number;
+                sort?: string;
+                q?: string;
+                includeInactive?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BreakGlassHistoryResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    breakGlassStart: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Value of the CSRF cookie */
+                "X-CSRF-Token": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BreakGlassStartRequest"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BreakGlassStartResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    breakGlassEnd: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Value of the CSRF cookie */
+                "X-CSRF-Token": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    breakGlassHospitals: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BreakGlassHospitalsResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
     cashShiftsList: {
         parameters: {
             query?: {
@@ -3760,6 +4127,133 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["InvoicesIssueResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    notificationsList: {
+        parameters: {
+            query?: {
+                page?: number;
+                pageSize?: number;
+                sort?: string;
+                unread?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationsListResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    notificationsMarkRead: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Value of the CSRF cookie */
+                "X-CSRF-Token": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    notificationsMarkAllRead: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Value of the CSRF cookie */
+                "X-CSRF-Token": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationsMarkAllReadResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    notificationsUnreadCount: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationsUnreadCountResponse"];
                 };
             };
             /** @description Error */

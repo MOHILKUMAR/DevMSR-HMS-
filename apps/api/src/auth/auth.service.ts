@@ -11,6 +11,7 @@ import { LOGIN_CHALLENGE_TTL_MS } from './auth-cookies.js';
 import { AuthRepository, type LoginCandidate, type LoginEventInput, type OpenLoginChallenge } from './auth.repository.js';
 import { CsrfService } from './csrf.service.js';
 import { toMeResponse } from './dto/me-response.mapper.js';
+import { FailedLoginAlerts } from './failed-login-alerts.js';
 import { dummyPasswordHash, hashPassword, verifyPassword } from './password.js';
 import { requiresTwoFactor } from './permission-matrix.js';
 import { SessionsService } from './sessions.service.js';
@@ -52,6 +53,7 @@ export class AuthService {
     private readonly transactions: TransactionRunner,
     private readonly twoFactor: TwoFactorService,
     private readonly twoFactorRepository: TwoFactorRepository,
+    private readonly alerts: FailedLoginAlerts,
   ) {}
 
   issueCsrfToken(sessionId: string | null): string {
@@ -77,14 +79,17 @@ export class AuthService {
 
     if (user === null) {
       await this.repository.insertLoginEvent({ ...event, outcome: 'unknown_user' });
+      await this.alerts.afterFailure(null, now);
       throw Errors.loginFailed();
     }
     if (!user.isActive || user.hospital?.isActive === false) {
       await this.repository.insertLoginEvent({ ...event, outcome: 'inactive' });
+      await this.alerts.afterFailure(user.hospitalId, now);
       throw Errors.loginFailed();
     }
     if (user.lockedUntil !== null && user.lockedUntil > now) {
       await this.repository.insertLoginEvent({ ...event, outcome: 'locked' });
+      await this.alerts.afterFailure(user.hospitalId, now);
       throw Errors.loginFailed();
     }
     if (!passwordMatches) {
@@ -204,7 +209,7 @@ export class AuthService {
       await this.audit.record(
         {
           action: 'auth.session.ended',
-          hospitalId: auth.hospitalId,
+          hospitalId: auth.userHospitalId,
           actorUserId: auth.userId,
           entityType: 'session',
           entityId: auth.sessionId,
@@ -217,11 +222,13 @@ export class AuthService {
   }
 
   async me(auth: AuthContext): Promise<MeResponse> {
-    const profile = await this.repository.findProfile(auth.userId, auth.hospitalId);
+    const profile = await this.repository.findProfile(auth.userId, auth.userHospitalId);
     if (profile === null) {
       throw Errors.unauthenticated();
     }
-    return toMeResponse(profile, [...auth.permissions], auth.expiresAt);
+    const opened = auth.breakGlass === null ? null : await this.repository.hospitalSummary(auth.breakGlass.hospitalId);
+    const breakGlass = auth.breakGlass === null || opened === null ? null : { access: auth.breakGlass, hospital: opened };
+    return toMeResponse(profile, [...auth.permissions], auth.expiresAt, breakGlass);
   }
 
   /** The step a user still owes after a correct password, or null when a session can start. */
@@ -307,6 +314,7 @@ export class AuthService {
   private async countFailure(user: LoginCandidate, outcome: 'wrong_password' | 'wrong_totp', meta: RequestMeta, now: Date): Promise<void> {
     const { locked } = await this.repository.recordFailure(user.id, now, MAX_FAILED_LOGINS, LOCKOUT_MS);
     await this.repository.insertLoginEvent({ ...eventFor(user, meta, now), outcome });
+    await this.alerts.afterFailure(user.hospitalId, now);
     if (locked) {
       await this.audit.record({
         action: 'auth.account.locked',

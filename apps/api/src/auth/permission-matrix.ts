@@ -7,9 +7,11 @@
 export const PERMISSIONS = {
   // Every role
   'auth.session.manage-own': 'View own profile, change own password, sign out, see and end own sessions',
+  'notifications.notification.read-own': 'See and mark read own notifications',
 
   // DevMSR platform
   'platform.hospital.manage': 'Create and configure hospitals',
+  'platform.break-glass.use': "Open a hospital's records read-only for 1 hour, with a written reason",
 
   // Administration
   'users.user.manage': 'Create, edit and deactivate staff users',
@@ -76,16 +78,16 @@ export interface RoleDefinition {
   permissions: readonly PermissionCode[];
 }
 
-const SELF: PermissionCode = 'auth.session.manage-own';
-/** Every hospital role: own session, and the masters every screen needs (departments, doctors, wards). */
-const STAFF = [SELF, 'masters.data.read'] as const satisfies readonly PermissionCode[];
+const SELF = ['auth.session.manage-own', 'notifications.notification.read-own'] as const satisfies readonly PermissionCode[];
+/** Every hospital role: own session and notifications, and the masters every screen needs (departments, doctors, wards). */
+const STAFF = [...SELF, 'masters.data.read'] as const satisfies readonly PermissionCode[];
 
 export const ROLES = {
   super_admin: {
     name: 'Super admin',
     scope: 'platform',
-    // No hospital permissions: patient records only through logged break-glass access (a later slice).
-    permissions: [SELF, 'platform.hospital.manage'],
+    // No hospital permissions: patient records only through logged break-glass access (BREAK_GLASS_PERMISSIONS).
+    permissions: [...SELF, 'platform.hospital.manage', 'platform.break-glass.use'],
   },
   hospital_admin: {
     name: 'Hospital admin',
@@ -209,6 +211,19 @@ export const ROLES = {
 } as const satisfies Record<string, RoleDefinition>;
 
 export type RoleCode = keyof typeof ROLES;
+
+/**
+ * What a super admin may do inside a hospital during break-glass access, on top of their own codes:
+ * read only (the developer decided this). Emergency fixes are made by the developer, not through it.
+ */
+export const BREAK_GLASS_PERMISSIONS: readonly PermissionCode[] = [
+  'patients.patient.read',
+  'billing.account.read',
+  'masters.data.read',
+  'tariffs.tariff.read',
+  'beds.bed.read',
+  'audit.event.read',
+];
 
 /**
  * Holding any of these makes two-factor sign-in compulsory (CLAUDE.md section 9: super admin, hospital

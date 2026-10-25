@@ -136,6 +136,16 @@ enum LoginStep {
   @@map("login_step")
 }
 
+// What a notification is about. Its words come from the web app's messages, its facts from metadata.
+enum NotificationKind {
+  // A DevMSR super admin opened this hospital's records through break-glass access.
+  break_glass_started
+  // More failed sign-ins than the alert threshold within the alert window.
+  failed_logins
+
+  @@map("notification_kind")
+}
+
 enum IdempotencyStatus {
   in_progress
   completed
@@ -171,19 +181,20 @@ model Hospital {
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  branches       Branch[]
-  users          User[]
-  roles          Role[]
-  patients       Patient[]
-  numberCounters NumberCounter[]
-  cashShifts     CashShift[]
-  wards          Ward[]
-  beds           Bed[]
-  departments    Department[]
-  doctors        Doctor[]
-  roomCategories RoomCategory[]
-  serviceItems   ServiceItem[]
-  tariffRates    TariffRate[]
+  branches         Branch[]
+  users            User[]
+  roles            Role[]
+  patients         Patient[]
+  numberCounters   NumberCounter[]
+  cashShifts       CashShift[]
+  wards            Ward[]
+  beds             Bed[]
+  departments      Department[]
+  doctors          Doctor[]
+  roomCategories   RoomCategory[]
+  serviceItems     ServiceItem[]
+  tariffRates      TariffRate[]
+  breakGlassGrants BreakGlassGrant[]
 
   @@map("hospitals")
 }
@@ -342,14 +353,16 @@ model User {
   createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt           DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  hospital        Hospital?        @relation(fields: [hospitalId], references: [id], onDelete: Restrict)
-  userRoles       UserRole[]
-  sessions        Session[]
-  loginEvents     LoginEvent[]
-  loginChallenges LoginChallenge[]
-  recoveryCodes   RecoveryCode[]
-  auditEvents     AuditEvent[]
-  doctor          Doctor?
+  hospital         Hospital?         @relation(fields: [hospitalId], references: [id], onDelete: Restrict)
+  userRoles        UserRole[]
+  sessions         Session[]
+  loginEvents      LoginEvent[]
+  loginChallenges  LoginChallenge[]
+  recoveryCodes    RecoveryCode[]
+  notifications    Notification[]
+  breakGlassGrants BreakGlassGrant[]
+  auditEvents      AuditEvent[]
+  doctor           Doctor?
 
   @@index([hospitalId])
   @@map("users")
@@ -531,7 +544,8 @@ model Session {
   endedAt    DateTime?         @map("ended_at") @db.Timestamptz(3)
   endReason  SessionEndReason? @map("end_reason")
 
-  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+  user             User              @relation(fields: [userId], references: [id], onDelete: Restrict)
+  breakGlassGrants BreakGlassGrant[]
 
   @@index([userId, endedAt])
   @@map("sessions")
@@ -575,6 +589,62 @@ model RecoveryCode {
   @@map("recovery_codes")
 }
 
+// A DevMSR super admin's time-limited, read-only access to one hospital, tied to one session (CLAUDE.md
+// section 8). The reason is kept for the hospital admin to read. Only ending it early is allowed after
+// it starts (a trigger enforces it), and it is never deleted.
+model BreakGlassGrant {
+  id         String    @id @default(uuid(7)) @db.Uuid
+  userId     String    @map("user_id") @db.Uuid
+  sessionId  String    @map("session_id") @db.Uuid
+  hospitalId String    @map("hospital_id") @db.Uuid
+  reason     String
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  expiresAt  DateTime  @map("expires_at") @db.Timestamptz(3)
+  endedAt    DateTime? @map("ended_at") @db.Timestamptz(3)
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Restrict)
+  session  Session  @relation(fields: [sessionId], references: [id], onDelete: Restrict)
+  hospital Hospital @relation(fields: [hospitalId], references: [id], onDelete: Restrict)
+
+  // One open grant per session at a time.
+  @@unique([sessionId], map: "break_glass_grants_one_open_per_session", where: raw("ended_at IS NULL"))
+  @@index([sessionId])
+  @@index([hospitalId, createdAt])
+  @@map("break_glass_grants")
+}
+
+// A message for one user, shown in the app. Metadata holds IDs, names of staff and counts only, never
+// patient data. Reading it is the only change allowed.
+model Notification {
+  id         String           @id @default(uuid(7)) @db.Uuid
+  // The recipient's hospital; null for DevMSR platform users.
+  hospitalId String?          @map("hospital_id") @db.Uuid
+  userId     String           @map("user_id") @db.Uuid
+  kind       NotificationKind
+  metadata   Json             @default("{}")
+  createdAt  DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  readAt     DateTime?        @map("read_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([userId, createdAt])
+  @@map("notifications")
+}
+
+// One row per alert raised, so the same burst raises one alert per window. Append only.
+model SecurityAlert {
+  id         String   @id @default(uuid(7)) @db.Uuid
+  kind       String
+  // Null for an alert across the whole platform.
+  hospitalId String?  @map("hospital_id") @db.Uuid
+  // How many events crossed the threshold.
+  count      Int
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@index([kind, hospitalId, createdAt])
+  @@map("security_alerts")
+}
+
 model LoginEvent {
   id         String       @id @default(uuid(7)) @db.Uuid
   hospitalId String?      @map("hospital_id") @db.Uuid
@@ -590,6 +660,8 @@ model LoginEvent {
 
   @@index([createdAt])
   @@index([userId, createdAt])
+  // Failed sign-ins per hospital in the alert window.
+  @@index([hospitalId, createdAt])
   @@map("login_events")
 }
 

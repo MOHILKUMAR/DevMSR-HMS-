@@ -71,8 +71,8 @@ From `CLAUDE.md` section 9.
 - [x] Two-factor login (TOTP) for super admin, hospital admin and finance roles, decided by permission code, with recovery codes and an admin reset for lost phones. **Dev**
 - [x] Password reset (limited to 3 per hour), and a forced password change at first sign-in for accounts the admin creates. Reset is admin-issued: the admin sets a temporary password, the user must choose their own at the next sign-in. Self-service reset by email or SMS waits for staff contact details and the outbox. **Dev**
 - [x] Staff can see and end their own sessions (My account), and change their own password. **Dev**
-- [ ] Break-glass access: written reason, 1 hour expiry, audit event, hospital admin notified. **Dev**
-- [ ] Alert when there are more than 20 failed logins in 10 minutes. **Dev**
+- [x] Break-glass access: written reason, 1 hour expiry, audit event, hospital admin notified (in the app; email waits for the outbox). Read only. **Dev**
+- [x] Alert when there are more than 20 failed logins in 10 minutes: an error log line with `alert: "auth.failed-logins"`, an audit event and notifications, per hospital and for the platform. Routing the log line to a person (Sentry or log monitoring) is part of stage 6. **Dev**
 - [x] A separate database role for the API, with no UPDATE, DELETE or TRUNCATE on audit rows and no schema changes; migrations run as another role. The API logs in as a member of `hms_api` (`pnpm db:api-user`) and refuses to start in production as anything stronger. **Dev**
 - [x] A tighter Content-Security-Policy for the web app, using nonces. **Dev**
 - [x] Production start-up guard: the API refuses to start with a mock adapter, a missing Sentry DSN or a demo secret (`APP_ENV=production`). **Dev**

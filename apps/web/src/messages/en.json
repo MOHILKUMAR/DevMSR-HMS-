@@ -62,7 +62,8 @@
     "CURRENT_SESSION": "This is the session you are using now. Use Sign out to end it.",
     "TOTP_INVALID": "The code is not right. Check the time on your phone and type the newest code.",
     "TWO_FACTOR_REQUIRED": "Your role needs two-factor sign-in, so it cannot be turned off.",
-    "TWO_FACTOR_STATE": "Two-factor sign-in changed on another screen. Reload the page."
+    "TWO_FACTOR_STATE": "Two-factor sign-in changed on another screen. Reload the page.",
+    "BREAK_GLASS_ACTIVE": "Break-glass access is already open in this session. End it before opening another."
   },
   "shell": {
     "navigation": "Main",
@@ -72,7 +73,9 @@
     "themeDark": "Switch to dark theme",
     "themeLight": "Switch to light theme",
     "platform": "DevMSR platform",
-    "account": "My account"
+    "account": "My account",
+    "notifications": "Notifications",
+    "notificationsUnread": "{count, plural, =0 {Notifications} one {Notifications, 1 unread} other {Notifications, # unread}}"
   },
   "nav": {
     "home": "Home",
@@ -84,7 +87,8 @@
     "payments": "Payments",
     "discharge": "Discharge",
     "reports": "Reports",
-    "settings": "Settings"
+    "settings": "Settings",
+    "breakGlass": "Break-glass access"
   },
   "home": {
     "welcome": "Welcome, {name}",
@@ -160,7 +164,8 @@
       "doctors": "Doctors",
       "wards": "Wards and beds",
       "rates": "Rates and fees",
-      "hospital": "Hospital profile"
+      "hospital": "Hospital profile",
+      "breakGlass": "Break-glass access"
     },
     "users": {
       "title": "Staff users",
@@ -790,5 +795,39 @@
     "codesSaved": "I have saved these codes",
     "codesContinue": "Continue",
     "loading": "Loading the setup"
+  },
+  "breakGlass": {
+    "title": "Break-glass access",
+    "description": "Open one hospital's records, read only, for 1 hour. The hospital's admins are told at once, and everything you open is recorded with your reason.",
+    "hospital": "Hospital",
+    "chooseHospital": "Choose a hospital",
+    "hospitalRequired": "Choose the hospital to open.",
+    "reason": "Reason",
+    "reasonHint": "Why you need it, in 20 to 500 characters. The hospital admin reads this, so do not name patients.",
+    "reasonInvalid": "Write a reason of 20 to 500 characters.",
+    "start": "Open read-only access",
+    "starting": "Opening",
+    "active": "Read-only access to {hospital} until {time}. Everything you open is recorded.",
+    "end": "End access now",
+    "ending": "Ending",
+    "historyDescription": "Every time DevMSR staff opened this hospital through break-glass access, with their reason.",
+    "by": "By",
+    "started": "Started",
+    "ends": "Ends",
+    "ended": "Ended",
+    "status": "Status",
+    "open": "Open",
+    "closed": "Closed",
+    "empty": "DevMSR staff have never opened this hospital through break-glass access."
+  },
+  "notifications": {
+    "title": "Notifications",
+    "empty": "No notifications.",
+    "markRead": "Mark read",
+    "markAllRead": "Mark all read",
+    "unread": "Unread",
+    "break_glass_started": "{name} from DevMSR opened read-only access to this hospital until {time}. See the reason in Settings, Break-glass access.",
+    "failed_logins_hospital": "{failures} failed sign-ins at this hospital in {minutes} minutes. Check Settings for locked accounts, and ask staff if they had trouble signing in.",
+    "failed_logins_platform": "{failures} failed sign-ins across the platform in {minutes} minutes."
   }
 }

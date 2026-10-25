@@ -35,6 +35,7 @@ const KNOWN_CODES = [
   'TOTP_INVALID',
   'TWO_FACTOR_REQUIRED',
   'TWO_FACTOR_STATE',
+  'BREAK_GLASS_ACTIVE',
 ] as const;
 
 export type ErrorMessageKey = (typeof KNOWN_CODES)[number] | 'network' | 'unknown';
