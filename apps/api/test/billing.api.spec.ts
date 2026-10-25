@@ -118,7 +118,7 @@ describe('charges, bills, payments, deposits and cash shifts', () => {
     expect((issued.body as InvoiceBody).number).toMatch(new RegExp(`^${hospital.code}/INV/${fy}/\\d{6}$`));
     expect(code(await issue(bill.id))).toBe('INVOICE_LOCKED');
     await expect(t.prisma.invoice.update({ where: { id: bill.id }, data: { totalPaise: 1n } })).rejects.toThrow(/locked/);
-    await expect(t.prisma.invoice.delete({ where: { id: bill.id } })).rejects.toThrow(/never deleted/);
+    await expect(t.owner.invoice.delete({ where: { id: bill.id } })).rejects.toThrow(/never deleted/);
   });
 
   it('never puts one charge on two bills, and a discarded draft frees its charges', async () => {
