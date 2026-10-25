@@ -19,18 +19,27 @@ function seedPassword(): string {
   return password;
 }
 
-/** A context with the billing clerk's session cookies and an empty cache. */
+type SessionState = Awaited<ReturnType<BrowserContext['storageState']>>;
+let session: SessionState | undefined;
+
+/**
+ * A context with a signed-in session and an empty cache. Signs in once for the whole file, as the
+ * MD (who can open every screen measured here), because logins are limited to 5 a minute per user
+ * and the other specs sign in as the counter staff.
+ */
 async function signedInContext(browser: Browser): Promise<BrowserContext> {
-  const login = await browser.newContext();
-  const page = await login.newPage();
-  await page.goto('/login');
-  await page.getByLabel('Username').fill('billing');
-  await page.getByLabel('Password').fill(seedPassword());
-  await page.getByRole('button', { name: 'Sign in' }).click();
-  await expect(page.getByRole('heading', { name: 'Welcome, Demo Billing Clerk' })).toBeVisible();
-  const state = await login.storageState();
-  await login.close();
-  return browser.newContext({ storageState: state });
+  if (session === undefined) {
+    const login = await browser.newContext();
+    const page = await login.newPage();
+    await page.goto('/login');
+    await page.getByLabel('Username').fill('md');
+    await page.getByLabel('Password').fill(seedPassword());
+    await page.getByRole('button', { name: 'Sign in' }).click();
+    await expect(page.getByRole('heading', { name: 'Welcome, Demo MD' })).toBeVisible();
+    session = await login.storageState();
+    await login.close();
+  }
+  return browser.newContext({ storageState: session });
 }
 
 /** Opens a screen on a cold cache and returns the compressed JavaScript bytes it downloaded. */
@@ -75,7 +84,7 @@ test('the login screen stays within the JavaScript and first paint budgets', asy
   await context.close();
 });
 
-for (const path of ['/', '/billing', '/patients']) {
+for (const path of ['/', '/billing', '/payments/shifts']) {
   test(`${path} as the first screen stays within the budgets`, async ({ browser }) => {
     const context = await signedInContext(browser);
     const bytes = await javascriptBytes(await context.newPage(), path);
