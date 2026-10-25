@@ -22,6 +22,7 @@ export const CHARGE_SELECT = {
 export type ChargeRow = Prisma.ChargeGetPayload<{ select: typeof CHARGE_SELECT }>;
 
 const LINE_SELECT = {
+  chargeId: true,
   lineNo: true,
   description: true,
   serviceDate: true,
@@ -113,6 +114,14 @@ export interface NewLine {
   sgstPaise: bigint;
   totalPaise: bigint;
 }
+
+/** Money counted on a bill. What is owed is total - credited - paid + refunded. */
+export interface BillBalance {
+  paid: bigint;
+  credited: bigint;
+  refunded: bigint;
+}
+export const NO_MONEY: Readonly<BillBalance> = { paid: 0n, credited: 0n, refunded: 0n };
 
 export interface NewInvoiceTotals {
   subtotalPaise: bigint;
@@ -220,6 +229,11 @@ export class BillingRepository {
     return tx.invoice.findFirst({ where: { id, hospitalId }, select: INVOICE_SELECT });
   }
 
+/** A discount on this draft is waiting for approval: the draft is neither issued nor discarded until it is decided. */
+  async hasPendingDiscount(invoiceId: string, tx: Tx): Promise<boolean> {
+    return (await tx.approvalRequest.count({ where: { invoiceId, kind: 'discount', status: 'pending' } })) > 0;
+  }
+
   findInvoice(hospitalId: string, id: string): Promise<InvoiceRow | null> {
     return this.prisma.invoice.findFirst({ where: { id, hospitalId }, select: INVOICE_SELECT });
   }
@@ -244,15 +258,32 @@ export class BillingRepository {
     await tx.charge.updateMany({ where: { invoiceId, status: 'pending' }, data: { invoiceId: null } });
   }
 
-  /** What has been set against each bill so far. */
-  async paidByInvoice(ids: readonly string[], tx?: Tx): Promise<Map<string, bigint>> {
+  /**
+   * The money counted on each bill: payments set against it (void receipts left out), credit notes,
+   * and refunds of what was overpaid. Bills with none of these are missing from the map.
+   */
+  async balances(ids: readonly string[], tx?: Tx): Promise<Map<string, BillBalance>> {
     if (ids.length === 0) return new Map();
-    const rows = await (tx ?? this.prisma).receiptAllocation.groupBy({
-      by: ['invoiceId'],
-      where: { invoiceId: { in: [...ids] } },
-      _sum: { amountPaise: true },
-    });
-    return new Map(rows.map((row) => [row.invoiceId, row._sum.amountPaise ?? 0n]));
+    const db = tx ?? this.prisma;
+    const [paid, credited, refunded] = await Promise.all([
+      db.receiptAllocation.groupBy({
+        by: ['invoiceId'],
+        where: { invoiceId: { in: [...ids] }, receipt: { voidRecord: null } },
+        _sum: { amountPaise: true },
+      }),
+      db.creditNote.groupBy({ by: ['invoiceId'], where: { invoiceId: { in: [...ids] } }, _sum: { totalPaise: true } }),
+      db.refund.groupBy({ by: ['invoiceId'], where: { invoiceId: { in: [...ids] } }, _sum: { amountPaise: true } }),
+    ]);
+    const balances = new Map<string, BillBalance>();
+    const entry = (id: string) => {
+      const found = balances.get(id) ?? { ...NO_MONEY };
+      balances.set(id, found);
+      return found;
+    };
+    for (const row of paid) entry(row.invoiceId).paid = row._sum.amountPaise ?? 0n;
+    for (const row of credited) entry(row.invoiceId).credited = row._sum.totalPaise ?? 0n;
+    for (const row of refunded) if (row.invoiceId !== null) entry(row.invoiceId).refunded = row._sum.amountPaise ?? 0n;
+    return balances;
   }
 
   async listInvoices(
@@ -299,7 +330,26 @@ export class BillingRepository {
         amountPaise: true,
         createdAt: true,
         allocations: { select: { amountPaise: true } },
+        refunds: { select: { amountPaise: true } },
+        voidRecord: { select: { createdAt: true } },
+        shift: { select: { closedAt: true } },
       },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  patientCreditNotes(hospitalId: string, patientId: string) {
+    return this.prisma.creditNote.findMany({
+      where: { hospitalId, patientId },
+      select: { id: true, approvalRequestId: true, number: true, invoiceId: true, totalPaise: true, createdAt: true, invoice: { select: { number: true } } },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  patientRefunds(hospitalId: string, patientId: string) {
+    return this.prisma.refund.findMany({
+      where: { hospitalId, patientId },
+      select: { id: true, approvalRequestId: true, number: true, mode: true, amountPaise: true, createdAt: true },
       orderBy: { createdAt: 'desc' },
     });
   }

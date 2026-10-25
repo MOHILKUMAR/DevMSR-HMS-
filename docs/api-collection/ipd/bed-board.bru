@@ -1,0 +1,27 @@
+meta {
+  name: Bed board
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/bed-board
+  body: none
+  auth: none
+}
+
+docs {
+  Keeps the first free bed of a ward with a room category as bedId, and another as transferBedId.
+}
+
+script:post-response {
+  const free = res.body.wards
+    .filter((ward) => ward.roomCategory !== null)
+    .flatMap((ward) => ward.beds.filter((bed) => bed.status === "free"));
+  if (free[0]) bru.setVar("bedId", free[0].id);
+  if (free[1]) bru.setVar("transferBedId", free[free.length - 1].id);
+}
+
+assert {
+  res.status: eq 200
+}

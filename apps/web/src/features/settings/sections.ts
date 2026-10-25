@@ -1,4 +1,4 @@
-export type SettingsSectionKey = 'hospital' | 'users' | 'departments' | 'doctors' | 'wards' | 'rates';
+export type SettingsSectionKey = 'hospital' | 'users' | 'departments' | 'doctors' | 'wards' | 'rates' | 'advances';
 
 export interface SettingsSection {
   key: SettingsSectionKey;
@@ -16,6 +16,7 @@ export const SETTINGS_SECTIONS: readonly SettingsSection[] = [
   { key: 'doctors', href: '/settings/doctors', view: 'masters.data.read', manage: 'masters.data.manage' },
   { key: 'wards', href: '/settings/wards', view: 'masters.data.read', manage: 'masters.data.manage' },
   { key: 'rates', href: '/settings/rates', view: 'tariffs.tariff.read', manage: 'tariffs.tariff.manage' },
+  { key: 'advances', href: '/settings/advances', view: 'tariffs.tariff.read', manage: 'tariffs.tariff.manage' },
   { key: 'hospital', href: '/settings/hospital', view: 'masters.data.read', manage: 'settings.hospital.manage' },
 ];
 

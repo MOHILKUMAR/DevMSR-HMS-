@@ -87,7 +87,7 @@ export function buildOpenApi(routes: RouteInfo[]): OpenApiDocument {
     let success: unknown = { description: 'No content' };
     if (contract.response !== undefined) {
       schemas[`${pascal(id)}Response`] = toJsonSchema(contract.response, 'output');
-      success = { description: 'Success', content: { 'application/json': { schema: { $ref: `#/components/schemas/${pascal(id)}Response` } } } };
+      success = { description: 'Success', content: { [contract.contentType ?? 'application/json']: { schema: { $ref: `#/components/schemas/${pascal(id)}Response` } } } };
     }
 
     paths[path] ??= {};

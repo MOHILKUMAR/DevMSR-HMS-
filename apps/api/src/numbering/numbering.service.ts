@@ -18,6 +18,15 @@ export class NumberingService {
   }
 
   /**
+   * The next OPD token of the day (IST) for the whole hospital, in the transaction of the visit that
+   * takes it. Tokens restart at 1 every day (docs/billing-rules.md).
+   */
+  async nextOpdToken(hospitalId: string, tx: Tx, now: Date = new Date()): Promise<{ tokenNumber: number; visitDate: string }> {
+    const visitDate = todayIst(now);
+    return { tokenNumber: await this.numbers.next(hospitalId, 'opd_token', visitDate, tx), visitDate };
+  }
+
+  /**
    * The next bill or receipt number of the financial year (1 April to 31 March, IST), in the
    * transaction of the document that takes it.
    */

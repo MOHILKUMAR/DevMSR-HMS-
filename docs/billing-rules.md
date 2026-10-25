@@ -53,6 +53,14 @@ This file is the only source of hospital billing rules. Rates, discounts, taxes,
 - Every refund, such as excess deposit returned at discharge, is approved by the MD or owner. The person who requests it cannot approve it.
 - Issued bills are never edited. A mistake is corrected with a credit note, approved by finance. The person who requests it cannot approve it.
 
+### Voids, credit notes and refunds (2026-10-25, slice 3b)
+
+- A void can cancel a receipt entered by mistake (wrong patient, amount or mode) or a whole issued bill. Its number stays in the series, marked void. Finance or the MD approves; the person who asked cannot approve. Cancelling a whole bill is done as a full credit note.
+- A credit note can cover the whole bill or part of it: staff choose the lines and the amount or quantity to credit on each.
+- Refunds can be paid in cash, by UPI, by bank transfer or by cheque, with the same details as payments.
+- A cash refund is paid by the cashier from their open shift, and lowers the cash expected in that drawer.
+- To confirm: the system lets a receipt be voided only while its shift is still open (see `docs/decisions.md`).
+
 ### Payments and cash shifts (2026-10-25)
 
 - Payment modes: cash; UPI (with the UTR reference); card (with the approval code and the card's last 4 digits); bank transfer or cheque (with the reference or cheque number and the bank).
@@ -63,11 +71,31 @@ This file is the only source of hospital billing rules. Rates, discounts, taxes,
 - Deposits are not revenue: they are held for the patient and set against bills.
 - Finance sets a minimum advance for each room category. Admission warns when less is paid (IPD slice).
 
+### OPD (2026-10-26, slice 4)
+
+- Walk-in tokens only for now; booked appointment slots may follow later.
+- Tokens are numbered for the whole hospital, starting at 1 every day (IST).
+- The patient joins the doctor's queue only after the consultation fee is paid. There is no exception.
+- Every consultation is paid: there is no free follow-up visit.
+- No registration fee (confirmed).
+
+### IPD and beds (2026-10-26, slice 5)
+
+- Admission numbers look like bill numbers: `<HOSPITAL CODE>/IP/<FINANCIAL YEAR>/<6 digits>`, for example `DEMO/IP/2026-27/000001`, gapless and restarting every 1 April.
+- Room and nursing charges are posted at midnight IST: one day for every midnight the patient is in a bed. An admission and discharge on the same day is charged one day.
+- When a patient changes rooms during a day, that day is charged at the rate of the room they are in at midnight.
+- When less than the room category's minimum advance is paid at admission, staff see a warning and the admission goes ahead.
+
+### Discharge and reports (2026-10-26, slice 6)
+
+- Billing clearance for discharge normally needs a zero balance. Clearance with money still due needs the MD's approval and a reason, recorded.
+- The discharge summary is drafted by the treating doctor and signed off by the MD (or a consultant the MD names) before it is printed.
+- The day-end collection report counts a calendar day, midnight to midnight IST, by cashier and payment mode.
+- The Tally export is a daily CSV day book of bills, receipts, credit notes and refunds, which the accountant imports or keys into Tally.
+
 ## Open questions
 
 Each needs an answer from the hospital before the matching feature is built.
 
 - Packages: contents, exclusions, length of stay, and how extra items outside a package are billed.
-- Numbering formats: OPD token and IPD (admission) numbers.
-- Room and nursing charges: what the midnight posting charges for the admission day and the discharge day.
 - Title printed on bills: the screens print "Bill" for now. Whether it must read "Tax invoice", "Bill of supply" (for GST-exempt healthcare services) or show both, and which lines are exempt, is for the hospital's accountant to confirm.

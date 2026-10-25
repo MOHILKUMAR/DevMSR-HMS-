@@ -1,0 +1,15 @@
+meta {
+  name: Today's tokens
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/opd-visits?page=1&pageSize=100
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+}

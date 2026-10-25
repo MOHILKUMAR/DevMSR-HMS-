@@ -1,31 +1,56 @@
 'use client';
 
 import type { InvoiceSummary } from '@devmsr/validation';
-import { PiggyBank, TriangleAlert, Wallet } from 'lucide-react';
+import { Ban, PiggyBank, Undo2, TriangleAlert, Wallet } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { ErrorAlert } from '@/components/form-fields';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
+import { StatusBadge } from '@/components/ui/status-badge';
 import { Table, TableBody, TableHead, TableMessage, Td, Th } from '@/components/ui/table';
+import { useApprovalRequests } from '@/features/approvals/queries';
+import { RefundDialog, VoidDialog } from '@/features/approvals/request-dialogs';
+import { RequestTable, type Me } from '@/features/approvals/request-table';
 import { BillStatus } from '@/features/billing/invoice-table';
 import { useAccount, useCurrentShift } from '@/features/billing/queries';
 import { AgeSex } from '@/features/patients/age-sex';
 import { formatDateTime, formatPaise } from '@/lib/format';
 import { ApplyDepositDialog, DepositDialog, PaymentDialog } from './money-dialogs';
 
-type Open = { kind: 'pay'; invoice: InvoiceSummary } | { kind: 'apply'; invoice: InvoiceSummary } | { kind: 'deposit' } | null;
+type Open =
+  | { kind: 'pay'; invoice: InvoiceSummary }
+  | { kind: 'apply'; invoice: InvoiceSummary }
+  | { kind: 'deposit' }
+  | { kind: 'refund' }
+  | { kind: 'void'; receipt: { id: string; number: string; amountPaise: number } }
+  | null;
 
 /**
  * One patient at the cash counter: bills with money due, the deposit held, and receipts. Taking
  * money needs the cashier's own open shift; setting a deposit against a bill does not move cash.
  */
-export function PatientPayments({ patientId, canPay, canDeposit }: { patientId: string; canPay: boolean; canDeposit: boolean }) {
+export function PatientPayments({
+  patientId,
+  me,
+  canPay,
+  canDeposit,
+  canRequestRefund,
+  canRequestVoid,
+}: {
+  patientId: string;
+  me: Me;
+  canPay: boolean;
+  canDeposit: boolean;
+  canRequestRefund: boolean;
+  canRequestVoid: boolean;
+}) {
   const t = useTranslations('payments.patient');
   const tm = useTranslations('payments.modes');
   const account = useAccount(patientId);
   const shift = useCurrentShift();
+  const requests = useApprovalRequests({ patientId });
   const [open, setOpen] = useState<Open>(null);
   const close = () => {
     setOpen(null);
@@ -34,6 +59,7 @@ export function PatientPayments({ patientId, canPay, canDeposit }: { patientId: 
   const held = account.data?.depositHeldPaise ?? 0;
   const dueBills = (account.data?.invoices ?? []).filter((invoice) => invoice.status === 'issued' && invoice.duePaise > 0);
   const noShift = shift.data !== undefined && shift.data.shift === null;
+  const refundable = held + (account.data?.refundablePaise ?? 0);
 
   return (
     <section className="space-y-6">
@@ -46,6 +72,18 @@ export function PatientPayments({ patientId, canPay, canDeposit }: { patientId: 
             </p>
           )}
         </div>
+        <div className="flex flex-wrap gap-2">
+        {canRequestRefund && refundable > 0 && (
+          <Button
+            variant="outline"
+            onClick={() => {
+              setOpen({ kind: 'refund' });
+            }}
+          >
+            <Undo2 aria-hidden />
+            {t('requestRefund')}
+          </Button>
+        )}
         {canDeposit && (
           <Button
             variant="outline"
@@ -58,6 +96,7 @@ export function PatientPayments({ patientId, canPay, canDeposit }: { patientId: 
             {t('takeDeposit')}
           </Button>
         )}
+        </div>
       </div>
 
       {noShift && (
@@ -166,11 +205,14 @@ export function PatientPayments({ patientId, canPay, canDeposit }: { patientId: 
               <Th>{t('kind')}</Th>
               <Th>{t('mode')}</Th>
               <Th numeric>{t('amount')}</Th>
+              <Th>
+                <span className="sr-only">{t('actions')}</span>
+              </Th>
             </tr>
           </TableHead>
           <TableBody>
-            {account.isPending && <TableMessage colSpan={5}>{t('loading')}</TableMessage>}
-            {account.data?.receipts.length === 0 && <TableMessage colSpan={5}>{t('noReceipts')}</TableMessage>}
+            {account.isPending && <TableMessage colSpan={6}>{t('loading')}</TableMessage>}
+            {account.data?.receipts.length === 0 && <TableMessage colSpan={6}>{t('noReceipts')}</TableMessage>}
             {account.data?.receipts.map((receipt) => (
               <tr key={receipt.id}>
                 <Td>
@@ -184,11 +226,35 @@ export function PatientPayments({ patientId, canPay, canDeposit }: { patientId: 
                 <Td className="tabular-nums">{formatDateTime(receipt.createdAt)}</Td>
                 <Td>{receipt.purpose === 'deposit' ? t('kindDeposit') : t('kindPayment')}</Td>
                 <Td>{tm(receipt.mode)}</Td>
-                <Td numeric>{formatPaise(receipt.amountPaise)}</Td>
+                <Td numeric className={receipt.voided ? 'line-through' : ''}>
+                  {formatPaise(receipt.amountPaise)}
+                </Td>
+                <Td>
+                  <div className="flex justify-end">
+                    {receipt.voided && <StatusBadge tone="neutral" icon={Ban} label={t('voided')} />}
+                    {!receipt.voided && canRequestVoid && receipt.shiftOpen && (
+                      <Button
+                        variant="ghost"
+                        aria-label={t('askVoidFor', { number: receipt.number })}
+                        onClick={() => {
+                          setOpen({ kind: 'void', receipt });
+                        }}
+                      >
+                        {t('askVoid')}
+                      </Button>
+                    )}
+                  </div>
+                </Td>
               </tr>
             ))}
           </TableBody>
         </Table>
+      </div>
+
+      <div className="space-y-2">
+        <h2 className="text-lg font-semibold">{t('requests')}</h2>
+        {requests.error !== null && <ErrorAlert error={requests.error} />}
+        <RequestTable requests={requests.data?.data} me={me} showPatient={false} emptyText={t('noRequests')} />
       </div>
 
       <Dialog
@@ -200,6 +266,8 @@ export function PatientPayments({ patientId, canPay, canDeposit }: { patientId: 
         {open?.kind === 'pay' && <PaymentDialog key={open.invoice.id} invoice={open.invoice} onDone={close} />}
         {open?.kind === 'apply' && <ApplyDepositDialog key={open.invoice.id} invoice={open.invoice} heldPaise={held} onDone={close} />}
         {open?.kind === 'deposit' && <DepositDialog patientId={patientId} onDone={close} />}
+        {open?.kind === 'refund' && account.data !== undefined && <RefundDialog account={account.data} onDone={close} />}
+        {open?.kind === 'void' && <VoidDialog key={open.receipt.id} receipt={open.receipt} onDone={close} />}
       </Dialog>
     </section>
   );
