@@ -63,13 +63,14 @@ result="$(
 )" || die "restore or restore checks failed: see the output above"
 
 # 2. Start the API on the restored copy. Its own session secret; the real field key, so step 3 proves it.
+# APP_ENV=staging: the copy has no API login and no Sentry, which only the production guard requires.
 field_key="$(sed -n 's/^FIELD_ENCRYPTION_KEY=//p' "$HMS_ENV_DIR/api.env" | tail -n 1)"
 [[ -n "$field_key" ]] || dry_run || die "FIELD_ENCRYPTION_KEY missing in api.env"
 # Passed by name, so the key never appears on a command line.
 export FIELD_ENCRYPTION_KEY="$field_key"
 run docker run --detach --rm --name "$drill-api" --network "$drill" \
   --read-only --tmpfs /tmp --cap-drop ALL --security-opt no-new-privileges:true \
-  --env NODE_ENV=production --env CORS_ORIGINS=https://drill.invalid \
+  --env NODE_ENV=production --env APP_ENV=staging --env CORS_ORIGINS=https://drill.invalid \
   --env DATABASE_URL="$restore_url" --env SESSION_SECRET="$(openssl rand -base64 32)" --env FIELD_ENCRYPTION_KEY \
   "hms-api:$tag" >/dev/null
 api_health=skipped

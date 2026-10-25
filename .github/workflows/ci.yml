@@ -87,7 +87,8 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     env:
-      DATABASE_URL: postgresql://hms:hms_ci_only@localhost:5432/hms
+      # The API runs as its own restricted login, as in production. Migrations run as the owner.
+      DATABASE_URL: postgresql://hms_app:hms_app_ci_only_pw@localhost:5432/hms
       DIRECT_URL: postgresql://hms:hms_ci_only@localhost:5432/hms
       # Fake demo users from the seed, on a throwaway database.
       SEED_USER_PASSWORD: ci-only-Passw0rd
@@ -107,6 +108,7 @@ jobs:
             echo "$name=$value" >> "$GITHUB_ENV"
           done
       - run: pnpm db:deploy
+      - run: pnpm db:api-user
       - run: pnpm db:seed
       - run: pnpm build
       - name: Put static files next to the standalone web server, as the Docker image does

@@ -50,7 +50,7 @@ jobs:
           --health-retries 10
     env:
       LOCAL: ${{ github.event_name == 'pull_request' }}
-      DATABASE_URL: postgresql://hms:hms_ci_only@localhost:5432/hms
+      DATABASE_URL: postgresql://hms_app:hms_app_ci_only_pw@localhost:5432/hms
       DIRECT_URL: postgresql://hms:hms_ci_only@localhost:5432/hms
       SEED_USER_PASSWORD: ci-only-Passw0rd
     steps:
@@ -72,11 +72,12 @@ jobs:
           done
           pnpm install --frozen-lockfile
           pnpm db:deploy
+          pnpm db:api-user
           pnpm db:seed
           pnpm build
           cp -r apps/web/.next/static apps/web/.next/standalone/apps/web/.next/static
           cp -r apps/web/public apps/web/.next/standalone/apps/web/public
-          NODE_ENV=production PORT=4000 nohup node apps/api/dist/main.js > "$RUNNER_TEMP/api.log" 2>&1 &
+          NODE_ENV=production APP_ENV=staging PORT=4000 nohup node apps/api/dist/main.js > "$RUNNER_TEMP/api.log" 2>&1 &
           HOSTNAME=0.0.0.0 PORT=3000 nohup node apps/web/.next/standalone/apps/web/server.js > "$RUNNER_TEMP/web.log" 2>&1 &
           for _ in $(seq 1 60); do
             curl -fsS http://localhost:4000/api/v1/health >/dev/null 2>&1 && curl -fsS http://localhost:3000/login >/dev/null 2>&1 && break
