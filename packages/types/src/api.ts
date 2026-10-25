@@ -20,6 +20,7 @@ export const API_ERROR_CODES = [
   'REFERENCE_INVALID',
   'RATE_DATE_INVALID',
   'BED_OCCUPIED',
+  'RATE_NOT_CANCELLABLE',
 ] as const;
 
 export type ApiErrorCode = (typeof API_ERROR_CODES)[number];

@@ -167,6 +167,50 @@ describe('hospital profile and masters', () => {
       expect((await t.prisma.bed.findUniqueOrThrow({ where: { id: bedId } })).isActive).toBe(true);
     });
 
+    it('waits for a patient being placed at the same moment, then refuses to retire the ward', async () => {
+      const ward = await as(request(t.http).post('/api/v1/wards'), admin).send({ code: code('WR'), name: 'Race ward' });
+      const wardId = (ward.body as { id: string }).id;
+      const bed = await as(request(t.http).post(`/api/v1/wards/${wardId}/beds`), admin).send({ code: 'RC-01' });
+      const bedId = (bed.body as { id: string }).id;
+
+      // An admission in progress: it holds the bed's lock and has filled the bed, but has not committed.
+      let release = (): void => undefined;
+      const held = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      let lockTaken = (): void => undefined;
+      const locked = new Promise<void>((resolve) => {
+        lockTaken = resolve;
+      });
+      const admission = t.prisma.$transaction(
+        async (tx) => {
+          await tx.$queryRaw`SELECT id FROM beds WHERE id = ${bedId}::uuid FOR UPDATE`;
+          await tx.bed.update({ where: { id: bedId }, data: { status: 'occupied' } });
+          lockTaken();
+          await held;
+        },
+        { timeout: 20_000 },
+      );
+      await locked;
+
+      let settled = false;
+      const retire = as(request(t.http).patch(`/api/v1/wards/${wardId}`), admin)
+        .send({ isActive: false })
+        .then((response) => {
+          settled = true;
+          return response;
+        });
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      expect(settled).toBe(false);
+
+      release();
+      await admission;
+      const response = await retire;
+      expect(response.status).toBe(422);
+      expect((response.body as ErrorBody).error.code).toBe('BED_OCCUPIED');
+      expect((await t.prisma.ward.findUniqueOrThrow({ where: { id: wardId } })).isActive).toBe(true);
+    });
+
     it('keeps another hospital wards and beds out of reach', async () => {
       const ward = await as(request(t.http).post('/api/v1/wards'), otherAdmin).send({ code: code('OW'), name: 'Their ward' });
       const wardId = (ward.body as { id: string }).id;

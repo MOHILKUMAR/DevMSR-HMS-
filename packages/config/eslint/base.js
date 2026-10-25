@@ -9,7 +9,7 @@ import tseslint from 'typescript-eslint';
 export function baseConfig(tsconfigRootDir) {
   return defineConfig(
     {
-      ignores: ['**/dist/**', '**/.next/**', '**/coverage/**', '**/generated/**', '**/next-env.d.ts'],
+      ignores: ['**/dist/**', '**/.spec-build/**', '**/.next/**', '**/coverage/**', '**/generated/**', '**/next-env.d.ts'],
     },
     js.configs.recommended,
     tseslint.configs.strictTypeChecked,

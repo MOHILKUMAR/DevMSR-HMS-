@@ -16,7 +16,7 @@ import { zodResolver } from '@/lib/forms';
 import { changedFields } from './changes';
 import { ListToolbar, Pager, useListParams } from './list-controls';
 import { ActiveBadge, ListStateRow, SectionHeader } from './parts';
-import { useDepartments, useDoctorLogins, useDoctors, useSave } from './queries';
+import { useDepartmentOptions, useDoctorLogins, useDoctors, useSave } from './queries';
 
 const DOCTORS = ['settings', 'doctors'] as const;
 
@@ -146,10 +146,10 @@ type DoctorForm = z.infer<typeof doctorFormSchema>;
 function DoctorDialog({ doctor, canLinkLogins, onDone }: { doctor: Doctor | null; canLinkLogins: boolean; onDone: () => void }) {
   const t = useTranslations('settings.doctors');
   const tc = useTranslations('common');
-  const departments = useDepartments(null);
+  const departments = useDepartmentOptions();
   const logins = useDoctorLogins(canLinkLogins);
   const error = departments.error ?? logins.error;
-  const loginOptions = canLinkLogins ? logins.data?.data : [];
+  const loginOptions = canLinkLogins ? logins.data : [];
 
   return (
     <DialogContent title={doctor === null ? t('createTitle') : tc('editTitle', { name: doctor.fullName })} closeLabel={tc('close')}>
@@ -160,7 +160,7 @@ function DoctorDialog({ doctor, canLinkLogins, onDone }: { doctor: Doctor | null
       ) : (
         <DoctorForm
           doctor={doctor}
-          departments={departments.data.data}
+          departments={departments.data}
           logins={canLinkLogins ? loginOptions : null}
           onDone={onDone}
         />

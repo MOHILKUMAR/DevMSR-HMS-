@@ -27,7 +27,7 @@ import { zodResolver } from '@/lib/forms';
 import { changedFields } from './changes';
 import { ListToolbar, Pager, useListParams } from './list-controls';
 import { ActiveBadge, ListStateRow, SectionHeader } from './parts';
-import { settingsKeys, useBeds, useRoomCategories, useSave, useWards } from './queries';
+import { settingsKeys, useBeds, useRoomCategoryOptions, useSave, useWards } from './queries';
 
 const WARDS = ['settings', 'wards'] as const;
 
@@ -164,7 +164,7 @@ type EditWardValues = z.infer<typeof editWardSchema>;
 function WardDialog({ ward, onDone }: { ward: Ward | null; onDone: () => void }) {
   const t = useTranslations('settings.wards');
   const tc = useTranslations('common');
-  const categories = useRoomCategories(null);
+  const categories = useRoomCategoryOptions();
   const title = ward === null ? t('createTitle') : tc('editTitle', { name: ward.name });
   return (
     <DialogContent title={title} closeLabel={tc('close')}>
@@ -173,9 +173,9 @@ function WardDialog({ ward, onDone }: { ward: Ward | null; onDone: () => void })
       ) : categories.data === undefined ? (
         <p className="text-text-muted">{tc('loading')}</p>
       ) : ward === null ? (
-        <CreateWardForm categories={categories.data.data} onDone={onDone} />
+        <CreateWardForm categories={categories.data} onDone={onDone} />
       ) : (
-        <EditWardForm ward={ward} categories={categories.data.data} onDone={onDone} />
+        <EditWardForm ward={ward} categories={categories.data} onDone={onDone} />
       )}
     </DialogContent>
   );

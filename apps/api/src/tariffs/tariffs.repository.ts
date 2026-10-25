@@ -12,13 +12,15 @@ const RATE_SELECT = {
   effectiveFrom: true,
   effectiveTo: true,
   createdAt: true,
+  cancelledAt: true,
+  cancelReason: true,
 } as const satisfies Prisma.TariffRateSelect;
 export type TariffRateRow = Prisma.TariffRateGetPayload<{ select: typeof RATE_SELECT }>;
 
-/** The rate covering `today`: started on or before it, not yet ended. */
+/** The rate covering `today`: started on or before it, not yet ended, not cancelled. */
 function rateOn(today: string): Prisma.TariffRateWhereInput {
   const day = fromDateOnly(today);
-  return { effectiveFrom: { lte: day }, OR: [{ effectiveTo: null }, { effectiveTo: { gte: day } }] };
+  return { cancelledAt: null, effectiveFrom: { lte: day }, OR: [{ effectiveTo: null }, { effectiveTo: { gte: day } }] };
 }
 
 function serviceItemSelect(today: string) {
@@ -115,8 +117,29 @@ export class TariffsRepository {
     });
   }
 
+  /** The latest rate in force or scheduled: the one without an end date. Cancelled rates do not count. */
   openRate(hospitalId: string, serviceItemId: string, tx: Tx): Promise<TariffRateRow | null> {
-    return tx.tariffRate.findFirst({ where: { hospitalId, serviceItemId, effectiveTo: null }, select: RATE_SELECT });
+    return tx.tariffRate.findFirst({ where: { hospitalId, serviceItemId, effectiveTo: null, cancelledAt: null }, select: RATE_SELECT });
+  }
+
+  findRate(hospitalId: string, serviceItemId: string, id: string, tx: Tx): Promise<TariffRateRow | null> {
+    return tx.tariffRate.findFirst({ where: { id, hospitalId, serviceItemId }, select: RATE_SELECT });
+  }
+
+  /** The rate that ends on `effectiveTo`, if any: the one a cancelled rate was going to replace. */
+  rateEndingOn(hospitalId: string, serviceItemId: string, effectiveTo: string, tx: Tx): Promise<TariffRateRow | null> {
+    return tx.tariffRate.findFirst({
+      where: { hospitalId, serviceItemId, cancelledAt: null, effectiveTo: fromDateOnly(effectiveTo) },
+      select: RATE_SELECT,
+    });
+  }
+
+  cancelRate(id: string, data: { cancelledAt: Date; cancelledById: string; cancelReason: string }, tx: Tx): Promise<TariffRateRow> {
+    return tx.tariffRate.update({ where: { id }, data, select: RATE_SELECT });
+  }
+
+  async reopenRate(id: string, tx: Tx): Promise<void> {
+    await tx.tariffRate.update({ where: { id }, data: { effectiveTo: null }, select: { id: true } });
   }
 
   async closeRate(id: string, effectiveTo: string, tx: Tx): Promise<void> {

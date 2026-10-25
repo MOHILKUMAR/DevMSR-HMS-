@@ -1,17 +1,21 @@
-import { Controller, Get, Patch, Post } from '@nestjs/common';
+import { Controller, Get, HttpCode, Patch, Post } from '@nestjs/common';
 import type { Paginated } from '@devmsr/types';
 import {
+  cancelTariffRateSchema,
   createServiceItemSchema,
   createTariffRateSchema,
   idParamsSchema,
+  rateParamsSchema,
   serviceItemListQuerySchema,
   serviceItemListSchema,
   serviceItemSchema,
   tariffRateListSchema,
   tariffRateSchema,
   updateServiceItemSchema,
+  type CancelTariffRate,
   type CreateServiceItem,
   type CreateTariffRate,
+  type RateParams,
   type ServiceItem,
   type ServiceItemListQuery,
   type TariffRate,
@@ -75,5 +79,23 @@ export class TariffsController {
     @ReqMeta() meta: RequestMeta,
   ): Promise<TariffRate> {
     return this.tariffs.createRate(auth, params.id, body, meta);
+  }
+
+  @Post(':id/rates/:rateId/cancel')
+  @HttpCode(200)
+  @RequirePermission('tariffs.tariff.manage')
+  @ApiContract({
+    summary: 'Cancel the latest rate before it starts; the rate before it carries on',
+    params: rateParamsSchema,
+    body: cancelTariffRateSchema,
+    response: tariffRateSchema,
+  })
+  cancelRate(
+    @CurrentAuth() auth: AuthContext,
+    @ValidParams() params: RateParams,
+    @ValidBody() body: CancelTariffRate,
+    @ReqMeta() meta: RequestMeta,
+  ): Promise<TariffRate> {
+    return this.tariffs.cancelRate(auth, params.id, params.rateId, body, meta);
   }
 }

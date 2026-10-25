@@ -14,6 +14,7 @@ const KNOWN_CODES = [
   'REFERENCE_INVALID',
   'RATE_DATE_INVALID',
   'BED_OCCUPIED',
+  'RATE_NOT_CANCELLABLE',
 ] as const;
 
 export type ErrorMessageKey = (typeof KNOWN_CODES)[number] | 'network' | 'unknown';

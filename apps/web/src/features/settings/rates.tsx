@@ -1,16 +1,19 @@
 'use client';
 
 import {
+  cancelTariffRateSchema,
   createServiceItemSchema,
   nameSchema,
   SERVICE_KINDS,
+  type CancelTariffRate,
   type CreateServiceItem,
   type CreateTariffRate,
   type ServiceItem,
   type ServiceKind,
+  type TariffRate,
   type UpdateServiceItem,
 } from '@devmsr/validation';
-import { History, IndianRupee, Pencil, Plus } from 'lucide-react';
+import { Ban, CalendarClock, CircleCheck, History, IndianRupee, Pencil, Plus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
@@ -20,6 +23,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
+import { StatusBadge } from '@/components/ui/status-badge';
 import { Table, TableBody, TableHead, Td, Th } from '@/components/ui/table';
 import { api, csrfHeader } from '@/lib/api/client';
 import { unwrap } from '@/lib/api/errors';
@@ -29,8 +33,8 @@ import { formatBp } from '@/lib/money';
 import { changedFields } from './changes';
 import { ListToolbar, Pager, useListParams } from './list-controls';
 import { ActiveBadge, ListStateRow, SectionHeader } from './parts';
-import { useDoctors, useRates, useRoomCategories, useSave, useServiceItems } from './queries';
-import { rateFormSchema, toRateBody, type RateFormValues } from './rate-form';
+import { useDoctorOptions, useRates, useRoomCategoryOptions, useSave, useServiceItems } from './queries';
+import { cancellableRateId, rateFormSchema, rateStatus, toRateBody, type RateFormValues, type RateStatus } from './rate-form';
 
 const ITEMS = ['settings', 'service-items'] as const;
 
@@ -189,7 +193,7 @@ export function Rates({ canManage }: { canManage: boolean }) {
         {open?.kind === 'new' && <CreateItemDialog onDone={close} />}
         {open?.kind === 'edit' && <EditItemDialog item={open.item} onDone={close} />}
         {open?.kind === 'rate' && <RateDialog item={open.item} onDone={close} />}
-        {open?.kind === 'history' && <HistoryDialog item={open.item} />}
+        {open?.kind === 'history' && <HistoryDialog item={open.item} canManage={canManage} />}
       </Dialog>
     </section>
   );
@@ -214,8 +218,8 @@ function CreateItemDialog({ onDone }: { onDone: () => void }) {
   const kind = useWatch({ control, name: 'kind' });
   const forDoctor = kind === 'consultation';
   const forRoom = kind === 'room' || kind === 'nursing';
-  const doctors = useDoctors(null);
-  const categories = useRoomCategories(null);
+  const doctors = useDoctorOptions();
+  const categories = useRoomCategoryOptions();
   const save = useSave(
     async (body: CreateServiceItem) => unwrap(await api.POST('/api/v1/service-items', { params: { header: csrfHeader() }, body })),
     { invalidate: [ITEMS], onSaved: onDone },
@@ -253,7 +257,7 @@ function CreateItemDialog({ onDone }: { onDone: () => void }) {
         {forDoctor && (
           <SelectField id="item-doctor" label={t('doctor')} hint={t('doctorHint')} {...register('doctorId', nullableId)}>
             <option value="">{t('anyDoctor')}</option>
-            {(doctors.data?.data ?? []).map((doctor) => (
+            {(doctors.data ?? []).map((doctor) => (
               <option key={doctor.id} value={doctor.id}>
                 {doctor.fullName}, {doctor.departmentName}
               </option>
@@ -263,7 +267,7 @@ function CreateItemDialog({ onDone }: { onDone: () => void }) {
         {forRoom && (
           <SelectField id="item-category" label={t('roomCategory')} hint={t('roomCategoryHint')} {...register('roomCategoryId', nullableId)}>
             <option value="">{t('anyCategory')}</option>
-            {(categories.data?.data ?? []).map((category) => (
+            {(categories.data ?? []).map((category) => (
               <option key={category.id} value={category.id}>
                 {category.name}
               </option>
@@ -398,44 +402,160 @@ function RateDialog({ item, onDone }: { item: ServiceItem; onDone: () => void })
   );
 }
 
-function HistoryDialog({ item }: { item: ServiceItem }) {
+const STATUS_STYLES = {
+  inForce: { tone: 'success', icon: CircleCheck },
+  scheduled: { tone: 'info', icon: CalendarClock },
+  ended: { tone: 'neutral', icon: History },
+  cancelled: { tone: 'neutral', icon: Ban },
+} as const;
+
+function RateStatusBadge({ status }: { status: RateStatus }) {
+  const t = useTranslations('settings.rates.status');
+  const { tone, icon } = STATUS_STYLES[status];
+  return <StatusBadge tone={tone} icon={icon} label={t(status)} />;
+}
+
+function HistoryDialog({ item, canManage }: { item: ServiceItem; canManage: boolean }) {
   const t = useTranslations('settings.rates');
   const tc = useTranslations('common');
   const rates = useRates(item.id);
   const rows = rates.data?.data ?? [];
+  const today = todayIst();
+  const cancellableId = canManage ? cancellableRateId(rows, today) : null;
+  const [cancelling, setCancelling] = useState<TariffRate | null>(null);
+  const columns = cancellableId === null ? 6 : 7;
 
   return (
-    <DialogContent title={t('historyTitle', { name: item.name })} description={t('historyDescription')} closeLabel={tc('close')} className="max-w-2xl">
-      <Table>
-        <TableHead>
-          <tr>
-            <Th>{t('from')}</Th>
-            <Th>{t('to')}</Th>
-            <Th numeric>{t('rate')}</Th>
-            <Th numeric>{t('tax')}</Th>
-            <Th>{t('enteredOn')}</Th>
-          </tr>
-        </TableHead>
-        <TableBody>
-          <ListStateRow
-            colSpan={5}
-            isPending={rates.isPending}
-            error={rates.error}
-            isEmpty={rows.length === 0}
-            emptyText={t('noHistory')}
-            onRetry={() => void rates.refetch()}
-          />
-          {rows.map((rate) => (
-            <tr key={rate.id}>
-              <Td className="tabular-nums">{formatDate(rate.effectiveFrom)}</Td>
-              <Td className="tabular-nums">{rate.effectiveTo === null ? t('untilChanged') : formatDate(rate.effectiveTo)}</Td>
-              <Td numeric>{formatPaise(rate.ratePaise)}</Td>
-              <Td numeric>{formatBp(rate.taxRateBp)}</Td>
-              <Td className="tabular-nums">{formatDateTime(rate.createdAt)}</Td>
+    <DialogContent title={t('historyTitle', { name: item.name })} description={t('historyDescription')} closeLabel={tc('close')} className="max-w-3xl">
+      <div className="space-y-4">
+        <Table>
+          <TableHead>
+            <tr>
+              <Th>{t('from')}</Th>
+              <Th>{t('to')}</Th>
+              <Th numeric>{t('rate')}</Th>
+              <Th numeric>{t('tax')}</Th>
+              <Th>{tc('status')}</Th>
+              <Th>{t('enteredOn')}</Th>
+              {cancellableId !== null && <Th className="text-right">{tc('actions')}</Th>}
             </tr>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHead>
+          <TableBody>
+            <ListStateRow
+              colSpan={columns}
+              isPending={rates.isPending}
+              error={rates.error}
+              isEmpty={rows.length === 0}
+              emptyText={t('noHistory')}
+              onRetry={() => void rates.refetch()}
+            />
+            {rows.map((rate) => {
+              const status = rateStatus(rate, today);
+              return (
+                <tr key={rate.id}>
+                  <Td className="tabular-nums">{formatDate(rate.effectiveFrom)}</Td>
+                  <Td className="tabular-nums">
+                    {status === 'cancelled' ? t('neverApplied') : rate.effectiveTo === null ? t('untilChanged') : formatDate(rate.effectiveTo)}
+                  </Td>
+                  <Td numeric>{formatPaise(rate.ratePaise)}</Td>
+                  <Td numeric>{formatBp(rate.taxRateBp)}</Td>
+                  <Td>
+                    <RateStatusBadge status={status} />
+                    {rate.cancelReason !== null && <span className="mt-1 block text-xs text-text-muted">{rate.cancelReason}</span>}
+                  </Td>
+                  <Td className="tabular-nums">{formatDateTime(rate.createdAt)}</Td>
+                  {cancellableId !== null && (
+                    <Td className="text-right">
+                      {rate.id === cancellableId && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-danger"
+                          aria-label={t('cancelRateNamed', { date: formatDate(rate.effectiveFrom) })}
+                          onClick={() => {
+                            setCancelling(rate);
+                          }}
+                        >
+                          <Ban aria-hidden />
+                          {t('cancelRate')}
+                        </Button>
+                      )}
+                    </Td>
+                  )}
+                </tr>
+              );
+            })}
+          </TableBody>
+        </Table>
+        {cancelling !== null && (
+          <CancelRateForm
+            item={item}
+            rate={cancelling}
+            onDone={() => {
+              setCancelling(null);
+            }}
+          />
+        )}
+      </div>
     </DialogContent>
+  );
+}
+
+/**
+ * Asks for a reason before cancelling a scheduled rate. Shown inside the history dialog rather than
+ * as a second dialog, and never as a browser confirm box.
+ */
+function CancelRateForm({ item, rate, onDone }: { item: ServiceItem; rate: TariffRate; onDone: () => void }) {
+  const t = useTranslations('settings.rates');
+  const tv = useTranslations('validation');
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<CancelTariffRate>({ resolver: zodResolver(cancelTariffRateSchema), defaultValues: { reason: '' } });
+  const save = useSave(
+    async (body: CancelTariffRate) =>
+      unwrap(
+        await api.POST('/api/v1/service-items/{id}/rates/{rateId}/cancel', {
+          params: { header: csrfHeader(), path: { id: item.id, rateId: rate.id } },
+          body,
+        }),
+      ),
+    { invalidate: [ITEMS, ['settings', 'rates', item.id]], onSaved: onDone },
+  );
+
+  return (
+    <form
+      noValidate
+      aria-labelledby="cancel-rate-title"
+      className="space-y-3 rounded-md border border-danger p-4"
+      onSubmit={(event) => {
+        void handleSubmit((values) => {
+          save.mutate(values);
+        })(event);
+      }}
+    >
+      <h3 id="cancel-rate-title" className="font-semibold">
+        {t('cancelTitle')}
+      </h3>
+      <p className="text-sm text-text-muted">{t('cancelBody', { rate: formatPaise(rate.ratePaise), date: formatDate(rate.effectiveFrom) })}</p>
+      <TextField
+        id="cancel-reason"
+        label={t('cancelReason')}
+        hint={t('cancelReasonHint')}
+        autoFocus
+        error={errors.reason && tv('reason')}
+        {...register('reason')}
+      />
+      {save.error !== null && <ErrorAlert error={save.error} />}
+      <div className="flex justify-end gap-2">
+        <Button type="button" variant="outline" onClick={onDone}>
+          {t('keepRate')}
+        </Button>
+        <Button type="submit" variant="danger" disabled={save.isPending}>
+          {t('confirmCancel')}
+        </Button>
+      </div>
+    </form>
   );
 }

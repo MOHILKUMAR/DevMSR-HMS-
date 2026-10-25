@@ -1,0 +1,31 @@
+meta {
+  name: Cancel a scheduled rate
+  type: http
+  seq: 9
+}
+
+post {
+  url: {{baseUrl}}/service-items/{{serviceItemId}}/rates/{{rateId}}/cancel
+  body: json
+  auth: none
+}
+
+headers {
+  X-CSRF-Token: {{csrfToken}}
+}
+
+body:json {
+  {
+    "reason": "Entered the wrong amount"
+  }
+}
+
+docs {
+  Needs the accountant (tariffs.tariff.manage): sign in as "accounts" first. Set rateId to the latest
+  rate of the item from "Rate history of a service item". Only a rate that has not started can be
+  cancelled; any other gives 422 RATE_NOT_CANCELLABLE.
+}
+
+assert {
+  res.status: eq 200
+}

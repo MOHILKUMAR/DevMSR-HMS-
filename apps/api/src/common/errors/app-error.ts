@@ -49,6 +49,7 @@ export const Errors = {
   referenceInvalid: (what: string) => new AppError(422, 'REFERENCE_INVALID', `The chosen ${what} was not found or is inactive.`),
   rateDateInvalid: (message: string) => new AppError(422, 'RATE_DATE_INVALID', message),
   bedOccupied: () => new AppError(422, 'BED_OCCUPIED', 'A patient is in this bed or ward. Move or discharge the patient first.'),
+  rateNotCancellable: (message: string) => new AppError(422, 'RATE_NOT_CANCELLABLE', message),
   internal: () =>
     new AppError(500, 'INTERNAL_ERROR', 'Something went wrong on our side. Try again, and tell your admin if it keeps happening.'),
 };
