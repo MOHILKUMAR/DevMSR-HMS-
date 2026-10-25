@@ -51,7 +51,7 @@ function setup() {
   };
   const billing = {
     lockInvoice: vi.fn().mockResolvedValue(BILL),
-    paidByInvoice: vi.fn().mockResolvedValue(new Map([['i1', 20_000n]])),
+    balances: vi.fn().mockResolvedValue(new Map([['i1', { paid: 20_000n, credited: 0n, refunded: 0n }]])),
     userNames: vi.fn().mockResolvedValue(new Map()),
   };
   const bills = { getInvoice: vi.fn().mockResolvedValue({ id: 'i1' }) };

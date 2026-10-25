@@ -81,6 +81,38 @@ export async function createPatient(prisma: PrismaService, hospitalId: string): 
   });
 }
 
+/**
+ * Puts a new fake patient into a free bed the way an admission does (the database only lets a bed be
+ * occupied while an admission holds it). For tests that need an occupied bed, not an admission:
+ * `db` may be a transaction that already holds the bed's lock.
+ */
+export async function fillBed(
+  prisma: PrismaService,
+  db: Pick<PrismaService, 'admission' | 'bedAssignment' | 'bed'>,
+  hospitalId: string,
+  bedId: string,
+  byUserId: string,
+): Promise<void> {
+  const patient = await createPatient(prisma, hospitalId);
+  const department = await prisma.department.create({ data: { hospitalId, code: unique('D').toUpperCase().slice(0, 16), name: 'Test department' } });
+  const doctor = await prisma.doctor.create({ data: { hospitalId, departmentId: department.id, fullName: 'Dr Test' }, select: { id: true } });
+  const admission = await db.admission.create({
+    data: {
+      hospitalId,
+      patientId: patient.id,
+      number: unique('TEST/IP'),
+      financialYear: '2026-27',
+      doctorId: doctor.id,
+      admittedById: byUserId,
+      minimumAdvancePaise: 0n,
+      depositHeldPaise: 0n,
+    },
+    select: { id: true },
+  });
+  await db.bedAssignment.create({ data: { hospitalId, admissionId: admission.id, bedId, createdById: byUserId } });
+  await db.bed.update({ where: { id: bedId }, data: { status: 'occupied' } });
+}
+
 /** What a browser sends: the Cookie header and the X-CSRF-Token header value. */
 export interface Browser {
   cookie: string;

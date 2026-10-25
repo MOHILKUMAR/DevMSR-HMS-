@@ -5,7 +5,8 @@ import { AuditService } from '../audit/audit.service.js';
 import type { AuthContext } from '../auth/auth-context.js';
 import { BillingRepository } from '../billing/billing.repository.js';
 import { BillingService } from '../billing/billing.service.js';
-import { paise, toIssuer } from '../billing/dto/billing.mapper.js';
+import { NO_MONEY } from '../billing/billing.repository.js';
+import { owedOn, paise, toIssuer } from '../billing/dto/billing.mapper.js';
 import { Errors } from '../common/errors/app-error.js';
 import type { RequestMeta } from '../common/http/app-request.js';
 import { hospitalOf } from '../common/http/hospital-scope.js';
@@ -153,9 +154,9 @@ export class PaymentsService {
       const bill = await this.billing.lockInvoice(hospitalId, input.invoiceId, tx);
       if (bill === null) throw Errors.notFound('bill');
       if (bill.status !== 'issued') throw Errors.billNotIssued();
-      const paid = (await this.billing.paidByInvoice([bill.id], tx)).get(bill.id) ?? 0n;
+      const owed = owedOn(bill.totalPaise, (await this.billing.balances([bill.id], tx)).get(bill.id) ?? NO_MONEY);
       const amount = BigInt(input.amountPaise);
-      if (amount > bill.totalPaise - paid) throw Errors.amountExceedsDue();
+      if (amount > owed) throw Errors.amountExceedsDue();
 
       const { number, financialYear } = await this.numbering.nextDocumentNumber(hospitalId, 'receipt', tx, now);
       const receiptId = await this.payments.createReceipt(
@@ -235,9 +236,9 @@ export class PaymentsService {
       const bill = await this.billing.lockInvoice(hospitalId, invoiceId, tx);
       if (bill === null) throw Errors.notFound('bill');
       if (bill.status !== 'issued') throw Errors.billNotIssued();
-      const paid = (await this.billing.paidByInvoice([bill.id], tx)).get(bill.id) ?? 0n;
+      const owed = owedOn(bill.totalPaise, (await this.billing.balances([bill.id], tx)).get(bill.id) ?? NO_MONEY);
       let remaining = BigInt(input.amountPaise);
-      if (remaining > bill.totalPaise - paid) throw Errors.amountExceedsDue();
+      if (remaining > owed) throw Errors.amountExceedsDue();
       const deposits = await this.payments.lockHeldDeposits(hospitalId, bill.patientId, tx);
       if (deposits.reduce((sum, deposit) => sum + deposit.heldPaise, 0n) < remaining) throw Errors.noDepositHeld();
 

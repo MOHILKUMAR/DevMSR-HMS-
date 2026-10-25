@@ -16,6 +16,9 @@ export default async function PatientPaymentsPage({ params }: { params: Promise<
       patientId={id}
       canPay={permissions.includes('payments.receipt.create')}
       canDeposit={permissions.includes('payments.deposit.create')}
+      canRequestRefund={permissions.includes('billing.refund.request')}
+      canRequestVoid={permissions.includes('payments.receipt.void-request')}
+      me={{ userId: me.user.id, permissions }}
     />
   );
 }

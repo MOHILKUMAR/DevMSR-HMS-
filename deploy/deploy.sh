@@ -78,8 +78,9 @@ run docker run --rm --name "hms-migrate-$tag" \
   "hms-migrate:$tag"
 
 # The API's own restricted login (docs/decisions.md, "The API runs as a database role that owns
-# nothing"): created on the first deploy, its password reset to api.env's on later ones. It runs as
-# the owner (DIRECT_URL from migrate.env, which overrides nothing else in api.env).
+# nothing"), and the background jobs login with its pgboss schema: created on the first deploy,
+# their passwords reset to api.env's on later ones. It runs as the owner (DIRECT_URL from
+# migrate.env, which overrides nothing else in api.env).
 log "making sure the API's database login exists"
 run docker run --rm --name "hms-api-user-$tag" \
   --env-file "$HMS_ENV_DIR/api.env" --env-file "$HMS_ENV_DIR/migrate.env" \

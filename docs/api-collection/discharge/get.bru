@@ -1,0 +1,19 @@
+meta {
+  name: The discharge and the account
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/discharges/{{dischargeId}}
+  body: none
+  auth: none
+}
+
+docs {
+  balance shows what is left to bill, collect or refund before clearance.
+}
+
+assert {
+  res.status: eq 200
+}

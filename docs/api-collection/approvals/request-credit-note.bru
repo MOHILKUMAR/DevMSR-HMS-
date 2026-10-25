@@ -1,0 +1,35 @@
+meta {
+  name: Ask for a credit note of one unit on line 1
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/credit-note-requests
+  body: json
+  auth: none
+}
+
+headers {
+  X-CSRF-Token: {{csrfToken}}
+}
+
+body:json {
+  {
+    "invoiceId": "{{invoiceId}}",
+    "reason": "Service not given",
+    "credit": { "scope": "lines", "lines": [{ "lineNo": 1, "quantity": 1 }] }
+  }
+}
+
+docs {
+  As the billing clerk, on an issued bill.
+}
+
+script:post-response {
+  bru.setVar("creditRequestId", res.body.id);
+}
+
+assert {
+  res.status: eq 201
+}

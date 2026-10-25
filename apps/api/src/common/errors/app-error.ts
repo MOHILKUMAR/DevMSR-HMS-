@@ -70,6 +70,35 @@ export const Errors = {
   noDepositHeld: () => new AppError(422, 'NO_DEPOSIT_HELD', 'This patient does not have that much deposit left to set against the bill.'),
   billNotIssued: () => new AppError(422, 'BILL_NOT_ISSUED', 'Issue the bill before taking payment against it.'),
   shiftClosed: () => new AppError(409, 'SHIFT_CLOSED', 'This shift is already closed.'),
+  requestPending: () =>
+    new AppError(409, 'REQUEST_PENDING', 'A request of this kind is already waiting for approval here. Wait for it to be decided.'),
+  requestDecided: () => new AppError(409, 'REQUEST_DECIDED', 'This request has already been decided. Reload to see the decision.'),
+  selfApproval: () =>
+    new AppError(422, 'SELF_APPROVAL_NOT_ALLOWED', 'You asked for this, so someone else must approve or reject it.'),
+  aboveApprovalLimit: () =>
+    new AppError(422, 'ABOVE_APPROVAL_LIMIT', "This discount is above the hospital's finance limit. Only the MD can approve it."),
+  amountTooLarge: () =>
+    new AppError(422, 'AMOUNT_TOO_LARGE', 'This is more than the bill, line, deposit or overpayment allows. Check the amounts.'),
+  receiptNotVoidable: () =>
+    new AppError(
+      422,
+      'RECEIPT_NOT_VOIDABLE',
+      'This receipt cannot be voided: its shift is closed, it is void already, or its deposit has been used or refunded.',
+    ),
+  refundNotReady: () => new AppError(409, 'REFUND_NOT_READY', 'This refund is not approved, or it has been paid already.'),
+  visitState: () => new AppError(409, 'VISIT_STATE', 'This visit has moved on. Reload to see where it is now.'),
+  tokenExists: () => new AppError(409, 'TOKEN_EXISTS', 'This patient already has an open token for this doctor today.'),
+  bedTaken: () => new AppError(409, 'BED_TAKEN', 'This bed is no longer free. Choose another bed.'),
+  alreadyAdmitted: () => new AppError(409, 'ALREADY_ADMITTED', 'This patient is already admitted. Open the current admission.'),
+  admissionState: () => new AppError(409, 'ADMISSION_STATE', 'This admission has moved on. Reload to see where it is now.'),
+  dischargeStep: (message: string) => new AppError(409, 'DISCHARGE_STEP', message),
+  notTreatingDoctor: () => new AppError(403, 'NOT_TREATING_DOCTOR', "Only the patient's treating doctor can do this."),
+  balanceNotZero: (balance: unknown) =>
+    new AppError(422, 'BALANCE_NOT_ZERO', 'The account is not settled: bill, collect or refund what is left, then try again.', balance),
+  roomChargesMissing: (dates: readonly string[]) =>
+    new AppError(422, 'ROOM_CHARGES_MISSING', 'Room or nursing charges are missing for some days. Check the room rates, then prepare the final bill again.', { dates }),
+  nothingToBill: () => new AppError(422, 'NOTHING_TO_BILL', 'There are no unbilled charges for this patient.'),
+  nothingDue: () => new AppError(422, 'NOTHING_DUE', 'Nothing is due on this account, so no approval is needed.'),
   internal: () =>
     new AppError(500, 'INTERNAL_ERROR', 'Something went wrong on our side. Try again, and tell your admin if it keeps happening.'),
 };

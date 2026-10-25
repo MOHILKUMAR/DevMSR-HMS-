@@ -1,0 +1,34 @@
+meta {
+  name: Write the discharge summary
+  type: http
+  seq: 3
+}
+
+put {
+  url: {{baseUrl}}/discharges/{{dischargeId}}/summary
+  body: json
+  auth: none
+}
+
+headers {
+  X-CSRF-Token: {{csrfToken}}
+}
+
+body:json {
+  {
+    "diagnosis": "Community acquired pneumonia",
+    "courseInHospital": "IV antibiotics for five days, then oral",
+    "conditionAtDischarge": "Stable",
+    "medications": "Amoxicillin 500 mg for 5 days",
+    "advice": null,
+    "followUpDate": null
+  }
+}
+
+docs {
+  As the treating doctor, until the MD signs it.
+}
+
+assert {
+  res.status: eq 200
+}

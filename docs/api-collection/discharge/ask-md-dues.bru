@@ -1,0 +1,34 @@
+meta {
+  name: Ask the MD to clear with money due
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{baseUrl}}/clearance-requests
+  body: json
+  auth: none
+}
+
+headers {
+  X-CSRF-Token: {{csrfToken}}
+}
+
+body:json {
+  {
+    "dischargeId": "{{dischargeId}}",
+    "reason": "Family pays on Monday"
+  }
+}
+
+docs {
+  Instead of clearance at zero, when only money due is left. The MD approves it with "Approve the clearance with dues" below.
+}
+
+script:post-response {
+  bru.setVar("clearanceRequestId", res.body.id);
+}
+
+assert {
+  res.status: eq 201
+}
