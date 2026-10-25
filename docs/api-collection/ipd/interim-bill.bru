@@ -1,0 +1,19 @@
+meta {
+  name: Interim bill
+  type: http
+  seq: 9
+}
+
+get {
+  url: {{baseUrl}}/admissions/{{admissionId}}/interim-bill
+  body: none
+  auth: none
+}
+
+docs {
+  The stay's charges not yet on an issued bill, totalled like a bill but with no number. Room and nursing lines appear after the first midnight. Audited.
+}
+
+assert {
+  res.status: eq 200
+}

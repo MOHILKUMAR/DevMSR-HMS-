@@ -21,9 +21,14 @@ import { loggerOptions } from './common/logging/logger-options.js';
 import { PrismaModule } from './common/prisma/prisma.module.js';
 import { RouteGuardrailsModule } from './common/routes/route-guardrails.js';
 import { StartupChecksModule } from './common/startup/startup-checks.js';
+import { ApprovalsModule } from './approvals/approvals.module.js';
 import { BedsModule } from './beds/beds.module.js';
 import { BillingModule } from './billing/billing.module.js';
 import { HealthModule } from './health/health.module.js';
+import { DischargeModule } from './discharge/discharge.module.js';
+import { IpdModule } from './ipd/ipd.module.js';
+import { OpdModule } from './opd/opd.module.js';
+import { ReportsModule } from './reports/reports.module.js';
 import { PatientsModule } from './patients/patients.module.js';
 import { PaymentsModule } from './payments/payments.module.js';
 import { SettingsModule } from './settings/settings.module.js';
@@ -54,6 +59,11 @@ export class AppModule {
         PatientsModule,
         BillingModule,
         PaymentsModule,
+        ApprovalsModule,
+        OpdModule,
+        IpdModule,
+        DischargeModule,
+        ReportsModule,
       ],
       // The request pipeline from CLAUDE.md section 4. Nest runs global guards and interceptors in
       // the order they are registered here, so this order is the pipeline order. Do not reorder.

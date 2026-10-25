@@ -15,6 +15,9 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
       canIssue={me.permissions.includes('billing.invoice.issue')}
       canDiscard={me.permissions.includes('billing.invoice.create')}
       canPay={me.permissions.includes('payments.receipt.create')}
+      canRequestDiscount={me.permissions.includes('billing.discount.request')}
+      canRequestCredit={me.permissions.includes('billing.credit-note.request')}
+      me={{ userId: me.user.id, permissions: me.permissions }}
     />
   );
 }

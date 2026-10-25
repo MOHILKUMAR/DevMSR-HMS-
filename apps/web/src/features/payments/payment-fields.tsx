@@ -15,11 +15,14 @@ export function PaymentFields({
   control,
   errors,
   amountHint,
+  showAmount = true,
 }: {
   register: UseFormRegister<PaymentFormValues>;
   control: Control<PaymentFormValues>;
   errors: FieldErrors<PaymentFormValues>;
   amountHint?: string;
+  /** False when the API sets the amount, such as an OPD fee: the bill total. */
+  showAmount?: boolean;
 }) {
   const t = useTranslations('payments.form');
   const tm = useTranslations('payments.modes');
@@ -27,6 +30,7 @@ export function PaymentFields({
 
   return (
     <div className="space-y-4">
+      {showAmount && (
       <TextField
         id="payment-amount"
         label={t('amount')}
@@ -37,6 +41,7 @@ export function PaymentFields({
         error={errors.rupees && t('amountError')}
         {...register('rupees')}
       />
+      )}
       <fieldset className="space-y-2">
         <legend className="text-sm font-medium">{t('mode')}</legend>
         <div className="flex flex-wrap gap-x-6 gap-y-2">

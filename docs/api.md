@@ -82,6 +82,100 @@ Money is in paise (integers). Rules are in `docs/billing-rules.md`. Routes marke
 | POST | `/invoices/:id/apply-deposit` | `payments.receipt.create` | Needs `Idempotency-Key`. Body `{ amountPaise }`. Sets held deposit against an issued bill, oldest deposit first. No money moves, so no shift is needed. 200. 422 `BILL_NOT_ISSUED`, `AMOUNT_EXCEEDS_DUE`, `NO_DEPOSIT_HELD`. |
 | GET | `/receipts/:id` | `billing.account.read` | The receipt with the hospital, the patient, what it was set against and, for a deposit, what is still held. |
 
+## Approvals: discounts, credit notes, refunds and receipt voids
+
+One user asks and another decides (maker-checker): the requester can never approve or reject their own request (422 `SELF_APPROVAL_NOT_ALLOWED`, also refused by the database). Each kind has its own routes, so the guard checks the right permission first. Approving needs an `Idempotency-Key`. A rejection needs a `note` of 3 to 500 characters. A second request of the same kind for the same bill or receipt while one waits is 409 `REQUEST_PENDING`; deciding twice is 409 `REQUEST_DECIDED`. Records of another hospital are 404.
+
+| Method | Path | Permission | Notes |
+| --- | --- | --- | --- |
+| POST | `/discount-requests` | `billing.discount.request` | Body `{ invoiceId, reason, discount }` on a draft bill. `discount` is `{ scope: 'bill_amount', amountPaise }`, `{ scope: 'bill_percent', percentBp }` or `{ scope: 'lines', lines: [{ lineNo, discountPaise }] }`. A whole-bill discount is shared across lines in proportion, leftover paisa to the largest line. While it waits the draft cannot be issued or discarded (409 `REQUEST_PENDING`). 409 `INVOICE_LOCKED` on an issued bill; 422 `AMOUNT_TOO_LARGE` above a line or the bill. |
+| POST | `/discount-requests/:id/approve` | `billing.discount.approve` | Replaces the draft with a new draft carrying the discount (taken off before tax); the old draft is discarded and the request's `resultInvoiceId` is the new one. Above the hospital's limit (`discount_approval_limit_paise`, Rs 1,000 by default) also needs `billing.discount.approve-above-limit` (MD), else 422 `ABOVE_APPROVAL_LIMIT`. |
+| POST | `/discount-requests/:id/reject` | `billing.discount.approve` | Body `{ note }`. |
+| POST | `/credit-note-requests` | `billing.credit-note.request` | Body `{ invoiceId, reason, credit }` on an issued bill. `credit` is `{ scope: 'whole_bill' }` (a bill void) or `{ scope: 'lines', lines: [{ lineNo, quantity } or { lineNo, amountPaise }] }` (taxable value). Tax is reversed at each line's rate. The total is rounded to the rupee; the note that clears the bill takes exactly what is left. 422 `BILL_NOT_ISSUED`, `AMOUNT_TOO_LARGE`. |
+| POST | `/credit-note-requests/:id/approve` | `billing.credit-note.approve` | Gives the next `<CODE>/CN/<FY>/<6 digits>` number. A whole-bill note also needs `billing.void.approve`. Lowers what the bill comes to; an already paid bill then shows `refundablePaise`. |
+| POST | `/credit-note-requests/:id/reject` | `billing.credit-note.approve` | Body `{ note }`. |
+| POST | `/refund-requests` | `billing.refund.request` | Body `{ reason, amountPaise, mode, source }`. `mode` is cash, upi, bank_transfer or cheque. `source` is `{ kind: 'deposit', receiptId }` (what is left on a deposit) or `{ kind: 'bill', invoiceId }` (what was overpaid). Refunds already asked for and not paid are spoken for. 422 `AMOUNT_TOO_LARGE`. |
+| POST | `/refund-requests/:id/approve` | `billing.refund.approve` | MD only. |
+| POST | `/refund-requests/:id/reject` | `billing.refund.approve` | Body `{ note }`. |
+| POST | `/refund-requests/:id/pay` | `payments.refund.pay` | Needs `Idempotency-Key`. Body `{ reference?, bankName? }`: none for cash, the UTR for UPI, reference and bank for a transfer or cheque. Paid from the cashier's open shift (422 `SHIFT_REQUIRED`); a cash refund lowers the cash expected in the drawer. Gives the next `<CODE>/RF/<FY>/<6 digits>` number. 201 with the refund. 409 `REFUND_NOT_READY` when not approved or already paid. |
+| POST | `/void-requests` | `payments.receipt.void-request` | Body `{ receiptId, reason }`, for a receipt entered by mistake. Only while the receipt's shift is open, and for a deposit only when none of it was used or refunded (422 `RECEIPT_NOT_VOIDABLE`). |
+| POST | `/void-requests/:id/approve` | `billing.void.approve` | The receipt keeps its number, marked void (`voidedAt`); its money stops counting on bills, deposits and the shift. |
+| POST | `/void-requests/:id/reject` | `billing.void.approve` | Body `{ note }`. |
+| GET | `/approval-requests` | `billing.account.read` | Paged requests, newest first. `?status=`, `?kind=`, `?patientId=`, `?invoiceId=`. Each has what was asked for (`details`), who asked and decided, and the credit note or refund it produced. `aboveLimit` marks discounts only the MD can approve. |
+| GET | `/approval-requests/:id` | `billing.account.read` | One request. |
+| GET | `/credit-notes/:id` | `billing.account.read` | A credit note for printing, with the hospital and patient as on the bill. Audited. |
+| GET | `/refunds/:id` | `billing.account.read` | A refund for printing. Audited. |
+
+Bills and bill lists now also return `creditedPaise`, `refundedPaise` and `refundablePaise`; `duePaise` is total, less credit notes and payments (void receipts left out), plus refunds. Receipts return `voidedAt`; shifts return `refundsPaise` and `cashRefundsPaise`; the patient account lists credit notes and refunds and returns `refundablePaise`.
+
+## OPD
+
+Walk-in visits (`docs/billing-rules.md`, OPD). Tokens are numbered for the whole hospital and restart every day (IST). The token joins the doctor's queue only once its consultation fee is paid. Doctors reach only their own visits: another doctor's visit, or another hospital's, is 404.
+
+| Method | Path | Permission | Notes |
+| --- | --- | --- | --- |
+| POST | `/opd-visits` | `opd.appointment.manage` | Needs `Idempotency-Key`. Body `{ patientId, doctorId }`. Today's next token; `quotedFeePaise` is the doctor's consultation rate today. Nothing is charged yet. 409 `TOKEN_EXISTS` if the patient already has an open token for that doctor today; 422 `RATE_MISSING` if the doctor has no consultation rate; 422 `REFERENCE_INVALID` for an inactive doctor. |
+| GET | `/opd-visits` | `opd.visit.read` | A day's visits in token order, without clinical notes. `?date=` (default today), `?status=`, `?doctorId=`. |
+| GET | `/opd-visits/queue` | `opd.queue.read-own` | The signed-in doctor's paid visits today (waiting or with them) and how many were seen. `doctor` is null when the login is not linked to a doctor. |
+| GET | `/opd-visits/:id` | `opd.visit.read` | One visit without notes, for the token slip. |
+| POST | `/opd-visits/:id/cancel` | `opd.appointment.manage` | Body `{ reason }`. Only an unpaid token; otherwise 409 `VISIT_STATE`. |
+| POST | `/opd-visits/:id/fee` | `payments.receipt.create` | Needs `Idempotency-Key`. Body: the payment mode and its details, no amount. In one transaction: the consultation charge at today's rate, a bill issued for it (`INV` number), a receipt for the bill's total in the cashier's open shift, and the visit moves to the queue. 201 with the receipt. 422 `SHIFT_REQUIRED`; 409 `VISIT_STATE` if not awaiting payment. |
+| POST | `/opd-visits/:id/call` | `clinical.note.write` | The visit's doctor calls the patient in. Only a paid, waiting visit. |
+| GET | `/opd-visits/:id/consultation` | `clinical.note.write` | The visit with its notes and orders, for its doctor. Audited. |
+| PUT | `/opd-visits/:id/notes` | `clinical.note.write` | Body `{ complaints, findings, diagnosis, advice, followUpDate, admissionAdvised }` (text up to 2,000 characters, null to clear). Only while the patient is with the doctor. The audit event names the fields, not their text. |
+| POST | `/opd-visits/:id/orders` | `clinical.order.create` | Needs `Idempotency-Key`. Body `{ serviceItemId, quantity }` (1 to 99), a test or procedure (not a consultation, room or nursing item). Posts its charge at today's rate for the billing clerk to bill. Only while the patient is with the doctor. |
+| POST | `/opd-visits/:id/complete` | `clinical.note.write` | Ends the visit; its notes are locked from then on. |
+
+## IPD and beds
+
+Admissions, transfers, the bed board and the interim bill (`docs/billing-rules.md`, IPD and beds). A patient has at most one open admission, a bed at most one patient, and a bed is `occupied` exactly while an admission holds it; the database enforces all three. Room and nursing charges are posted by the midnight job, not by a route (see below).
+
+| Method | Path | Permission | Notes |
+| --- | --- | --- | --- |
+| POST | `/admissions` | `ipd.admission.create` | Needs `Idempotency-Key`. Body `{ patientId, doctorId, bedId, reason?, opdVisitId? }`; `opdVisitId` is an OPD visit of this patient where admission was advised. Gives the next `<CODE>/IP/<FY>/<6 digits>` number and sets the bed occupied. The deposit held and the room category's minimum advance are kept on the admission; `advanceShort` is true when the deposit is less (a warning only). 409 `ALREADY_ADMITTED`; 409 `BED_TAKEN` when the bed is not free (or another desk took it first); 422 `REFERENCE_INVALID` for an inactive doctor, a visit that did not advise admission, or a ward with no room category. |
+| GET | `/admissions` | `ipd.admission.read` | Paged admissions, newest first. `?status=admitted` for the patients in now. |
+| GET | `/admissions/advised` | `ipd.admission.read` | OPD visits of the last 7 days where the doctor advised admission and the patient has not been admitted since. |
+| GET | `/admissions/:id` | `ipd.admission.read` | One admission with every bed it held (and why each ended), the room and nursing charges posted for each night, and `dischargeId` once the patient is marked fit. Audited. |
+| POST | `/admissions/:id/transfers` | `ipd.transfer.create` | Body `{ bedId }`. Ends the current bed (reason `transfer`), sets it to cleaning, and opens the new one. 409 `BED_TAKEN`; 409 `ADMISSION_STATE` once discharged. |
+| GET | `/admissions/:id/interim-bill` | `billing.account.read` | What the stay has come to: the patient's charges since admission that are not on an issued bill, totalled like a bill but with no number, and the deposit held. Audited. |
+| GET | `/bed-board` | `beds.bed.read` | Every active ward with its room category and minimum advance, and every active bed with its state and, when occupied, the admission number and patient. |
+| PUT | `/beds/:id/status` | `beds.bed.update-status` | Body `{ status }`: `free`, `cleaning`, `reserved` or `blocked`. 204. 422 `BED_OCCUPIED` for a bed with a patient in it. |
+| GET | `/room-categories/minimum-advances` | `masters.data.read` | Each room category's minimum advance, with whether the category is active. |
+| PUT | `/room-categories/:id/minimum-advance` | `tariffs.tariff.manage` | Body `{ minimumAdvancePaise }` (0 for none). Returns the list. |
+
+The midnight job (`ipd-midnight-charges`, pg-boss, 00:05 IST and once when the API starts) posts a room charge and a nursing charge for each night an admission crosses midnight in a bed, at the rates in force that day for the room category of the bed held at midnight. A night with no rate is skipped and logged; it is posted on a later run once the rate exists, as are nights missed while the API was down. Each night and kind is posted once (a unique key), so runs can repeat safely. These charges have no `postedBy`; the audit event `ipd.daily-charges.posted` has no actor.
+
+## Discharge
+
+The discharge of one admission (`docs/billing-rules.md`, discharge and reports), in this order: the treating doctor marks the patient fit, billing prepares and issues the final bill, the cashier settles the account, billing gives clearance (or the MD approves clearance with money still due), the doctor writes the summary and the MD signs it off, and the ward completes the discharge. Each step is written once; the database refuses changes to a fit mark, a clearance, a signed summary or a completed discharge.
+
+The account is the patient's whole account. It is settled when every room and nursing day is charged, no charge is unbilled (or only on a draft), no deposit is held, nothing overpaid is left to refund, and nothing is due on issued bills. A stay is charged one day per midnight crossed, or one day when no midnight has passed.
+
+| Method | Path | Permission | Notes |
+| --- | --- | --- | --- |
+| POST | `/discharges` | `ipd.discharge.mark-fit` | Body `{ admissionId, note? }`. Only the admission's doctor (the doctor record linked to the login), else 403 `NOT_TREATING_DOCTOR`. 409 `DISCHARGE_STEP` if already marked fit; 409 `ADMISSION_STATE` once discharged. 201 with the discharge. |
+| GET | `/discharges` | `ipd.admission.read` | Paged discharges, latest first. `?status=open` or `completed`. Each row has the admission, when the patient was marked fit, the latest clearance and the summary's state (`none`, `draft`, `signed`). |
+| GET | `/discharges/:id` | `ipd.admission.read` | One discharge: the fit mark, the latest clearance, a clearance with dues waiting (`pendingDuesRequestId`), the summary's state, the patient's bills since admission, the account (`balance`) and `isTreatingDoctor` for the signed-in user. Audited. |
+| POST | `/discharges/:id/final-bill` | `billing.invoice.create` | Needs `Idempotency-Key`. Posts the room and nursing charges due (nights the midnight job has not posted yet, or the one day of a same-day stay at the rate of the room held now), then drafts a bill of every charge on no bill. 201 with the draft; billing issues it with `POST /invoices/:id/issue`. 422 `ROOM_CHARGES_MISSING` (`details.dates`) when a room category has no rate; 422 `NOTHING_TO_BILL`. |
+| POST | `/discharges/:id/clearance` | `billing.clearance.grant` | Billing clearance at a settled account. 422 `BALANCE_NOT_ZERO` with the account in `details` (`unbilledCount`, `unbilledPaise`, `duePaise`, `depositHeldPaise`, `refundablePaise`, `missingRoomCharges`). Can be given again after the account changes; the latest clearance counts. 201 with the discharge. |
+| POST | `/clearance-requests` | `billing.clearance.grant` | Body `{ dischargeId, reason }`. Asks the MD to clear while money is still due; the amount is what is due now. Everything else must be settled first (422 `BALANCE_NOT_ZERO`); 422 `NOTHING_DUE` when nothing is due; 409 `REQUEST_PENDING` if one is waiting. Listed in `/approval-requests` as kind `clearance_dues`, with `dischargeId`. |
+| POST | `/clearance-requests/:id/approve` | `billing.clearance.approve-dues` | Needs `Idempotency-Key`. Gives clearance at once, for what is due now; 422 `BALANCE_NOT_ZERO` if more is due than was asked for, or something else changed. The requester can never approve. |
+| POST | `/clearance-requests/:id/reject` | `billing.clearance.approve-dues` | Body `{ note }`. |
+| PUT | `/discharges/:id/summary` | `ipd.discharge-summary.write` | Body `{ diagnosis, courseInHospital, conditionAtDischarge, medications, advice, followUpDate }` (the first three 3 to 2,000, 4,000 and 1,000 characters; the rest may be null). Only the treating doctor, and only until signed (409 `DISCHARGE_STEP`). The audit event names the fields, not their text. |
+| POST | `/discharges/:id/summary/sign` | `ipd.discharge-summary.sign` | The MD signs the summary off. 422 `SELF_APPROVAL_NOT_ALLOWED` for whoever wrote it; 409 `DISCHARGE_STEP` when not written or already signed. |
+| GET | `/discharges/:id/summary` | `ipd.discharge-summary.read` | The summary as printed: hospital, patient, doctor and department, admission and discharge times, the text, who wrote and signed it. `content` is null until written. Audited. The print page refuses to print until it is signed. |
+| POST | `/discharges/:id/complete` | `ipd.discharge.complete` | The patient leaves. Needs a clearance and a signed summary (409 `DISCHARGE_STEP`), and the account still settled within what was cleared (422 `BALANCE_NOT_ZERO`: a charge, night or payment after clearance means clearing again). Ends the bed (reason `discharge`), sets it to cleaning and closes the admission, in one transaction. |
+
+## Reports
+
+A report day is a calendar day, midnight to midnight IST (`?date=YYYY-MM-DD`, today when left out). Every report read is audited.
+
+| Method | Path | Permission | Notes |
+| --- | --- | --- | --- |
+| GET | `/reports/collections` | `reports.collection.read` | The day-end collection: receipts taken and refunds paid in the day, by the cashier whose shift took them and by payment mode (`rows`), by mode for all cashiers (`byMode`) and in total. Payments and deposits are separate; refunds are taken off `netPaise`. Void receipts are left out of every figure and counted in `voided`. |
+| GET | `/reports/day-book` | `reports.finance.export` | The day book for Tally as `text/csv` (`Content-Disposition: attachment`): one row per bill issued, receipt, deposit, credit note and refund, in time order, with the date, voucher type, number, patient UHID, mode, the bill or deposit it is against, taxable, CGST, SGST, round off and amount in rupees. A void receipt keeps its row at 0.00. Limited to `RATE_LIMIT_EXPORT_PER_HOUR` (10) an hour per user; 429 with `Retry-After` beyond that. |
+| GET | `/reports/operations` | `reports.operations.read` | OPD tokens, seen and cancelled on the day, admissions and discharges completed on the day, and the beds now by state and ward. |
+
 ## Error codes
 
 | Code | Status | When |
@@ -103,7 +197,7 @@ Money is in paise (integers). Rules are in `docs/billing-rules.md`. Routes marke
 | `DOCTOR_LOGIN_INVALID` | 422 | The login to link to a doctor is not an active doctor login of this hospital, or is linked already. |
 | `REFERENCE_INVALID` | 422 | A chosen department, room category, doctor or service item is inactive or does not exist. |
 | `RATE_DATE_INVALID` | 422 | A new rate starts in the past, or not after the current rate's start. |
-| `BED_OCCUPIED` | 422 | Retiring a bed or ward that has a patient in it. |
+| `BED_OCCUPIED` | 422 | Retiring a bed or ward that has a patient in it, or setting the state of an occupied bed by hand. |
 | `RATE_NOT_CANCELLABLE` | 422 | Cancelling a rate that has started, is followed by a later rate, or is already cancelled. |
 | `DUPLICATE_PATIENT` | 409 | The Aadhaar or ABHA number belongs to another patient of the hospital. `details.matches` lists `{ id, uhid }` only. |
 | `POSSIBLE_DUPLICATE` | 409 | A patient with the same mobile, or the same name and birth year, exists and was not acknowledged. `details.matches` lists `{ id, uhid }` only. |
@@ -116,4 +210,22 @@ Money is in paise (integers). Rules are in `docs/billing-rules.md`. Routes marke
 | `AMOUNT_EXCEEDS_DUE` | 422 | A payment or deposit use larger than the bill's amount due. |
 | `NO_DEPOSIT_HELD` | 422 | Using more deposit than the patient has held. |
 | `BILL_NOT_ISSUED` | 422 | Paying a draft or discarded bill. |
+| `REQUEST_PENDING` | 409 | A request of the same kind already waits for this bill or receipt, or a draft with a discount waiting is issued or discarded. |
+| `REQUEST_DECIDED` | 409 | Deciding a request that was already approved or rejected. |
+| `SELF_APPROVAL_NOT_ALLOWED` | 422 | The requester tried to approve or reject their own request. |
+| `ABOVE_APPROVAL_LIMIT` | 422 | A discount above the hospital's finance limit, approved without `billing.discount.approve-above-limit`. |
+| `AMOUNT_TOO_LARGE` | 422 | A discount, credit note or refund larger than the line, bill, deposit or overpayment allows. |
+| `RECEIPT_NOT_VOIDABLE` | 422 | The receipt's shift is closed, it is void already, or its deposit was used or refunded. |
+| `REFUND_NOT_READY` | 409 | Paying out a refund that is not approved, or was paid already. |
+| `VISIT_STATE` | 409 | The OPD visit has moved on (paid, called in, completed or cancelled) and cannot take this step. |
+| `TOKEN_EXISTS` | 409 | The patient already has an open token for this doctor today. |
+| `BED_TAKEN` | 409 | The bed chosen for an admission or transfer is not free, or another desk took it first. |
+| `ALREADY_ADMITTED` | 409 | Admitting a patient who has an open admission. |
+| `ADMISSION_STATE` | 409 | The admission is discharged and cannot take this step. |
+| `DISCHARGE_STEP` | 409 | The discharge is not at that step: marked fit already, not cleared, summary not written, signed already, or the patient has left. |
+| `NOT_TREATING_DOCTOR` | 403 | Only the admission's doctor marks fit and writes the summary. |
+| `BALANCE_NOT_ZERO` | 422 | The account is not settled. `details` gives the amounts and the days not charged. |
+| `ROOM_CHARGES_MISSING` | 422 | A day of the stay cannot be charged: its room category has no room or nursing rate. `details.dates` lists the days. |
+| `NOTHING_TO_BILL` | 422 | The final bill found no charge that is not already on a bill. |
+| `NOTHING_DUE` | 422 | A clearance with dues was asked for with nothing due. |
 | `INTERNAL_ERROR` | 500 | Anything unexpected. Details are logged with the `X-Request-Id`, never returned. |

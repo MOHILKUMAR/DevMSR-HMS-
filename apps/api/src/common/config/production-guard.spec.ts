@@ -12,6 +12,7 @@ const production = {
   FIELD_ENCRYPTION_KEY: randomBytes(32).toString('base64'),
   CORS_ORIGINS: 'https://app.example.in',
   SENTRY_DSN: 'https://key@o1.ingest.sentry.io/1',
+  JOBS_DATABASE_URL: 'postgresql://hms_jobs:Qw3nB7vRt5@db.example.in:5432/postgres',
 };
 
 function problems(overrides: Record<string, string> = {}): string {
@@ -32,6 +33,13 @@ describe('production start-up guard', () => {
     }
     expect(problems({ ABDM_MODE: 'mock' })).toContain('ABDM_MODE uses the mock adapter');
     expect(problems()).not.toContain('ABDM_MODE');
+  });
+
+  it('refuses background jobs without their own login', () => {
+    expect(problems({ JOBS_DATABASE_URL: '' })).toContain('JOBS_DATABASE_URL is not set');
+    expect(problems({ JOBS_DATABASE_URL: '', JOBS_ENABLED: 'false' })).not.toContain('JOBS_DATABASE_URL');
+    expect(problems({ JOBS_DATABASE_URL: 'postgresql://hms_app:Qw3nB7vRt5@db.example.in:5432/postgres' })).toContain('JOBS_DATABASE_URL uses the API login');
+    expect(problems()).not.toContain('JOBS_DATABASE_URL');
   });
 
   it('refuses a missing Sentry DSN', () => {

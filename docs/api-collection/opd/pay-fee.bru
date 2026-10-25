@@ -1,0 +1,35 @@
+meta {
+  name: Take the consultation fee in cash
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/opd-visits/{{visitId}}/fee
+  body: json
+  auth: none
+}
+
+headers {
+  X-CSRF-Token: {{csrfToken}}
+  Idempotency-Key: {{idempotencyKey}}
+}
+
+body:json {
+  {
+    "mode": "cash"
+  }
+}
+
+docs {
+  As the cashier (payments folder, Login as cashier) with an open shift.
+}
+
+script:pre-request {
+  // A new key each run. Send the request again without this script to see the stored response.
+  bru.setVar("idempotencyKey", require("crypto").randomUUID());
+}
+
+assert {
+  res.status: eq 201
+}

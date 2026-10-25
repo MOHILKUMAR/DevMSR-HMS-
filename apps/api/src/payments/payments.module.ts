@@ -10,5 +10,6 @@ import { PaymentsService } from './payments.service.js';
   imports: [BillingModule, NumberingModule],
   controllers: [CashShiftsController, PaymentsController],
   providers: [PaymentsService, PaymentsRepository],
+  exports: [PaymentsRepository],
 })
 export class PaymentsModule {}

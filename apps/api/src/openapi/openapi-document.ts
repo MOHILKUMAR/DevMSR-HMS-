@@ -14,6 +14,8 @@ export async function generateOpenApiDocument(): Promise<OpenApiDocument> {
     NODE_ENV: 'development',
     LOG_LEVEL: 'silent',
     DATABASE_URL: 'postgresql://openapi@127.0.0.1:1/unused',
+    // Reading the routes never runs background jobs.
+    JOBS_ENABLED: 'false',
     SESSION_SECRET: randomBytes(32).toString('base64'),
     FIELD_ENCRYPTION_KEY: randomBytes(32).toString('base64'),
   });

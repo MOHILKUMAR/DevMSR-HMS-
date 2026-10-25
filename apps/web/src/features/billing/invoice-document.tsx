@@ -97,8 +97,11 @@ export function InvoiceDocument({ invoice, size }: { invoice: Invoice; size: Doc
         <div className="border-t border-print-rule pt-1">
           <Row label={t('total')} value={formatPaise(invoice.totalPaise)} strong />
         </div>
+        {issued && invoice.creditedPaise > 0 && <Row label={t('credited')} value={`-${formatPaise(invoice.creditedPaise)}`} />}
         {issued && <Row label={t('paid')} value={formatPaise(invoice.paidPaise)} />}
+        {issued && invoice.refundedPaise > 0 && <Row label={t('refunded')} value={formatPaise(invoice.refundedPaise)} />}
         {issued && <Row label={t('due')} value={formatPaise(invoice.duePaise)} strong />}
+        {issued && invoice.refundablePaise > 0 && <Row label={t('refundable')} value={formatPaise(invoice.refundablePaise)} strong />}
       </div>
 
       {issued && invoice.issuedByName !== null && <p className="pt-2">{t('issuedBy', { name: invoice.issuedByName })}</p>}
