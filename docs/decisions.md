@@ -306,3 +306,34 @@ Every non-obvious decision, oldest first. Each entry has the date, the decision 
 
 - Decision: bills and receipts print from `/print/invoices/:id` and `/print/receipts/:id`, a route group without the app shell, as Server Components that fetch through the API. `?size=a4` (default) sets `@page` to A4 with every column; `?size=thermal` sets an 80 mm page and keeps description, quantity and amount. They use `--print-ink`, `--print-paper` and `--print-rule`, black on white in both themes, and open the print dialog on load (`?auto=0` turns that off for tests). Until the hospital confirms the GST wording, the title is "Bill" (an open question in `docs/billing-rules.md`).
 - Reason: section 16 asks for black on white print layouts with the hospital header, in A4 and 80 mm. A separate page per size is simpler and more reliable than print media queries on the screen view, and needs no PDF library in the browser.
+
+## 2026-10-25: Releases are built on the server from a tag
+
+- Decision: `deploy/deploy.sh <tag>` runs on the server. It checks the tag is on `origin/main`, exports the tagged tree with `git archive` (never a checkout), builds `hms-api`, `hms-web` and `hms-migrate` images tagged with the release, applies migrations, starts the release, checks the public health URLs, and starts the previous release again if the new one is unhealthy. The newest 3 releases keep their images and compose files, so `deploy/rollback.sh` needs no rebuild. No container registry.
+- Reason: the developer approved building on the server: no registry to run or secure, and one server. Building from an export means the script never changes under itself and local edits on the server never reach an image.
+
+## 2026-10-25: Migrations get their own image and are never rolled back
+
+- Decision: `deploy/migrate.Dockerfile` holds only the Prisma CLI, the schema and the migrations, and runs `pnpm db:deploy` with `DIRECT_URL` before the new containers start. The app Dockerfiles are unchanged. A rollback starts older images and leaves the schema as it is, so every migration must keep the previous release working: add first, remove in a later release, never rename in one step.
+- Reason: the API image is built with `pnpm deploy --prod` and has no Prisma CLI. Down migrations on a live billing database are riskier than forward-compatible ones.
+
+## 2026-10-25: Caddy with Cloudflare origin certificates and authenticated origin pulls
+
+- Decision: Caddy serves a Cloudflare origin CA certificate (no Let's Encrypt), requires Cloudflare's origin pull client certificate, trusts `CF-Connecting-IP` and `X-Forwarded-For` only from Cloudflare's ranges (`deploy/caddy/cloudflare-ips.caddy`), and the API uses `TRUST_PROXY=2`. Caddy runs as uid 1000 with a read-only root, binding 80 and 443 through the namespaced `net.ipv4.ip_unprivileged_port_start` sysctl. Its data folders are tmpfs, since there are no ACME certificates to keep. Logs go to stdout in JSON.
+- Reason: section 9 asks for non-root containers and only Caddy exposing 80 and 443. With origin pulls a request that bypasses Cloudflare fails at the TLS handshake even if a firewall rule is wrong. A 15-year origin certificate removes certificate renewal from the server.
+
+## 2026-10-25: The web ports are filtered in DOCKER-USER, and published on IPv4 only
+
+- Decision: `deploy/server/setup-firewall.sh` sets ufw for SSH and writes `DOCKER-USER` rules (through `/etc/ufw/after.rules`) that let only Cloudflare's IPv4 ranges reach 80 and 443. Caddy publishes `0.0.0.0:80` and `0.0.0.0:443` only, and the Docker daemon runs without the userland proxy. The cloud provider's firewall allows the same, as a first layer.
+- Reason: Docker's rules for published ports skip ufw's input rules, so ufw alone would leave 80 and 443 open to everyone. IPv6 publishing goes through a userland proxy that these rules never see.
+
+## 2026-10-25: Supabase through the session pooler, checked by a script
+
+- Decision: `DATABASE_URL` and `DIRECT_URL` use Supabase's session pooler (or a direct connection if it is reachable over IPv4). `deploy/check-database.sh` proves, through the real connection string and the API's `TimeZone=UTC` startup option, that every transaction runs in UTC, a transaction stays on one backend, and a transaction's lock blocks another connection until commit. It uses a transaction-scoped advisory lock by default, and a real counter row with `--row-lock`. `deploy/sql/supabase-lockdown.sql` revokes `anon` and `authenticated` everywhere in `public`, including default privileges, and revokes EXECUTE on functions from PUBLIC.
+- Reason: a transaction pooler can drop the startup option, which would store timestamps 5.5 hours wrong on an IST connection, and it breaks Prisma's session advisory lock during migrations. Supabase's direct connection is IPv6 only without a paid add-on, and containers have no IPv6. The advisory lock follows the same transaction rules as row locks without touching business data. Revoking the Data API roles protects the tables even if the Data API is turned on again by mistake.
+
+## 2026-10-25: A deploy rehearsal in CI instead of a local Docker run
+
+- Decision: `.github/workflows/deploy-rehearsal.yml` runs on pull requests that touch `deploy/`, the Dockerfiles or migrations, and by hand. It runs shellcheck and the Docker-free dry runs (`deploy/test/dry-run.sh`), then deploys two tags of the pull request on the runner with test certificates, rolls back, restarts the API, checks container hardening, headers, the HTTP redirect and the refusal of clients without the origin pull certificate, runs `deploy/check-database.sh`, and runs the Supabase lockdown against stand-in roles. It is a separate workflow so `ci.yml` stays as it is.
+- Reason: the development machine has no Docker, and a deploy script that has never run is not a deploy script. The dry runs need only bash, git and openssl, so they also run in Git Bash on Windows.
+- Watch out: when the production start-up guard (go-live checklist stage 4) lands, the rehearsal's `api.env` (built by `deploy/test/make-rehearsal-home.sh` from `deploy/env/api.env.example`) must satisfy it, for example with `NODE_ENV=production` and a fake Sentry DSN, or a rehearsal mode.

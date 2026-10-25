@@ -1,0 +1,9 @@
+// Copy to /etc/apt/apt.conf.d/52unattended-upgrades-hms.
+// Docker comes from its own repository, so it is listed here to get security fixes too.
+Unattended-Upgrade::Origins-Pattern {
+        "origin=Docker,label=Docker CE";
+};
+Unattended-Upgrade::Automatic-Reboot "true";
+// The server clock is UTC: 22:00 UTC is 03:30 IST, the quietest hour at the counters.
+Unattended-Upgrade::Automatic-Reboot-Time "22:00";
+Unattended-Upgrade::Remove-Unused-Dependencies "true";

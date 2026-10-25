@@ -85,29 +85,29 @@ From `CLAUDE.md` section 9.
 
 A copy of production with fake data, used for UAT, printer checks and the VAPT.
 
-- [ ] A production Docker Compose file and a Caddyfile (`app.` and `api.` subdomains). Neither is in the repo yet. **Dev**
-- [ ] Oracle Cloud VM with Docker, the two images, Caddy, and Cloudflare in front. Partly: the web and API images build in CI and run as the non-root `node` user with health checks. **Dev**
+- [x] A production Docker Compose file and a Caddyfile (`app.` and `api.` subdomains): `deploy/compose.prod.yml` and `deploy/Caddyfile`, rehearsed in CI (`.github/workflows/deploy-rehearsal.yml`). **Dev**
+- [ ] Oracle Cloud VM with Docker, the two images, Caddy, and Cloudflare in front. Partly: the web and API images build in CI and run as the non-root `node` user with health checks, and the setup steps are in `docs/runbooks/` (server hardening, Cloudflare, deploy). **Dev**
 - [ ] Its own Supabase project and R2 bucket, sharing nothing with production. **Dev**
-- [ ] A deploy script the developer runs: build images from a tagged commit, run `pnpm db:deploy`, start the containers, check `/health`, and keep the previous images for rollback. **Dev**
+- [x] A deploy script the developer runs: build images from a tagged commit, run `pnpm db:deploy`, start the containers, check `/health`, and keep the previous images for rollback. `deploy/deploy.sh`, `deploy/rollback.sh` and `deploy/restart.sh`, rehearsed in CI; first real run on staging still to come. **Dev**
 - [ ] Load the fake demo hospital, then rehearse entering the hospital's real masters (tariffs, staff names, wards). No real patients on staging. **Dev + Hospital**
 
 ## Stage 6: Production infrastructure and operations
 
 - [ ] Paid host chosen, with its data centre in India. **Dev + Hospital**
-- [ ] Server: SSH by key only, a firewall with only ports 80 and 443 open (Caddy), automatic security updates, and the clock synced by NTP. CERT-In asks for NIC or NPL time servers: confirm with the auditor. **Dev**
-- [ ] Supabase: **Dev**
+- [ ] Server: SSH by key only, a firewall with only ports 80 and 443 open (Caddy), automatic security updates, and the clock synced by NTP. CERT-In asks for NIC or NPL time servers: confirm with the auditor. Partly: steps and files ready in `docs/runbooks/server-hardening.md` and `deploy/server/`, not yet applied to a server. **Dev**
+- [ ] Supabase: **Dev**. Partly: `docs/runbooks/supabase.md`, `deploy/sql/supabase-lockdown.sql` and `deploy/check-database.sh` are ready; no project created yet.
   - the Mumbai region
   - the database reachable only from the server's IP address
   - its Data API turned off, or the `anon` and `authenticated` roles' access revoked. The app uses Supabase only as plain PostgreSQL, and tables in the `public` schema are otherwise reachable through Supabase's REST API.
   - a check that the connection pooler keeps the app's per-connection UTC setting and its row locks, or else a session pooler or a direct connection
-- [ ] Cloudflare: DNS, proxy on, TLS set to full (strict), HSTS. **Dev**
-- [ ] Production secrets: generate `SESSION_SECRET` and `FIELD_ENCRYPTION_KEY` once, keep them in the server's environment and in a second safe place, and write down how to rotate them. Losing the field key loses every Aadhaar and ABHA number. **Dev**
-- [ ] Production environment: `NODE_ENV=production`, `COOKIE_DOMAIN`, `CORS_ORIGINS`, `TRUST_PROXY` set for Cloudflare and Caddy, real email keys, and `MAIL_ENABLED` only once tested. **Dev**
+- [ ] Cloudflare: DNS, proxy on, TLS set to full (strict), HSTS. Partly: steps in `docs/runbooks/cloudflare.md`, with authenticated origin pulls; not yet applied. **Dev**
+- [ ] Production secrets: generate `SESSION_SECRET` and `FIELD_ENCRYPTION_KEY` once, keep them in the server's environment and in a second safe place, and write down how to rotate them. Losing the field key loses every Aadhaar and ABHA number. Partly: `docs/runbooks/secrets-and-rotation.md`; rotating the field key needs an app feature. **Dev**
+- [ ] Production environment: `NODE_ENV=production`, `COOKIE_DOMAIN`, `CORS_ORIGINS`, `TRUST_PROXY` set for Cloudflare and Caddy, real email keys, and `MAIL_ENABLED` only once tested. Partly: templates in `deploy/env/` (`TRUST_PROXY=2`). **Dev**
 - [ ] Backups: Supabase's daily backups, plus an encrypted `pg_dump` to an R2 bucket in a separate account, kept as long as the hospital decides in stage 2. **Dev**
 - [ ] Restore drill: restore last night's backup to a fresh database, run the app on it, and check the bill and receipt counters and the audit trail. Repeat every quarter and record the result. **Dev**
 - [ ] Monitoring: Sentry for web and API with patient data removed before anything is sent, an uptime check on `/health`, and alerts for downtime, error spikes, failed logins and failed backups. **Dev**
 - [ ] Logs: API and Caddy logs shipped to storage in India and kept 180 days (CERT-In), out of reach of the app. **Dev**
-- [ ] Release process: tagged releases from `main`, a change log, migrations applied by the developer before new containers start, and written rollback steps. **Dev**
+- [x] Release process: tagged releases from `main`, a change log, migrations applied by the developer before new containers start, and written rollback steps. `CHANGELOG.md` and `docs/runbooks/deploy-and-rollback.md`. **Dev**
 - [ ] Published backup, recovery and security practices, one of the four promises in `CLAUDE.md` section 1. **Dev**
 
 ## Stage 7: Testing, audits and the VAPT

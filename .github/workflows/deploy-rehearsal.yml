@@ -1,0 +1,98 @@
+name: Deploy rehearsal
+
+# Runs the real deploy and rollback scripts on the CI runner as if it were the server: builds the
+# images from a tag, applies migrations, starts the production Compose file behind Caddy with test
+# certificates, deploys a second release, rolls back, and checks the result. Nothing leaves the runner.
+on:
+  pull_request:
+    paths:
+      - 'deploy/**'
+      - 'apps/api/Dockerfile'
+      - 'apps/web/Dockerfile'
+      - 'prisma/migrations/**'
+      - '.github/workflows/deploy-rehearsal.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-rehearsal-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  scripts:
+    name: Deploy scripts (shellcheck and dry runs)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - name: shellcheck (preinstalled on the runner)
+        run: shellcheck --external-sources deploy/*.sh deploy/server/*.sh deploy/test/*.sh
+      - run: deploy/test/dry-run.sh
+
+  rehearsal:
+    name: Deploy, redeploy and roll back
+    needs: scripts
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: hms
+          POSTGRES_PASSWORD: hms_ci_only
+          POSTGRES_DB: hms_infra
+          TZ: Asia/Kolkata
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U hms -d hms_infra"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      HMS_REHEARSAL: '1'
+      HEALTH_CHECK_RESOLVE: 127.0.0.1
+      # Containers reach the service database through the Docker host's bridge address.
+      REHEARSAL_DATABASE_URL: postgresql://hms:hms_ci_only@172.17.0.1:5432/hms_infra
+      LOCAL_DATABASE_URL: postgresql://hms:hms_ci_only@localhost:5432/hms_infra
+    steps:
+      - uses: actions/checkout@v7
+      - name: Prepare a throwaway server folder
+        run: |
+          echo "HMS_HOME=$RUNNER_TEMP/hms" >> "$GITHUB_ENV"
+          deploy/test/make-rehearsal-home.sh "$RUNNER_TEMP/hms" >> "$GITHUB_ENV"
+          command -v psql || sudo apt-get install --yes postgresql-client
+      - name: Tag two releases of this commit
+        run: |
+          git tag v0.0.1-ci
+          git tag v0.0.2-ci
+      - name: Deploy v0.0.1-ci
+        run: deploy/deploy.sh v0.0.1-ci
+      - name: Deploy v0.0.2-ci
+        run: deploy/deploy.sh v0.0.2-ci
+      - run: deploy/test/check-rehearsal.sh v0.0.2-ci v0.0.1-ci
+      - name: Roll back to v0.0.1-ci
+        run: deploy/rollback.sh
+      - run: deploy/test/check-rehearsal.sh v0.0.1-ci v0.0.2-ci
+      - name: Restart the API, as after a secret rotation
+        run: deploy/restart.sh api
+      - name: Check the database connection rules
+        run: DATABASE_URL="$LOCAL_DATABASE_URL" deploy/check-database.sh
+      - name: Run the Supabase lockdown against stand-in roles
+        run: |
+          psql "$LOCAL_DATABASE_URL" -X -q -v ON_ERROR_STOP=1 \
+            -c 'CREATE ROLE postgres NOLOGIN' -c 'CREATE ROLE anon NOLOGIN' -c 'CREATE ROLE authenticated NOLOGIN' \
+            -c 'GRANT SELECT ON ALL TABLES IN SCHEMA public TO anon, authenticated'
+          remaining="$(psql "$LOCAL_DATABASE_URL" -X -q -A -t -v ON_ERROR_STOP=1 -f deploy/sql/supabase-lockdown.sql)"
+          if [ -n "$remaining" ]; then echo "grants left after the lockdown:"; echo "$remaining"; exit 1; fi
+      - name: Show container logs
+        if: failure()
+        run: |
+          docker ps --all --filter label=com.docker.compose.project=hms
+          for id in $(docker ps --all --quiet --filter label=com.docker.compose.project=hms); do
+            echo "::group::$(docker inspect --format '{{.Name}}' "$id")"
+            docker logs --tail 100 "$id" 2>&1
+            echo "::endgroup::"
+          done
