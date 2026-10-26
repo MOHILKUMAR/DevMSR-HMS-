@@ -89,4 +89,24 @@ expect "$out" '-A DOCKER-USER -i eth0 -s 173\.245\.48\.0/20 -p tcp -m multiport 
 expect "$out" '-A DOCKER-USER -i eth0 -j DROP'
 [[ "$(grep -c 'dports 80,443' <<<"$out")" == 15 ]] || { echo "expected 15 Cloudflare IPv4 ranges" >&2; exit 1; }
 
+echo "seed-staging.sh"
+out="$(SEED_USER_PASSWORD='rehearsal-only-Passw0rd' "$repo/deploy/seed-staging.sh" 2>&1)"
+expect "$out" 'docker build .*--file .*/deploy/seed\.Dockerfile --tag hms-seed:v1\.0\.1'
+expect "$out" 'docker run --rm --name hms-seed-v1\.0\.1 --env-file .*/env/api\.env --env NODE_ENV=development --env SEED_USER_PASSWORD --env SEED_TOTP_SECRET= '
+# The password goes to the container by name only, never on a command line.
+if grep -q 'rehearsal-only-Passw0rd' <<<"$out"; then echo "seed-staging.sh printed the password" >&2; exit 1; fi
+
+echo "seed-staging.sh refuses production and short passwords"
+cp "$HMS_HOME/env/api.env" "$work/api.env.staging"
+sed 's/^APP_ENV=.*/APP_ENV=production/' "$work/api.env.staging" >"$HMS_HOME/env/api.env"
+if SEED_USER_PASSWORD='rehearsal-only-Passw0rd' "$repo/deploy/seed-staging.sh" >/dev/null 2>&1; then
+  echo "seed-staging.sh ran with APP_ENV=production" >&2
+  exit 1
+fi
+cp "$work/api.env.staging" "$HMS_HOME/env/api.env"
+if SEED_USER_PASSWORD='short' "$repo/deploy/seed-staging.sh" >/dev/null 2>&1; then
+  echo "seed-staging.sh took a password under 12 characters" >&2
+  exit 1
+fi
+
 echo "all dry runs passed"

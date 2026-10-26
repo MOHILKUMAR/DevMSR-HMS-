@@ -9,7 +9,7 @@ Cloudflare sits in front of both host names: DNS, proxy, TLS to the browser, and
 | A | `app` | server's public IPv4 | Proxied (orange cloud) |
 | A | `api` | server's public IPv4 | Proxied |
 
-For staging use separate names, for example `app.staging` and `api.staging`, or a separate domain. No AAAA records: Caddy is published on IPv4 only. No other record may point at the server's IP, because a grey-cloud record would reveal it.
+Staging uses a separate domain of its own, never names under production's domain: the session cookies are set for the parent domain, and the free edge certificate covers only one level of subdomain ([staging-oracle-cloud.md](staging-oracle-cloud.md)). No AAAA records: Caddy is published on IPv4 only. No other record may point at the server's IP, because a grey-cloud record would reveal it.
 
 ## 2. TLS
 

@@ -16,7 +16,7 @@ Everything lives under `/opt/hms` (`HMS_HOME`), owned by the `hmsadmin` user:
 | `releases/<tag>/` | The compose file, Caddyfile and Caddy snippets of each kept release | Copied from the tag |
 | `state/` | `current`, `previous`, `history.log`, the deploy lock | No |
 
-Images are named `hms-api:<tag>`, `hms-web:<tag>`, `hms-migrate:<tag>` and `hms-backup:<tag>`. The newest 3 releases (`KEEP_RELEASES`) keep their images and folders, so rollback needs no rebuild.
+Images are named `hms-api:<tag>`, `hms-web:<tag>`, `hms-migrate:<tag>` and `hms-backup:<tag>` (`hms-seed:<tag>` exists only while `seed-staging.sh` runs). The newest 3 releases (`KEEP_RELEASES`) keep their images and folders, so rollback needs no rebuild.
 
 ## First-time setup
 
@@ -34,7 +34,7 @@ Images are named `hms-api:<tag>`, `hms-web:<tag>`, `hms-migrate:<tag>` and `hms-
 4. Copy each `deploy/env/*.example` to `/opt/hms/env/` without `.example`, fill in the values ([secrets-and-rotation.md](secrets-and-rotation.md)), and `chmod 600 /opt/hms/env/*`.
 5. Put the Cloudflare files in `/opt/hms/certs/` ([cloudflare.md](cloudflare.md)).
 6. Run `deploy/check-database.sh` ([supabase.md](supabase.md)).
-7. Deploy the first release (below). For staging, load the fake demo hospital afterwards with `pnpm db:seed` from a developer machine pointed at the staging database. The seed refuses to run in production.
+7. Deploy the first release (below). For staging, load the fake demo hospital afterwards with `deploy/seed-staging.sh` on the server: it builds the seed from the running release, asks for the demo password, and refuses unless the settings say staging. The full staging walk-through is [staging-oracle-cloud.md](staging-oracle-cloud.md).
 
 ## Making a release
 

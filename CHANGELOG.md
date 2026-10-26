@@ -5,3 +5,4 @@ Every release deployed to staging or production, newest first. Each entry says w
 ## Unreleased
 
 - First release: not tagged yet.
+- Staging: `deploy/seed-staging.sh` loads the fake demo hospital on the server, and `docs/runbooks/staging-oracle-cloud.md` walks through the staging set-up.

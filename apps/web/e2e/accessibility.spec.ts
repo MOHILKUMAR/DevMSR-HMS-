@@ -1,5 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Browser, type Locator, type Page } from '@playwright/test';
+import { freshTotpCode, seedTotpSecret } from './totp';
 
 // WCAG 2.1 AA (CLAUDE.md section 16, go-live checklist stage 7): every screen that exists is checked
 // with axe's WCAG 2.0 and 2.1 level A and AA rules, and the billing and payment counters are worked
@@ -13,12 +14,18 @@ function seedPassword(): string {
   return password;
 }
 
-async function signIn(browser: Browser, username: string, displayName: string): Promise<Page> {
+/** `twoFactor` for the demo users whose role needs it: the seed gave them SEED_TOTP_SECRET. */
+async function signIn(browser: Browser, username: string, displayName: string, twoFactor = false): Promise<Page> {
   const page = await (await browser.newContext()).newPage();
   await page.goto('/login');
   await page.getByLabel('Username').fill(username);
   await page.getByLabel('Password').fill(seedPassword());
   await page.getByRole('button', { name: 'Sign in' }).click();
+  if (twoFactor) {
+    const step = page.getByRole('form', { name: 'Two-factor sign-in' });
+    await step.getByLabel('Code from the app').fill(await freshTotpCode(seedTotpSecret()));
+    await step.getByRole('button', { name: 'Sign in' }).click();
+  }
   await expect(page.getByRole('heading', { name: `Welcome, ${displayName}` })).toBeVisible();
   return page;
 }
@@ -47,22 +54,24 @@ test('the login screen meets WCAG 2.1 AA', async ({ page }) => {
   await expectNoViolations(page, '/login');
 });
 
-const SCREENS: { username: string; displayName: string; paths: string[] }[] = [
+// Admin and finance roles sign in with two-factor (docs/decisions.md, two-factor sign-in).
+const SCREENS: { username: string; displayName: string; paths: string[]; twoFactor?: boolean }[] = [
   { username: 'reception', displayName: 'Demo Receptionist', paths: ['/', '/patients', '/patients/new', '/opd', '/ipd', '/beds'] },
   { username: 'billing', displayName: 'Demo Billing Clerk', paths: ['/billing'] },
   { username: 'cashier', displayName: 'Demo Cashier', paths: ['/payments'] },
-  { username: 'accounts', displayName: 'Demo Accountant', paths: ['/payments/shifts', '/reports'] },
+  { username: 'accounts', displayName: 'Demo Accountant', paths: ['/payments/shifts', '/reports'], twoFactor: true },
   { username: 'nurse', displayName: 'Demo Nurse', paths: ['/discharge'] },
   {
     username: 'admin',
     displayName: 'Demo Hospital Admin',
     paths: ['/settings', '/settings/hospital', '/settings/users', '/settings/departments', '/settings/doctors', '/settings/wards', '/settings/rates'],
+    twoFactor: true,
   },
 ];
 
-for (const { username, displayName, paths } of SCREENS) {
+for (const { username, displayName, paths, twoFactor } of SCREENS) {
   test(`screens for ${username} meet WCAG 2.1 AA`, async ({ browser }) => {
-    const page = await signIn(browser, username, displayName);
+    const page = await signIn(browser, username, displayName, twoFactor);
     for (const path of paths) {
       await page.goto(path);
       await expect(page.getByRole('heading').first()).toBeVisible();

@@ -73,19 +73,12 @@ jobs:
           git tag v0.0.2-ci
       - name: Deploy v0.0.1-ci (backs up the empty database first)
         run: deploy/deploy.sh v0.0.1-ci
-      - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v7
-        with:
-          node-version-file: .nvmrc
-          cache: pnpm
-      - name: Load the fake demo hospital, encrypted with the rehearsal's field key
+      - name: Load the fake demo hospital with the staging seed script, as on staging
         run: |
-          pnpm install --frozen-lockfile
-          # Only the field key: the rest of api.env says NODE_ENV=production, which the seed refuses.
-          FIELD_ENCRYPTION_KEY="$(sed -n 's/^FIELD_ENCRYPTION_KEY=//p' "$HMS_HOME/env/api.env")"
-          echo "::add-mask::$FIELD_ENCRYPTION_KEY"
-          export FIELD_ENCRYPTION_KEY
-          DATABASE_URL="$LOCAL_DATABASE_URL" DIRECT_URL="$LOCAL_DATABASE_URL" SEED_USER_PASSWORD=ci-only-Passw0rd pnpm db:seed
+          SEED_USER_PASSWORD=ci-only-Passw0rd deploy/seed-staging.sh
+          # Staff for every role and the 50 fake patients are there.
+          test "$(psql "$LOCAL_DATABASE_URL" --tuples-only --no-align --command "SELECT count(*) FROM users WHERE username IN ('reception', 'md', 'accounts', 'nurse')")" = 4
+          test "$(psql "$LOCAL_DATABASE_URL" --tuples-only --no-align --command "SELECT count(*) FROM patients")" -ge 50
       - name: Deploy v0.0.2-ci (backs up the seeded database first)
         run: deploy/deploy.sh v0.0.2-ci
       - run: deploy/test/check-rehearsal.sh v0.0.2-ci v0.0.1-ci
