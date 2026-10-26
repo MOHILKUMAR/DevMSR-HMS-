@@ -33,7 +33,7 @@ DevMSR HMS is a hospital management system for one pilot hospital in India (50 t
 - Frontend: Next.js (App Router) with React, TanStack Query, TanStack Table, React Hook Form, Zod, Tailwind CSS, shadcn/ui, lucide-react icons, next-intl (English now, Hindi later), `next/font` for self-hosted fonts.
 - Backend: NestJS, Prisma, PostgreSQL 16 or later, pg-boss for background jobs, pino for logs, argon2 for passwords, otplib for two-factor codes, helmet, `@nestjs/throttler`, PDFKit for bills and receipts.
 - Tests: Vitest for unit and integration tests, Playwright for end-to-end tests.
-- Hosting: Next.js built with `output: 'standalone'` and the NestJS API, each in its own Docker container on the same server, behind Caddy (`app.` domain to Next.js on port 3000, `api.` domain to NestJS on port 4000). Oracle Cloud VM during development, a paid host in production. PostgreSQL on Supabase used only as plain PostgreSQL through Prisma (no Supabase Auth, Storage or REST APIs). Files and backups on Cloudflare R2.
+- Hosting: Next.js built with `output: 'standalone'` and the NestJS API, each in its own Docker container on the same server, behind Caddy (`app.` domain to Next.js on port 3000, `api.` domain to NestJS on port 4000). Oracle Cloud VM during development, a paid host in production. Staging may instead run on Render's free plan (`render.yaml`, `docs/runbooks/staging-render.md`), approved by the developer for staging only. PostgreSQL on Supabase used only as plain PostgreSQL through Prisma (no Supabase Auth, Storage or REST APIs). Files and backups on Cloudflare R2.
 - Do not add: Electron, Redis, BullMQ, microservices, GraphQL, Kubernetes, Vercel-only features, or any paid service, unless the developer approves it.
 
 ### Next.js rules

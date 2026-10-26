@@ -9,18 +9,20 @@
 
 import { createPrismaClient } from '../common/prisma/create-prisma-client.js';
 import { loadCliEnv, print, requiredEnv } from './cli-env.js';
+import { roleOf } from '../common/prisma/database-role.js';
 
 // Enough of a Prisma client or transaction to run raw statements.
 type Raw = Pick<ReturnType<typeof createPrismaClient>, '$queryRaw' | '$executeRawUnsafe'>;
 
 loadCliEnv();
 const owner = new URL(requiredEnv('DIRECT_URL'));
-const ownerUser = decodeURIComponent(owner.username);
+const ownerUser = roleOf(owner.username);
 
 /** The login's name and password from a connection string, checked before anything is created. */
 function loginFrom(name: string, url: string, suggestion: string): { user: string; password: string } {
   const parsed = new URL(url);
-  const user = decodeURIComponent(parsed.username);
+  // Through Supabase's pooler the user is written hms_app.<project-ref>; the role is hms_app.
+  const user = roleOf(parsed.username);
   const password = decodeURIComponent(parsed.password);
   if (user === ownerUser) {
     throw new Error(`${name} uses the same user as DIRECT_URL. Give it its own user, for example ${suggestion}.`);

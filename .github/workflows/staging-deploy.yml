@@ -1,0 +1,112 @@
+name: Deploy staging
+
+# Deploys a release tag to staging on Render's free plan (docs/runbooks/staging-render.md). Render's free
+# services have no shell and no step before a deploy, so this workflow does what deploy/deploy.sh does
+# on a server of our own, in the same order:
+#   1. check the tag is on main
+#   2. apply the migrations to the staging database
+#   3. create or update the API's restricted login and the background jobs login
+#   4. bring the seeded roles in line with the permission matrix
+#   5. optionally load the fake demo hospital
+#   6. tell Render to deploy exactly the tagged commit, API first, then the web app
+# Started by hand only. Every value comes from the "staging" environment's secrets: this workflow can
+# never reach production, which has no such environment.
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag on main, for example v0.1.0
+        required: true
+        type: string
+      load_demo_hospital:
+        description: Load (or refresh) the fake demo hospital after migrating
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: staging-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Migrate and deploy ${{ inputs.tag }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: staging
+    env:
+      TAG: ${{ inputs.tag }}
+      DIRECT_URL: ${{ secrets.DIRECT_URL }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      JOBS_DATABASE_URL: ${{ secrets.JOBS_DATABASE_URL }}
+    steps:
+      - name: Check the tag name
+        run: |
+          [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$ ]] || { echo "::error::Use a tag such as v0.1.0, got '$TAG'"; exit 1; }
+      - uses: actions/checkout@v7
+        with:
+          ref: refs/tags/${{ inputs.tag }}
+          fetch-depth: 0
+      - name: Check the tag is on main, and every setting is there
+        run: |
+          git merge-base --is-ancestor "refs/tags/$TAG" origin/main || { echo "::error::$TAG is not on main"; exit 1; }
+          echo "COMMIT=$(git rev-parse "refs/tags/$TAG^{commit}")" >> "$GITHUB_ENV"
+          missing=0
+          for name in DIRECT_URL DATABASE_URL JOBS_DATABASE_URL RENDER_API_DEPLOY_HOOK RENDER_WEB_DEPLOY_HOOK; do
+            [[ -n "${!name}" ]] || { echo "::error::The staging environment has no secret $name"; missing=1; }
+          done
+          exit "$missing"
+        env:
+          RENDER_API_DEPLOY_HOOK: ${{ secrets.RENDER_API_DEPLOY_HOOK }}
+          RENDER_WEB_DEPLOY_HOOK: ${{ secrets.RENDER_WEB_DEPLOY_HOOK }}
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # Migrations must keep the release running now working, because a rollback never undoes them
+      # (docs/runbooks/deploy-and-rollback.md, "Migrations and rollback").
+      - name: Apply the migrations
+        run: pnpm db:deploy
+      - name: Create or update the API and background jobs logins
+        run: pnpm db:api-user
+      - name: Bring the seeded roles in line with the permission matrix
+        run: pnpm db:sync-roles --apply
+      # The seed refuses NODE_ENV=production and APP_ENV=production; this job only ever has staging's
+      # secrets. No two-factor secret: admin, accounts and superadmin set it up at first sign-in.
+      - name: Load the fake demo hospital
+        if: ${{ inputs.load_demo_hospital }}
+        run: |
+          [[ "${#SEED_USER_PASSWORD}" -ge 12 ]] || { echo "::error::Set the SEED_USER_PASSWORD secret, 12 or more characters"; exit 1; }
+          [[ -n "$FIELD_ENCRYPTION_KEY" ]] || { echo "::error::Set the FIELD_ENCRYPTION_KEY secret, the same value as on Render"; exit 1; }
+          pnpm db:seed
+        env:
+          NODE_ENV: development
+          APP_ENV: staging
+          FIELD_ENCRYPTION_KEY: ${{ secrets.FIELD_ENCRYPTION_KEY }}
+          SEED_USER_PASSWORD: ${{ secrets.SEED_USER_PASSWORD }}
+          SEED_TOTP_SECRET: ''
+      # Render's deploy hook with ref deploys that exact commit. The API goes first: the new web app
+      # may call routes that only the new API has.
+      - name: Deploy the API on Render
+        run: curl --fail --silent --show-error --request POST "${RENDER_API_DEPLOY_HOOK}&ref=${COMMIT}" > /dev/null
+        env:
+          RENDER_API_DEPLOY_HOOK: ${{ secrets.RENDER_API_DEPLOY_HOOK }}
+      - name: Deploy the web app on Render
+        run: curl --fail --silent --show-error --request POST "${RENDER_WEB_DEPLOY_HOOK}&ref=${COMMIT}" > /dev/null
+        env:
+          RENDER_WEB_DEPLOY_HOOK: ${{ secrets.RENDER_WEB_DEPLOY_HOOK }}
+      - name: What happens next
+        run: |
+          {
+            echo "### $TAG ($COMMIT) sent to Render"
+            echo
+            echo "Migrations, logins and roles are done. Render now builds both services, which takes several minutes."
+            echo "Each one shows **Live** with this commit in the Render dashboard when it is ready."
+            echo "Render keeps the previous deploy running until then."
+          } >> "$GITHUB_STEP_SUMMARY"

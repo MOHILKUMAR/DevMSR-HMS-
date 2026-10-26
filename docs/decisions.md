@@ -520,3 +520,26 @@ Every non-obvious decision, oldest first. Each entry has the date, the decision 
 
 - Decision: staging runs on a separate domain bought for it (for example `myhospital-staging.in`, with `app.` and `api.` under it), never on names under production's domain. The fake demo hospital is loaded on the server by `deploy/seed-staging.sh`, which builds `deploy/seed.Dockerfile` from the release running now and runs `prisma/seed.ts` in it. The script refuses unless `api.env` says `APP_ENV=staging` and `deploy.env` says `NEXT_PUBLIC_APP_ENV=staging`. It connects as the API's own restricted login with `api.env`, overriding `NODE_ENV` to `development` for that container only, since the seed refuses `production`. It asks for the demo password at a prompt, 12 characters or more, and passes it to the container by name, so it is never on a command line or stored. It gives no two-factor secret, so `admin`, `accounts` and `superadmin` set up two-factor at their first sign-in. The CI deploy rehearsal now seeds with this script instead of `pnpm db:seed` on the runner. Staging uses free tiers only (Oracle Always Free in Mumbai, Supabase free, Cloudflare free), and backups on staging are optional until R2 is set up.
 - Reason: session cookies are set for the parent domain, so staging under production's domain would send each other's sign-in cookies, and Cloudflare's free certificate covers only one level of subdomain. The production images carry no seed code and run with `NODE_ENV=production`, and the old step (`pnpm db:seed` from a laptop pointed at staging) needed the staging database open to a laptop and the field key on it. The developer approved the separate domain, the Mumbai region and free tiers with the staging plan.
+
+## 2026-10-27: Staging on Render's free plan
+
+- Decision: the developer chose Render's free plan for staging after the Oracle free tier could not be set up. `render.yaml` describes two free web services in Singapore (`hms-api-staging` and `hms-web-staging`), built from the existing Dockerfiles, with auto-deploy off. Free services have no shell, no step before a deploy and no one-off jobs, so the manual "Deploy staging" GitHub workflow does what `deploy/deploy.sh` does on a server, in the same order:
+  1. check the tag is on `main`
+  2. apply the migrations
+  3. create the API and background jobs logins
+  4. sync the roles
+  5. optionally load the demo hospital
+  6. trigger Render's deploy hooks with `ref` set to the tagged commit, API first
+
+  Its secrets live only in GitHub's `staging` environment.
+
+  Staging-only choices, approved by the developer:
+  - the staging Supabase project accepts connections from any address, because Render's free plan and GitHub's runners have no fixed addresses
+  - Cloudflare does DNS only at first, with Render issuing the certificates
+  - `TRUST_PROXY` is 1 for Render's proxy, checked against "Where you are signed in" on the first sign-in
+  - Server Components call the API through its public address, because free services cannot receive private network traffic
+  - `CLAUDE.md` section 3 notes the exception
+
+  Production keeps the plan in `CLAUDE.md`: Docker on a paid host in India behind Caddy, with the database limited to the server's address.
+- Reason: free services sleep after 15 minutes without visitors and have 750 instance hours a month, which is acceptable for staging with fake data. Billing stays right while the API sleeps: the background job runs once at start-up and posts every missed night, and the final bill posts any day still missing. Running migrations from GitHub before the deploy keeps the rule that the database is migrated before new code starts.
+- Also: through Supabase's pooler the database user is written `<role>.<project-ref>`. `pnpm db:api-user` and the start-up guard now read the role as the part before the dot (`roleOf`), so the logins are created as `hms_app` and `hms_jobs`. Before this, the login script would have refused the pooler's user names on any Supabase deploy, the Oracle path included.

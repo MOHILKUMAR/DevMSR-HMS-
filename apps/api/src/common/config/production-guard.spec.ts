@@ -39,6 +39,8 @@ describe('production start-up guard', () => {
     expect(problems({ JOBS_DATABASE_URL: '' })).toContain('JOBS_DATABASE_URL is not set');
     expect(problems({ JOBS_DATABASE_URL: '', JOBS_ENABLED: 'false' })).not.toContain('JOBS_DATABASE_URL');
     expect(problems({ JOBS_DATABASE_URL: 'postgresql://hms_app:Qw3nB7vRt5@db.example.in:5432/postgres' })).toContain('JOBS_DATABASE_URL uses the API login');
+    // The same role through Supabase's pooler, written with the project after a dot.
+    expect(problems({ JOBS_DATABASE_URL: 'postgresql://hms_app.abcdefgh:Qw3nB7vRt5@pooler.example.in:5432/postgres' })).toContain('JOBS_DATABASE_URL uses the API login');
     expect(problems()).not.toContain('JOBS_DATABASE_URL');
   });
 
