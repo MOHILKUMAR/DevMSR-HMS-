@@ -2,7 +2,7 @@
 
 From nothing to signing in to staging with the fake demo hospital. Staging is a copy of production with fake data only: hospital staff try a normal day on it, and the security audit (VAPT) runs against it. Never put a real patient on it.
 
-This guide gives the order and the Oracle and staging specifics, and links to the other runbooks for the rest. Claude Code wrote and tested the scripts, but nothing here has been run on a real server or account: the first run is the developer's. Allow half a day.
+Staging can also run on Render's free plan, with no server to look after: [staging-render.md](staging-render.md). This guide gives the order and the Oracle and staging specifics, and links to the other runbooks for the rest. Claude Code wrote and tested the scripts, but nothing here has been run on a real server or account: the first run is the developer's. Allow half a day.
 
 ## What staging uses
 

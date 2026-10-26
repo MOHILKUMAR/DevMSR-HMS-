@@ -1,0 +1,90 @@
+# Staging on Render's free plan (docs/runbooks/staging-render.md). Staging only: fake data, Singapore,
+# services that sleep after 15 minutes without visitors. Production follows CLAUDE.md section 3.
+#
+# Render reads this file once, when the developer creates a Blueprint from it, and again on each sync.
+# Values marked sync: false are asked for at creation and typed into Render by the developer; they
+# never go into git. Deploys are started by the "Deploy staging" GitHub workflow, after it has applied
+# the migrations, never by a push (.github/workflows/staging-deploy.yml).
+
+services:
+  - type: web
+    name: hms-api-staging
+    runtime: docker
+    plan: free
+    region: singapore
+    branch: main
+    dockerfilePath: ./apps/api/Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/v1/health
+    autoDeployTrigger: 'off'
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # Staging keeps the mock adapters; production refuses them (docs/decisions.md, start-up guard).
+      - key: APP_ENV
+        value: staging
+      - key: PORT
+        value: '4000'
+      - key: LOG_LEVEL
+        value: info
+      # https://app.<staging-domain>
+      - key: CORS_ORIGINS
+        sync: false
+      # .<staging-domain>, with the leading dot: app. and api. share the sign-in cookies.
+      - key: COOKIE_DOMAIN
+        sync: false
+      # Render's proxy is one hop. With Cloudflare's proxy turned on later, this becomes 2.
+      - key: TRUST_PROXY
+        value: '1'
+      # The API's restricted login and the background jobs login, through Supabase's session pooler.
+      # The Deploy staging workflow creates both from the same values kept in GitHub.
+      - key: DATABASE_URL
+        sync: false
+      - key: JOBS_DATABASE_URL
+        sync: false
+      - key: JOBS_ENABLED
+        value: 'true'
+      # Only Render needs it, so Render makes it.
+      - key: SESSION_SECRET
+        generateValue: true
+      # Typed in by the developer: the demo data workflow needs the same key, and losing it loses every
+      # Aadhaar and ABHA number (docs/runbooks/secrets-and-rotation.md).
+      - key: FIELD_ENCRYPTION_KEY
+        sync: false
+      - key: PAYMENTS_PROVIDER
+        value: mock
+      - key: WHATSAPP_PROVIDER
+        value: mock
+      - key: SMS_PROVIDER
+        value: mock
+      - key: EMAIL_PROVIDER
+        value: mock
+      - key: ABDM_MODE
+        value: 'off'
+      - key: MAIL_ENABLED
+        value: 'false'
+
+  - type: web
+    name: hms-web-staging
+    runtime: docker
+    plan: free
+    region: singapore
+    branch: main
+    dockerfilePath: ./apps/web/Dockerfile
+    dockerContext: .
+    healthCheckPath: /login
+    autoDeployTrigger: 'off'
+    envVars:
+      - key: PORT
+        value: '3000'
+      # Render passes a service's variables to the Docker build as build arguments, which is how these
+      # reach the browser bundle. Everything starting NEXT_PUBLIC_ is sent to every browser: no secrets.
+      # https://api.<staging-domain>/api/v1
+      - key: NEXT_PUBLIC_API_URL
+        sync: false
+      - key: NEXT_PUBLIC_APP_ENV
+        value: staging
+      # Free services cannot receive private network traffic, so Server Components call the API
+      # through its public address: https://api.<staging-domain>/api/v1
+      - key: API_INTERNAL_URL
+        sync: false

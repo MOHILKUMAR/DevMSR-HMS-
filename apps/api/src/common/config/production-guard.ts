@@ -1,3 +1,4 @@
+import { roleOf } from '../prisma/database-role.js';
 import type { Env } from './env.js';
 
 /** Database passwords used by the local Docker database and CI. Never valid in production. */
@@ -18,7 +19,7 @@ function databaseLogin(url: string | undefined): { user: string; password: strin
   if (url === undefined || url === '') return { user: '', password: '' };
   try {
     const parsed = new URL(url);
-    return { user: decodeURIComponent(parsed.username), password: decodeURIComponent(parsed.password) };
+    return { user: roleOf(parsed.username), password: decodeURIComponent(parsed.password) };
   } catch {
     return { user: '', password: '' };
   }
