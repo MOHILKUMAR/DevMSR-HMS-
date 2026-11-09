@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@eslint/js": "catalog:",
-    "eslint-config-next": "16.4.3",
+    "eslint-config-next": "16.4.5",
     "typescript-eslint": "catalog:"
   },
   "peerDependencies": {
