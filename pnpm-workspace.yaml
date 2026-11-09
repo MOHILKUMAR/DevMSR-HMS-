@@ -8,8 +8,8 @@ catalog:
   '@types/node': 22.20.5
   eslint: 9.39.5
   typescript: 6.0.3
-  typescript-eslint: 8.72.0
-  vitest: 5.0.5
+  typescript-eslint: 8.72.1
+  vitest: 5.1.0
   zod: 4.6.7
 
 # Security overrides for transitive dependencies. Each one names the advisory and when to remove it.
